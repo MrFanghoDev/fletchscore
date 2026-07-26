@@ -48,7 +48,10 @@ Points restant à trancher
    :icon: alert
 
    Conserver la liste fermée des 12 codes IFAA telle quelle, ou prévoir
-   une extension FFTL si des variantes locales existent ?
+   une extension FFTL si des variantes locales existent ? Le mécanisme
+   technique existe déjà (``referentiels.styles.ajouter_variante_style``,
+   avec refus explicite d'écraser un code IFAA) -- reste à décider si le
+   besoin se présente réellement.
 
 .. dropdown:: Format d'export fédération
    :color: warning
@@ -65,10 +68,14 @@ Points restant à trancher
    (consultation du classement) pour sortir un premier périmètre plus
    simple ?
 
-.. dropdown:: Catégories Vétérans/Seniors optionnelles
-   :color: warning
-   :icon: alert
+Points tranchés
+===================
 
-   Le règlement les laisse optionnelles et non contraignantes d'une
-   compétition à l'autre — faut-il un paramètre par compétition pour
-   activer/désactiver ces catégories ?
+.. dropdown:: Catégories Vétérans/Seniors optionnelles
+   :color: success
+   :icon: check-circle
+
+   **Résolu** : ``Competition.categories_veteran_actives`` (booléen) --
+   activé ou non à la création de chaque compétition, plutôt qu'un
+   réglage global figé une fois pour toutes. Voir
+   :doc:`modele-donnees` et ``models/competiteur.py::categorie_age``.

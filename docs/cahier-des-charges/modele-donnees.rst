@@ -145,6 +145,14 @@ Détail des champs
         - date, optionnel
         - ``2026-08-31``
 
+   .. note::
+
+      Implémenté dans ``models/competiteur.py``. ``categorie_age()``
+      prend un paramètre ``categories_veteran_actives`` porté par
+      ``Competition`` (voir :doc:`roadmap`, section "Points tranchés").
+      ``code_categorie()`` reproduit exactement l'exemple du règlement
+      (``AMBB-R``), vérifié par test.
+
 .. dropdown:: Club
 
    .. list-table::
