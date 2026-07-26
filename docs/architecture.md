@@ -21,8 +21,10 @@ directement sur le code.
 - **Deux vues, un seul outil** *(prévu, pas encore codé)* : GUI
   organisateur (customtkinter) + page web compétiteur servie localement
   (`http.server`).
-- **Couche `scoring/`** *(prochain jalon)* : isolée de la GUI et du
-  stockage, testable unitairement.
+- **Couche `scoring/`** : implémenté (`scoring/volee.py`,
+  `scoring/classement.py`) -- normalisation de volée (cas particuliers du
+  règlement), classement par catégorie, départage au X, rangs avec
+  égalités. Isolée de la GUI et du stockage, testable unitairement.
 - **Sécurité** *(prévue, pas encore codée)* : voir `SECURITY.md` --
   authentification par token côté compétiteur, mot de passe/session
   locale côté organisateur, HTTPS local.
@@ -62,3 +64,21 @@ directement sur le code.
   absent du checkout -- or git ne suit pas les dossiers vides. D'où
   `config/README.md`, qui n'a d'autre rôle que de garder ce dossier
   suivi par git (voir le commentaire dans le fichier lui-même).
+
+- **`scoring/` reçoit des objets déjà chargés, jamais une connexion DB.**
+  `classement_par_categorie()` prend une liste de `(Competiteur,
+  list[Score])` en argument plutôt que d'aller chercher les données
+  elle-même -- garde la couche testable sans base de données ni fixture
+  lourde (voir tests/test_scoring_classement.py).
+
+- **Seuls les scores `VALIDE` comptent dans un total ou un classement.**
+  `total_scores()` filtre explicitement sur le statut -- une proposition
+  compétiteur non encore validée par l'organisateur ne doit jamais
+  influencer un classement affiché ou exporté (voir
+  docs/cahier-des-charges/securite.rst §7.2).
+
+- **Rang partagé en cas d'égalité, le suivant saute (1, 2, 2, 4).**
+  Convention sportive standard -- une égalité qui subsiste après le
+  départage au X prévu par le barème n'est PAS départagée davantage : le
+  règlement renvoie ça à l'organisateur, le code n'invente pas de critère
+  supplémentaire (ex. ordre alphabétique).

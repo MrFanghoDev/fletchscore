@@ -16,10 +16,10 @@ en compétition live avant d'aller plus loin).
       (pré-rempli IFAA), import `clubs.csv`/`competiteurs.csv` avec
       rapport d'erreurs (jamais de création automatique silencieuse).
       64 tests, tous verts.
-- [ ] `scoring/` -- calcul de score par volée, cas particuliers (flèches
+- [x] `scoring/` -- calcul de score par volée, cas particuliers (flèches
       en trop/manquantes, mauvaise cible), classement par catégorie,
       départage au X. Isolé et testé unitairement en premier, sans GUI ni
-      DB réelle
+      DB réelle. 80 tests, tous verts.
 - [ ] `gui/` -- créer une compétition/épreuve avec un barème, inscrire des
       compétiteurs, saisir les scores volée par volée, classement live
 - [ ] `io/export/` -- Excel, PDF, CSV + podiums par catégorie
