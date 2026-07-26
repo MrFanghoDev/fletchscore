@@ -64,8 +64,8 @@ Diagramme des entités
        }
        class Bareme {
            +uuid id
-           +int nb_unites
-           +int volees_par_unite
+           +int nb_series
+           +int volees_par_serie
            +int fleches_par_volee
            +list valeurs_zones
            +int zone_departage
@@ -180,7 +180,7 @@ Détail des champs
    - **Compétition** : dates (début / fin), lieu, statut
      (ouverte / clôturée).
    - **Épreuve** : nom, date, type de round (référence un Barème).
-   - **Barème** : nombre d'unités, volées par unité, flèches par volée,
+   - **Barème** : nombre de séries, volées par série, flèches par volée,
      valeurs de zones ordonnées, indicateur de zone de départage (X).
 
 .. dropdown:: Inscription / Score

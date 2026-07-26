@@ -16,15 +16,15 @@ Barèmes des rounds Indoor de référence
 
    .. tab-item:: Flint Indoor Round
 
-      - 2 unités standard de 7 volées de 4 flèches = **56 flèches**.
-      - 7 distances différentes par unité.
+      - 2 séries standard de 7 volées de 4 flèches = **56 flèches**.
+      - 7 distances différentes par série.
       - Cibles 20 cm / 35 cm (35 cm / 50 cm pour la catégorie Cub).
       - Score : **5** (spot), **4** (anneau intérieur), **3** (anneau
         extérieur) — identique au Field Round.
 
    .. tab-item:: IFAA Indoor Round
 
-      - 2 unités de 6 volées de 5 flèches = **60 flèches**, à 18,3 m
+      - 2 séries de 6 volées de 5 flèches = **60 flèches**, à 18,3 m
         (10 yards pour les Cubs).
       - Cible 40 cm, score **5/4/3/2/1** du centre vers l'extérieur.
       - X-ring interne au 5, utilisé uniquement comme critère de
@@ -34,8 +34,8 @@ Barèmes des rounds Indoor de référence
 
 .. important:: Conséquence pour le modèle de données
 
-   Un barème doit définir : le nombre d'unités, le nombre de volées par
-   unité, le nombre de flèches par volée, la liste ordonnée des valeurs
+   Un barème doit définir : le nombre de séries, le nombre de volées par
+   série, le nombre de flèches par volée, la liste ordonnée des valeurs
    de zones, et un indicateur de zone de départage (X) séparé du score
    brut. Voir :doc:`modele-donnees`.
 

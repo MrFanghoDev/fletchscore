@@ -7,8 +7,8 @@ from dataclasses import dataclass
 class Bareme:
     id: str
     nom: str
-    nb_unites: int
-    volees_par_unite: int
+    nb_series: int
+    volees_par_serie: int
     fleches_par_volee: int
     valeurs_zones: list[int]
     """Valeurs de zones possibles, de la plus haute à la plus basse
@@ -26,7 +26,7 @@ class Bareme:
 
     @property
     def total_flèches(self) -> int:
-        return self.nb_unites * self.volees_par_unite * self.fleches_par_volee
+        return self.nb_series * self.volees_par_serie * self.fleches_par_volee
 
     @property
     def score_max(self) -> int:
@@ -45,8 +45,8 @@ class Bareme:
 BAREME_FLINT_INDOOR = Bareme(
     id="flint-indoor",
     nom="Flint Indoor Round",
-    nb_unites=2,
-    volees_par_unite=7,
+    nb_series=2,
+    volees_par_serie=7,
     fleches_par_volee=4,
     valeurs_zones=[5, 4, 3],
     departage_par_x=False,
@@ -55,8 +55,8 @@ BAREME_FLINT_INDOOR = Bareme(
 BAREME_IFAA_INDOOR = Bareme(
     id="ifaa-indoor",
     nom="IFAA Indoor Round",
-    nb_unites=2,
-    volees_par_unite=6,
+    nb_series=2,
+    volees_par_serie=6,
     fleches_par_volee=5,
     valeurs_zones=[5, 4, 3, 2, 1],
     departage_par_x=True,

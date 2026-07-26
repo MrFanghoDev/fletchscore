@@ -82,3 +82,13 @@ directement sur le code.
   départage au X prévu par le barème n'est PAS départagée davantage : le
   règlement renvoie ça à l'organisateur, le code n'invente pas de critère
   supplémentaire (ex. ordre alphabétique).
+
+- **`Bareme.nb_unites`/`volees_par_unite` renommés en `nb_series`/
+  `volees_par_serie`.** Vocabulaire confirmé par plusieurs glossaires
+  d'archerie français : une **volée** est le petit groupe de flèches
+  tirées d'affilée avant d'aller les relever (déjà le bon niveau pour
+  `Score.numero_volee`, inchangé) ; une **série** est le regroupement de
+  plusieurs volées tirées dans une même manche/mi-temps du concours --
+  c'est ce que "unité" désignait à tort. Renommé dans `models/bareme.py`,
+  `storage/db.py` (schéma + CRUD) et les tests -- aucune vraie base
+  déployée à ce stade, donc pas de migration nécessaire.

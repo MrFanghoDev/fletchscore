@@ -100,8 +100,8 @@ class TestBareme(unittest.TestCase):
             Bareme(
                 id="invalide",
                 nom="Barème mal ordonné",
-                nb_unites=1,
-                volees_par_unite=1,
+                nb_series=1,
+                volees_par_serie=1,
                 fleches_par_volee=1,
                 valeurs_zones=[3, 5, 4],
             )
@@ -111,8 +111,8 @@ class TestBareme(unittest.TestCase):
             Bareme(
                 id="vide",
                 nom="Barème vide",
-                nb_unites=1,
-                volees_par_unite=1,
+                nb_series=1,
+                volees_par_serie=1,
                 fleches_par_volee=1,
                 valeurs_zones=[],
             )

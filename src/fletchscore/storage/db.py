@@ -60,8 +60,8 @@ CREATE TABLE IF NOT EXISTS competiteurs (
 CREATE TABLE IF NOT EXISTS baremes (
     id TEXT PRIMARY KEY,
     nom TEXT NOT NULL,
-    nb_unites INTEGER NOT NULL,
-    volees_par_unite INTEGER NOT NULL,
+    nb_series INTEGER NOT NULL,
+    volees_par_serie INTEGER NOT NULL,
     fleches_par_volee INTEGER NOT NULL,
     valeurs_zones TEXT NOT NULL,
     departage_par_x INTEGER NOT NULL DEFAULT 0
@@ -261,14 +261,14 @@ def insert_bareme(
     sql = "INSERT OR IGNORE INTO baremes" if ignore_if_exists else "INSERT INTO baremes"
     conn.execute(
         f"""{sql}
-           (id, nom, nb_unites, volees_par_unite, fleches_par_volee,
+           (id, nom, nb_series, volees_par_serie, fleches_par_volee,
             valeurs_zones, departage_par_x)
            VALUES (?, ?, ?, ?, ?, ?, ?)""",
         (
             bareme.id,
             bareme.nom,
-            bareme.nb_unites,
-            bareme.volees_par_unite,
+            bareme.nb_series,
+            bareme.volees_par_serie,
             bareme.fleches_par_volee,
             json.dumps(bareme.valeurs_zones),
             int(bareme.departage_par_x),
@@ -285,8 +285,8 @@ def get_bareme(conn: sqlite3.Connection, bareme_id: str) -> Bareme | None:
     return Bareme(
         id=row["id"],
         nom=row["nom"],
-        nb_unites=row["nb_unites"],
-        volees_par_unite=row["volees_par_unite"],
+        nb_series=row["nb_series"],
+        volees_par_serie=row["volees_par_serie"],
         fleches_par_volee=row["fleches_par_volee"],
         valeurs_zones=json.loads(row["valeurs_zones"]),
         departage_par_x=bool(row["departage_par_x"]),

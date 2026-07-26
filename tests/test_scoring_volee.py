@@ -44,8 +44,8 @@ class TestNormaliserVolee(unittest.TestCase):
         bareme = Bareme(
             id="test-flint",
             nom="Flint test",
-            nb_unites=1,
-            volees_par_unite=1,
+            nb_series=1,
+            volees_par_serie=1,
             fleches_par_volee=4,
             valeurs_zones=[5, 4, 3],
         )
