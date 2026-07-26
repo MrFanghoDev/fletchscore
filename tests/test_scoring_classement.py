@@ -74,8 +74,8 @@ class TestClassementParCategorie(unittest.TestCase):
         ]
         classement = classement_par_categorie(BAREME_IFAA_INDOOR, date(2026, 1, 1), entrees)
         lignes = classement["AMBB-R"]
-        self.assertEqual([l.competiteur.id_federal for l in lignes], ["FR-2", "FR-1"])
-        self.assertEqual([l.rang for l in lignes], [1, 2])
+        self.assertEqual([ligne.competiteur.id_federal for ligne in lignes], ["FR-2", "FR-1"])
+        self.assertEqual([ligne.rang for ligne in lignes], [1, 2])
 
     def test_departage_par_x_si_bareme_le_prevoit(self):
         # IFAA Indoor : departage_par_x=True -- même total, X différent.
@@ -87,8 +87,8 @@ class TestClassementParCategorie(unittest.TestCase):
         ]
         classement = classement_par_categorie(BAREME_IFAA_INDOOR, date(2026, 1, 1), entrees)
         lignes = classement["AMBB-R"]
-        self.assertEqual([l.competiteur.id_federal for l in lignes], ["FR-2", "FR-1"])
-        self.assertEqual([l.rang for l in lignes], [1, 2])
+        self.assertEqual([ligne.competiteur.id_federal for ligne in lignes], ["FR-2", "FR-1"])
+        self.assertEqual([ligne.rang for ligne in lignes], [1, 2])
 
     def test_pas_de_departage_par_x_si_bareme_ne_le_prevoit_pas(self):
         # Flint Indoor : departage_par_x=False -- le nombre_x est ignoré
@@ -117,7 +117,7 @@ class TestClassementParCategorie(unittest.TestCase):
         ]
         classement = classement_par_categorie(BAREME_FLINT_INDOOR, date(2026, 1, 1), entrees)
         lignes = classement["AMBB-R"]
-        rangs = {l.competiteur.id_federal: l.rang for l in lignes}
+        rangs = {ligne.competiteur.id_federal: ligne.rang for ligne in lignes}
         self.assertEqual(rangs["FR-1"], 1)
         self.assertEqual(rangs["FR-2"], 1)
         self.assertEqual(rangs["FR-3"], 3)  # saute le rang 2, pas de 3e ex-aequo

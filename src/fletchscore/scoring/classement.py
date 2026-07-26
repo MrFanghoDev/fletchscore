@@ -69,9 +69,9 @@ def classement_par_categorie(
 
     for lignes in par_categorie.values():
         if bareme.departage_par_x:
-            lignes.sort(key=lambda l: (-l.total, -l.nombre_x))
+            lignes.sort(key=lambda ligne: (-ligne.total, -ligne.nombre_x))
         else:
-            lignes.sort(key=lambda l: -l.total)
+            lignes.sort(key=lambda ligne: -ligne.total)
         _attribuer_rangs(lignes, depart_par_x=bareme.departage_par_x)
 
     return par_categorie
