@@ -9,8 +9,9 @@ en compétition live avant d'aller plus loin).
 
 ## v0.1 -- Poste organisateur, sans réseau
 
-- [ ] `models/` + `storage/` -- entités (Compétiteur, Club, Style,
-      Competition, Épreuve, Barème, Inscription, Score), schéma SQLite
+- [x] `models/` + `storage/` -- entités (Compétiteur, Club, Style,
+      Competition, Épreuve, Barème, Inscription, Score, Token,
+      DemandeRattachement), schéma SQLite. 43 tests, tous verts.
 - [ ] `referentiels/` + `io/import_csv.py` -- chargement `styles.csv`
       (pré-rempli IFAA), import `clubs.csv`/`competiteurs.csv` avec
       rapport d'erreurs (jamais de création automatique silencieuse)

@@ -10,9 +10,15 @@ import argparse
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="fletchscore")
-    parser.add_argument("-V", "--version", action="store_true", help="Afficher la version")
-    parser.add_argument("-v", "--verbose", action="store_true", help="Sortie verbeuse")
-    parser.add_argument("-d", "--debug", action="store_true", help="Mode debug")
+    parser.add_argument(
+        "-V", "--version", action="store_true", help="Afficher la version"
+    )
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", help="Sortie verbeuse"
+    )
+    parser.add_argument(
+        "-d", "--debug", action="store_true", help="Mode debug"
+    )
     parser.add_argument(
         "--http-port",
         type=int,
