@@ -92,14 +92,10 @@ def import_clubs(conn: sqlite3.Connection, source: str | TextIO) -> RapportImpor
             ville = (ligne.get("ville") or "").strip()
 
             if not code_club:
-                rapport.erreurs.append(
-                    ErreurImport(numero_ligne, "code_club manquant ou vide")
-                )
+                rapport.erreurs.append(ErreurImport(numero_ligne, "code_club manquant ou vide"))
                 continue
             if not nom:
-                rapport.erreurs.append(
-                    ErreurImport(numero_ligne, "nom manquant ou vide")
-                )
+                rapport.erreurs.append(ErreurImport(numero_ligne, "nom manquant ou vide"))
                 continue
             if code_club in codes_vus_dans_ce_fichier:
                 rapport.erreurs.append(
@@ -199,9 +195,7 @@ def _valider_et_inserer_competiteur(
         )
 
     if sexe_brut not in ("F", "M"):
-        return ErreurImport(
-            numero_ligne, f"sexe invalide '{sexe_brut}' -- attendu 'F' ou 'M'"
-        )
+        return ErreurImport(numero_ligne, f"sexe invalide '{sexe_brut}' -- attendu 'F' ou 'M'")
 
     try:
         date_naissance = date.fromisoformat(date_naissance_brute)
