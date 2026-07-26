@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Généré par setuptools_scm à la construction (voir pyproject.toml,
+# write_to) -- jamais committé, régénéré à chaque `pip install -e .` /
+# `python -m build` / etc.
+src/fletchscore/_version.py
+
+# Artefacts de build (wheel, PyInstaller) -- jamais versionnés, régénérés
+# à la demande via `python -m build` ou `pyinstaller fletchscore.spec`.
+build/
+dist/
+
+# Environnements virtuels
+.venv/
+venv/
+
+# Sphinx
+docs/_build/
+
+# Mot de passe de contrôle organisateur -- contient un vrai secret,
+# jamais versionné.
+config/auth.toml
+
+# Préférences de la fenêtre graphique (thème...) -- propres à la machine/
+# personne qui lance la fenêtre, pas un réglage de club à partager.
+config/gui.toml
+
+# Base de données locale -- contient des données personnelles réelles de
+# compétiteurs (id fédéral, nom, date de naissance) : ne doit jamais être
+# committée, ni en développement ni en test.
+*.db
+*.sqlite
+*.sqlite3
+
+# Exports générés (Excel/PDF/CSV) -- peuvent contenir des données réelles
+# de compétition.
+exports/
+*.xlsx
+*.pdf
+!docs/**/*.pdf
+
+# Assets propres à un club (logo...) -- jamais versionnés dans le dépôt
+# public partagé avec la FFTL, voir docs/architecture.md. Réservé pour
+# une éventuelle personnalisation de la vue compétiteur / des exports ;
+# vide pour l'instant si la fonctionnalité n'existe pas encore.
+web/assets/club/*
+!web/assets/club/.gitkeep
+
+# Filet de sécurité : les dossiers de données du club ne doivent jamais se
+# retrouver DANS le paquet lui-même (src/fletchscore/web/), seulement à la
+# racine du dépôt (web/assets/, voir plus haut) -- ce chemin ne devrait
+# normalement jamais exister, mais autant s'en protéger si un lancement
+# particulier (ex. Pydroid dans un état inhabituel) le recréait quand même.
+src/fletchscore/web/assets/
+
+# OS / éditeurs
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/
+.idea/

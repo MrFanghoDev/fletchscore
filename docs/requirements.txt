@@ -1,0 +1,4 @@
+sphinx
+sphinx-design
+sphinxcontrib-mermaid
+furo

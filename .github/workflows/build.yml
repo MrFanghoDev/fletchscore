@@ -1,0 +1,204 @@
+name: Distribution (paquet Python, exécutables)
+
+# Un seul workflow pour toute la chaîne de distribution :
+# - construction du paquet Python (sdist + wheel), publié sur TestPyPI à
+#   chaque push pertinent, sur PyPI (le vrai) à la publication d'une
+#   Release GitHub, et joint à cette même Release en téléchargement direct
+# - construction des exécutables autoporteurs Windows/Linux (PyInstaller),
+#   joints à la même Release sur un tag
+#
+# Repris tel quel du modèle FletchTime -- voir CLAUDE.md. macOS absent de
+# la matrice : non vérifiable sans accès à du matériel réel.
+#
+# ATTENTION -- configuration externe liée au NOM DE CE FICHIER : PyPI et
+# TestPyPI valident le Trusted Publisher (OIDC) en comparant le nom exact
+# du fichier workflow qui appelle l'API de publication. Si ce fichier est
+# renommé, il faut mettre à jour le champ "Workflow name" correspondant :
+#   - https://pypi.org/manage/account/publishing/ (projet fletchscore)
+#   - https://test.pypi.org/manage/account/publishing/ (projet fletchscore)
+#
+# Configuration ponctuelle nécessaire (une seule fois, avant le premier
+# déclenchement de publish-testpypi/publish-pypi -- sinon le job échoue
+# avec une erreur d'authentification OIDC) :
+#   PyPI (https://pypi.org) et TestPyPI (https://test.pypi.org -- compte
+#   SÉPARÉ, inscription indépendante) : ajoute un "trusted publisher" sur
+#   chacun -- PyPI Project Name: fletchscore, Owner: MrFanghoDev,
+#   Repository name: fletchscore, Workflow name: build.yml,
+#   Environment name: pypi / testpypi respectivement.
+#
+# TODO test de fumée après build des exécutables : reporté (voir
+# CLAUDE.md / docs/roadmap.md) tant que le mode --headless et le
+# comportement de la vue compétiteur (serveur HTTP local) ne sont pas
+# stabilisés côté CLI. En attendant, seule une vérification minimale
+# (`--version` répond) est faite -- pas un vrai test de bout en bout
+# comme celui de FletchTime sur sa page d'accueil.
+
+on:
+  push:
+    branches: [main, master]
+    tags:
+      - "v*.*.*"
+    paths:
+      - "src/**"
+      - "pyproject.toml"
+      - "fletchscore.spec"
+      - ".github/workflows/build.yml"
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  # -- Paquet Python (sdist + wheel) ----------------------------------------
+
+  build-package:
+    if: github.event_name != 'push' || !contains(github.event.head_commit.message, 'corrections automatiques (black + ruff)')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installer les outils de build
+        run: pip install build
+
+      - name: Construire la distribution (sdist + wheel)
+        run: python -m build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish-testpypi:
+    needs: build-package
+    if: github.event_name != 'release' && !startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/project/fletchscore/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publier sur TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+  publish-pypi:
+    needs: build-package
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/fletchscore/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  # -- Exécutables autoporteurs (PyInstaller) -------------------------------
+
+  build-executables:
+    if: github.event_name != 'release' && (github.event_name != 'push' || !contains(github.event.head_commit.message, 'corrections automatiques (black + ruff)'))
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            archive_name: FletchScore-${{ (startsWith(github.ref, 'refs/tags/v') && github.ref_name) || 'dev' }}-windows.zip
+
+          - os: ubuntu-latest
+            archive_name: FletchScore-${{ (startsWith(github.ref, 'refs/tags/v') && github.ref_name) || 'dev' }}-linux.tar.gz
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installer les dépendances
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller customtkinter openpyxl
+          # Installe aussi le paquet lui-même : déclenche setuptools_scm et
+          # génère src/fletchscore/_version.py avec la version dérivée du
+          # tag -- sans elle, PyInstaller retombe sur le repli "dev" même
+          # sur un vrai tag de release.
+          pip install -e .
+
+      - name: Construire l'exécutable (--onedir, voir fletchscore.spec)
+        run: |
+          pyinstaller fletchscore.spec
+
+      - name: Vérifier le contenu de dist
+        shell: bash
+        run: |
+          echo "Runner : $RUNNER_OS"
+          pwd
+          ls -R dist
+
+      - name: Test minimal -- l'exécutable répond à --version (Linux)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: ./dist/FletchScore/FletchScore --version
+
+      - name: Test minimal -- l'exécutable répond à --version (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: .\dist\FletchScore\FletchScore.exe --version
+
+      - name: Créer l'archive Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+         Compress-Archive `
+           -Path dist/FletchScore/* `
+           -DestinationPath dist/${{ matrix.archive_name }}
+
+      - name: Créer l'archive Linux
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          cd dist
+          tar -czf ${{ matrix.archive_name }} FletchScore
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.archive_name }}
+          path: dist/${{ matrix.archive_name }}
+
+  archive-on-release:
+    needs: [build-executables, build-package]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Joindre les exécutables et le paquet Python à la Release GitHub
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*/*
