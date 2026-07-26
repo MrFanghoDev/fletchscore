@@ -87,9 +87,7 @@ class TestImportCompetiteurs(unittest.TestCase):
         return io.StringIO(entete + "\n" + "\n".join(lignes) + "\n")
 
     def test_import_valide(self):
-        fichier = self._csv(
-            ["FR-1,Dupont,Marie,77123,F,1995-03-14,BB-R,2026-08-31"]
-        )
+        fichier = self._csv(["FR-1,Dupont,Marie,77123,F,1995-03-14,BB-R,2026-08-31"])
         rapport = import_competiteurs(self.conn, fichier)
 
         self.assertTrue(rapport.succes)
@@ -105,9 +103,7 @@ class TestImportCompetiteurs(unittest.TestCase):
         self.assertIsNone(db.get_competiteur(self.conn, "FR-1").licence_valide_jusqu_au)
 
     def test_code_club_inconnu_rejete_sans_creation_automatique(self):
-        fichier = self._csv(
-            ["FR-1,Dupont,Marie,CLUB-FANTOME,F,1995-03-14,BB-R,"]
-        )
+        fichier = self._csv(["FR-1,Dupont,Marie,CLUB-FANTOME,F,1995-03-14,BB-R,"])
         rapport = import_competiteurs(self.conn, fichier)
 
         self.assertEqual(rapport.importees, 0)
@@ -116,9 +112,7 @@ class TestImportCompetiteurs(unittest.TestCase):
         self.assertIsNone(db.get_club(self.conn, "CLUB-FANTOME"))
 
     def test_code_style_inconnu_rejete_sans_creation_automatique(self):
-        fichier = self._csv(
-            ["FR-1,Dupont,Marie,77123,F,1995-03-14,STYLE-FANTOME,"]
-        )
+        fichier = self._csv(["FR-1,Dupont,Marie,77123,F,1995-03-14,STYLE-FANTOME,"])
         rapport = import_competiteurs(self.conn, fichier)
 
         self.assertEqual(rapport.importees, 0)
@@ -137,9 +131,7 @@ class TestImportCompetiteurs(unittest.TestCase):
         self.assertIn("date_naissance invalide", rapport.erreurs[0].message)
 
     def test_licence_invalide_rejetee(self):
-        fichier = self._csv(
-            ["FR-1,Dupont,Marie,77123,F,1995-03-14,BB-R,pas-une-date"]
-        )
+        fichier = self._csv(["FR-1,Dupont,Marie,77123,F,1995-03-14,BB-R,pas-une-date"])
         rapport = import_competiteurs(self.conn, fichier)
         self.assertEqual(rapport.importees, 0)
         self.assertIn("licence_valide_jusqu_au invalide", rapport.erreurs[0].message)
