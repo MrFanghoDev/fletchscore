@@ -24,8 +24,13 @@ def _competiteur(id_federal: str, sexe: Sexe, code_style: str, annee_naissance: 
     )
 
 
-def _score(inscription_id: str, numero_volee: int, valeurs: list[int], nombre_x: int = 0,
-           statut: StatutScore = StatutScore.VALIDE) -> Score:
+def _score(
+    inscription_id: str,
+    numero_volee: int,
+    valeurs: list[int],
+    nombre_x: int = 0,
+    statut: StatutScore = StatutScore.VALIDE,
+) -> Score:
     return Score(
         id=f"{inscription_id}-{numero_volee}",
         inscription_id=inscription_id,
@@ -60,9 +65,7 @@ class TestClassementParCategorie(unittest.TestCase):
             (homme, [_score("i1", 1, [5, 5, 4, 3, 2], nombre_x=1)]),
             (femme, [_score("i2", 1, [5, 5, 4, 3, 2], nombre_x=1)]),
         ]
-        classement = classement_par_categorie(
-            BAREME_IFAA_INDOOR, date(2026, 1, 1), entrees
-        )
+        classement = classement_par_categorie(BAREME_IFAA_INDOOR, date(2026, 1, 1), entrees)
         self.assertEqual(set(classement.keys()), {"AMBB-R", "AFBB-R"})
 
     def test_tri_par_total_decroissant(self):
@@ -129,11 +132,15 @@ class TestClassementParCategorie(unittest.TestCase):
         entrees = [(veteran, [_score("i1", 1, [5, 5, 5, 5], nombre_x=0)])]
 
         sans_veteran = classement_par_categorie(
-            BAREME_FLINT_INDOOR, date(2026, 1, 1), entrees,
+            BAREME_FLINT_INDOOR,
+            date(2026, 1, 1),
+            entrees,
             categories_veteran_actives=False,
         )
         avec_veteran = classement_par_categorie(
-            BAREME_FLINT_INDOOR, date(2026, 1, 1), entrees,
+            BAREME_FLINT_INDOOR,
+            date(2026, 1, 1),
+            entrees,
             categories_veteran_actives=True,
         )
         self.assertIn("AMBB-R", sans_veteran)

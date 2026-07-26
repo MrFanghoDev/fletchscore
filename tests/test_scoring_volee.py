@@ -7,9 +7,7 @@ from fletchscore.scoring import normaliser_volee
 class TestNormaliserVolee(unittest.TestCase):
     def test_volee_complete_inchangee(self):
         # IFAA Indoor : 5 flèches par volée.
-        self.assertEqual(
-            normaliser_volee(BAREME_IFAA_INDOOR, [5, 5, 4, 3, 2]), [5, 5, 4, 3, 2]
-        )
+        self.assertEqual(normaliser_volee(BAREME_IFAA_INDOOR, [5, 5, 4, 3, 2]), [5, 5, 4, 3, 2])
 
     def test_trop_de_fleches_garde_les_n_plus_faibles(self):
         # 6 flèches tirées par erreur -- pénalité : les 5 PLUS FAIBLES
