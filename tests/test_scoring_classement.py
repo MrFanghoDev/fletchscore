@@ -34,6 +34,7 @@ def _score(
     return Score(
         id=f"{inscription_id}-{numero_volee}",
         inscription_id=inscription_id,
+        numero_serie=1,  # le classement agrège toutes les séries, non testé ici
         numero_volee=numero_volee,
         valeurs=valeurs,
         nombre_x=nombre_x,

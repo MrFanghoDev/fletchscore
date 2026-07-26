@@ -95,11 +95,12 @@ CREATE TABLE IF NOT EXISTS inscriptions (
 CREATE TABLE IF NOT EXISTS scores (
     id TEXT PRIMARY KEY,
     inscription_id TEXT NOT NULL REFERENCES inscriptions(id),
+    numero_serie INTEGER NOT NULL,
     numero_volee INTEGER NOT NULL,
     valeurs TEXT NOT NULL,
     nombre_x INTEGER NOT NULL DEFAULT 0,
     statut TEXT NOT NULL DEFAULT 'propose',
-    UNIQUE (inscription_id, numero_volee)
+    UNIQUE (inscription_id, numero_serie, numero_volee)
 );
 
 CREATE TABLE IF NOT EXISTS tokens (
@@ -398,20 +399,21 @@ def list_inscriptions_by_epreuve(conn: sqlite3.Connection, epreuve_id: str) -> l
 
 
 def upsert_score(conn: sqlite3.Connection, score: Score) -> None:
-    """Insère ou remplace la volée (inscription_id, numero_volee) --
-    l'organisateur corrige une volée déjà saisie plutôt que d'en créer
-    une nouvelle en doublon."""
+    """Insère ou remplace la volée (inscription_id, numero_serie,
+    numero_volee) -- l'organisateur corrige une volée déjà saisie plutôt
+    que d'en créer une nouvelle en doublon."""
     conn.execute(
-        """INSERT INTO scores (id, inscription_id, numero_volee, valeurs,
-                                nombre_x, statut)
-           VALUES (?, ?, ?, ?, ?, ?)
-           ON CONFLICT (inscription_id, numero_volee) DO UPDATE SET
+        """INSERT INTO scores (id, inscription_id, numero_serie, numero_volee,
+                                valeurs, nombre_x, statut)
+           VALUES (?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT (inscription_id, numero_serie, numero_volee) DO UPDATE SET
                valeurs = excluded.valeurs,
                nombre_x = excluded.nombre_x,
                statut = excluded.statut""",
         (
             score.id,
             score.inscription_id,
+            score.numero_serie,
             score.numero_volee,
             json.dumps(score.valeurs),
             score.nombre_x,
@@ -425,6 +427,7 @@ def _row_to_score(row: sqlite3.Row) -> Score:
     return Score(
         id=row["id"],
         inscription_id=row["inscription_id"],
+        numero_serie=row["numero_serie"],
         numero_volee=row["numero_volee"],
         valeurs=json.loads(row["valeurs"]),
         nombre_x=row["nombre_x"],
@@ -434,7 +437,7 @@ def _row_to_score(row: sqlite3.Row) -> Score:
 
 def list_scores_by_inscription(conn: sqlite3.Connection, inscription_id: str) -> list[Score]:
     rows = conn.execute(
-        "SELECT * FROM scores WHERE inscription_id = ? ORDER BY numero_volee",
+        "SELECT * FROM scores WHERE inscription_id = ? ORDER BY numero_serie, numero_volee",
         (inscription_id,),
     ).fetchall()
     return [_row_to_score(r) for r in rows]

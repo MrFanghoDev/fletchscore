@@ -79,3 +79,16 @@ Points tranchés
    activé ou non à la création de chaque compétition, plutôt qu'un
    réglage global figé une fois pour toutes. Voir
    :doc:`modele-donnees` et ``models/competiteur.py::categorie_age``.
+
+.. dropdown:: Hiérarchie Épreuve / Série / Volée
+   :color: success
+   :icon: check-circle
+
+   **Résolu** : confirmé -- une Épreuve comporte une ou plusieurs séries,
+   chaque série une ou plusieurs volées. Le Flint Indoor a 2 séries de 7
+   volées, avec 6 distances différentes sur les 6 premières volées et la
+   7e volée tirée sur 4 distances différentes (le détail précis des
+   distances par volée est une information d'affichage pour la GUI, pas
+   une règle de score -- pas encore modélisé, voir ``gui/`` dans
+   ``docs/roadmap.md``). ``Score`` porte maintenant ``numero_serie`` en
+   plus de ``numero_volee`` pour lever l'ambiguïté entre séries.

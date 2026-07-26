@@ -92,3 +92,21 @@ directement sur le code.
   c'est ce que "unité" désignait à tort. Renommé dans `models/bareme.py`,
   `storage/db.py` (schéma + CRUD) et les tests -- aucune vraie base
   déployée à ce stade, donc pas de migration nécessaire.
+
+- **`Score` porte `numero_serie` en plus de `numero_volee`.** Un simple
+  `numero_volee` était ambigu dès qu'une Épreuve comporte plusieurs
+  séries (Flint Indoor : 2 séries de 7 volées, "volée 1" existe deux
+  fois par inscription) -- la contrainte d'unicité SQLite est donc passée
+  de `(inscription_id, numero_volee)` à `(inscription_id, numero_serie,
+  numero_volee)`. Trouvé en confirmant la hiérarchie Compétition >
+  Épreuve > Série > Volée avec l'utilisateur, pas par un bug remonté --
+  autant corriger le modèle avant `gui/` que de le découvrir en écrivant
+  l'écran de saisie.
+
+- **Distances par volée (Flint) : pas encore modélisées.** Le Flint
+  Indoor a 6 distances différentes sur les 6 premières volées d'une
+  série, et la 7e volée se tire sur 4 distances différentes -- une info
+  utile à afficher à l'organisateur pendant la saisie, mais qui n'affecte
+  pas le calcul du score (les valeurs de zones ne dépendent pas de la
+  distance). Reporté à `gui/` : à modéliser seulement si l'écran de
+  saisie en a réellement besoin, pas avant.

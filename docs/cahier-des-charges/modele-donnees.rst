@@ -9,7 +9,11 @@ Hiérarchie générale
 
 Une **Compétition** regroupe une ou plusieurs **Épreuves** (ex. Indoor et
 Flint le même week-end). Un **Compétiteur** peut être inscrit à plusieurs
-Épreuves d'une même Compétition.
+Épreuves d'une même Compétition. Chaque Épreuve se tire en une ou
+plusieurs **séries** (ex. 2 séries pour le Flint Indoor), chaque série
+comportant elle-même une ou plusieurs **volées** (le petit groupe de
+flèches tirées d'affilée avant d'aller les relever) -- voir
+:doc:`roadmap`, section "Points tranchés".
 
 .. mermaid::
 
@@ -18,9 +22,9 @@ Flint le même week-end). Un **Compétiteur** peut être inscrit à plusieurs
        Comp --> Epr2[Épreuve]
        Epr1 --> Insc1[Inscription]
        Epr2 --> Insc2[Inscription]
-       Insc1 --> Sc1[Score par volée]
-       Insc2 --> Sc2[Score par volée]
-       Epr1 -.utilise.-> Bar[Barème]
+       Insc1 --> Sc1["Score\n(série + volée)"]
+       Insc2 --> Sc2["Score\n(série + volée)"]
+       Epr1 -.utilise.-> Bar["Barème\n(nb_series x volees_par_serie)"]
        Epr2 -.utilise.-> Bar
 
 Diagramme des entités
@@ -78,8 +82,10 @@ Diagramme des entités
        class Score {
            +uuid id
            +uuid inscription_id
+           +int numero_serie
            +int numero_volee
            +list valeurs
+           +int nombre_x
            +enum statut
        }
        class Token {
@@ -186,8 +192,11 @@ Détail des champs
 .. dropdown:: Inscription / Score
 
    - **Inscription** : lien Compétiteur ↔ Épreuve.
-   - **Score** : une entrée par volée, rattachée à une Inscription, avec
-     un statut : ``proposé`` / ``validé`` / ``rejeté``.
+   - **Score** : une entrée par volée, identifiée par (série, volée) au
+     sein d'une Inscription -- le numéro de volée seul ne suffit pas,
+     puisqu'une même Épreuve peut comporter plusieurs séries (ex. Flint
+     Indoor : 2 séries de 7 volées, "volée 1" existe deux fois). Statut :
+     ``proposé`` / ``validé`` / ``rejeté``.
 
 .. dropdown:: Token / DemandeRattachement
 

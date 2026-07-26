@@ -202,6 +202,7 @@ class TestCompetitionEpreuveInscriptionScore(StorageTestCase):
         score = Score(
             id="s1",
             inscription_id="insc-1",
+            numero_serie=1,
             numero_volee=1,
             valeurs=[5, 5, 4, 3, 2],
             nombre_x=1,
@@ -221,6 +222,7 @@ class TestCompetitionEpreuveInscriptionScore(StorageTestCase):
             Score(
                 id="s1",
                 inscription_id="insc-1",
+                numero_serie=1,
                 numero_volee=1,
                 valeurs=[5, 5, 4, 3, 2],
                 statut=StatutScore.PROPOSE,
@@ -231,6 +233,7 @@ class TestCompetitionEpreuveInscriptionScore(StorageTestCase):
             Score(
                 id="s1-corrige",
                 inscription_id="insc-1",
+                numero_serie=1,
                 numero_volee=1,
                 valeurs=[5, 5, 5, 3, 2],  # correction organisateur
                 statut=StatutScore.VALIDE,
@@ -245,10 +248,39 @@ class TestCompetitionEpreuveInscriptionScore(StorageTestCase):
         for n in (2, 1, 3):
             db.upsert_score(
                 self.conn,
-                Score(id=f"s{n}", inscription_id="insc-1", numero_volee=n, valeurs=[5]),
+                Score(
+                    id=f"s{n}",
+                    inscription_id="insc-1",
+                    numero_serie=1,
+                    numero_volee=n,
+                    valeurs=[5],
+                ),
             )
         recuperes = db.list_scores_by_inscription(self.conn, "insc-1")
         self.assertEqual([s.numero_volee for s in recuperes], [1, 2, 3])
+
+    def test_meme_numero_volee_dans_deux_series_differentes_ne_collisionne_pas(self):
+        # Flint Indoor : 2 séries de 7 volées -- "volée 1" existe une fois
+        # par série. C'est exactement le bug que numero_serie corrige.
+        db.upsert_score(
+            self.conn,
+            Score(
+                id="s1", inscription_id="insc-1",
+                numero_serie=1, numero_volee=1, valeurs=[5, 4, 3, 3],
+            ),
+        )
+        db.upsert_score(
+            self.conn,
+            Score(
+                id="s2", inscription_id="insc-1",
+                numero_serie=2, numero_volee=1, valeurs=[4, 4, 3, 3],
+            ),
+        )
+        recuperes = db.list_scores_by_inscription(self.conn, "insc-1")
+        self.assertEqual(len(recuperes), 2)
+        self.assertEqual(
+            [(s.numero_serie, s.numero_volee) for s in recuperes], [(1, 1), (2, 1)]
+        )
 
 
 class TestTokenEtRattachement(StorageTestCase):

@@ -92,11 +92,11 @@ def main() -> None:
 
     # 6) Saisie de scores (quelques volées, IFAA Indoor : 5 flèches) -------
     db.upsert_score(conn, Score(
-        id="s1", inscription_id="insc-FR-1", numero_volee=1,
+        id="s1", inscription_id="insc-FR-1", numero_serie=1, numero_volee=1,
         valeurs=[5, 5, 5, 4, 3], nombre_x=2, statut=StatutScore.VALIDE,
     ))
     db.upsert_score(conn, Score(
-        id="s2", inscription_id="insc-FR-2", numero_volee=1,
+        id="s2", inscription_id="insc-FR-2", numero_serie=1, numero_volee=1,
         valeurs=[5, 5, 4, 4, 3], nombre_x=1, statut=StatutScore.VALIDE,
     ))
     print("Scores saisis pour la volée 1 de FR-1 et FR-2.\n")

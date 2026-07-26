@@ -123,6 +123,7 @@ class TestScore(unittest.TestCase):
         score = Score(
             id="s1",
             inscription_id="i1",
+            numero_serie=1,
             numero_volee=1,
             valeurs=[5, 5, 4, 3, 0],
             statut=StatutScore.PROPOSE,
@@ -130,7 +131,7 @@ class TestScore(unittest.TestCase):
         self.assertEqual(score.total, 17)
 
     def test_total_volee_vide(self):
-        score = Score(id="s1", inscription_id="i1", numero_volee=1)
+        score = Score(id="s1", inscription_id="i1", numero_serie=1, numero_volee=1)
         self.assertEqual(score.total, 0)
 
 
