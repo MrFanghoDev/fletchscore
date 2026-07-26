@@ -4,7 +4,6 @@ from datetime import date, datetime
 
 from fletchscore.models import (
     STYLES_IFAA,
-    Bareme,
     Club,
     Competiteur,
     Competition,
@@ -13,7 +12,6 @@ from fletchscore.models import (
     Inscription,
     Score,
     Sexe,
-    StatutCompetition,
     StatutDemandeRattachement,
     StatutScore,
     StatutToken,
@@ -169,9 +167,7 @@ class TestCompetitionEpreuveInscriptionScore(StorageTestCase):
         )
         db.insert_epreuve(self.conn, self.epreuve)
 
-        self.inscription = Inscription(
-            id="insc-1", id_federal="FR-1", epreuve_id="epr-1"
-        )
+        self.inscription = Inscription(id="insc-1", id_federal="FR-1", epreuve_id="epr-1")
         db.insert_inscription(self.conn, self.inscription)
 
     def test_competition_roundtrip(self):
@@ -344,9 +340,7 @@ class TestTokenEtRattachement(StorageTestCase):
         en_attente = db.list_demandes_en_attente(self.conn, "comp-1")
         self.assertEqual([d.id for d in en_attente], ["dem-1"])
 
-        db.update_statut_demande(
-            self.conn, "dem-1", StatutDemandeRattachement.VALIDEE
-        )
+        db.update_statut_demande(self.conn, "dem-1", StatutDemandeRattachement.VALIDEE)
         en_attente_apres = db.list_demandes_en_attente(self.conn, "comp-1")
         self.assertEqual(en_attente_apres, [])
 

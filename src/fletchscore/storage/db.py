@@ -156,6 +156,7 @@ def seed_baremes_preconfigures(conn: sqlite3.Connection) -> None:
 
 # ---------------------------------------------------------------- Club --
 
+
 def insert_club(conn: sqlite3.Connection, club: Club) -> None:
     conn.execute(
         "INSERT INTO clubs (code_club, nom, ville) VALUES (?, ?, ?)",
@@ -165,9 +166,7 @@ def insert_club(conn: sqlite3.Connection, club: Club) -> None:
 
 
 def get_club(conn: sqlite3.Connection, code_club: str) -> Club | None:
-    row = conn.execute(
-        "SELECT * FROM clubs WHERE code_club = ?", (code_club,)
-    ).fetchone()
+    row = conn.execute("SELECT * FROM clubs WHERE code_club = ?", (code_club,)).fetchone()
     return Club(row["code_club"], row["nom"], row["ville"]) if row else None
 
 
@@ -178,9 +177,8 @@ def list_clubs(conn: sqlite3.Connection) -> list[Club]:
 
 # --------------------------------------------------------------- Style --
 
-def insert_style(
-    conn: sqlite3.Connection, style: Style, *, ignore_if_exists: bool = False
-) -> None:
+
+def insert_style(conn: sqlite3.Connection, style: Style, *, ignore_if_exists: bool = False) -> None:
     sql = "INSERT OR IGNORE INTO styles" if ignore_if_exists else "INSERT INTO styles"
     conn.execute(
         f"{sql} (code, libelle, libelle_en) VALUES (?, ?, ?)",
@@ -201,6 +199,7 @@ def list_styles(conn: sqlite3.Connection) -> list[Style]:
 
 
 # --------------------------------------------------------- Compétiteur --
+
 
 def insert_competiteur(conn: sqlite3.Connection, competiteur: Competiteur) -> None:
     conn.execute(
@@ -244,9 +243,7 @@ def _row_to_competiteur(row: sqlite3.Row) -> Competiteur:
 
 
 def get_competiteur(conn: sqlite3.Connection, id_federal: str) -> Competiteur | None:
-    row = conn.execute(
-        "SELECT * FROM competiteurs WHERE id_federal = ?", (id_federal,)
-    ).fetchone()
+    row = conn.execute("SELECT * FROM competiteurs WHERE id_federal = ?", (id_federal,)).fetchone()
     return _row_to_competiteur(row) if row else None
 
 
@@ -256,6 +253,7 @@ def list_competiteurs(conn: sqlite3.Connection) -> list[Competiteur]:
 
 
 # -------------------------------------------------------------- Barème --
+
 
 def insert_bareme(
     conn: sqlite3.Connection, bareme: Bareme, *, ignore_if_exists: bool = False
@@ -297,6 +295,7 @@ def get_bareme(conn: sqlite3.Connection, bareme_id: str) -> Bareme | None:
 
 # --------------------------------------------------------- Compétition --
 
+
 def insert_competition(conn: sqlite3.Connection, competition: Competition) -> None:
     conn.execute(
         """INSERT INTO competitions
@@ -317,9 +316,7 @@ def insert_competition(conn: sqlite3.Connection, competition: Competition) -> No
 
 
 def get_competition(conn: sqlite3.Connection, competition_id: str) -> Competition | None:
-    row = conn.execute(
-        "SELECT * FROM competitions WHERE id = ?", (competition_id,)
-    ).fetchone()
+    row = conn.execute("SELECT * FROM competitions WHERE id = ?", (competition_id,)).fetchone()
     if not row:
         return None
     return Competition(
@@ -334,6 +331,7 @@ def get_competition(conn: sqlite3.Connection, competition_id: str) -> Competitio
 
 
 # ------------------------------------------------------------- Épreuve --
+
 
 def insert_epreuve(conn: sqlite3.Connection, epreuve: Epreuve) -> None:
     conn.execute(
@@ -363,9 +361,7 @@ def get_epreuve(conn: sqlite3.Connection, epreuve_id: str) -> Epreuve | None:
     )
 
 
-def list_epreuves_by_competition(
-    conn: sqlite3.Connection, competition_id: str
-) -> list[Epreuve]:
+def list_epreuves_by_competition(conn: sqlite3.Connection, competition_id: str) -> list[Epreuve]:
     rows = conn.execute(
         "SELECT * FROM epreuves WHERE competition_id = ? ORDER BY date",
         (competition_id,),
@@ -384,6 +380,7 @@ def list_epreuves_by_competition(
 
 # --------------------------------------------------------- Inscription --
 
+
 def insert_inscription(conn: sqlite3.Connection, inscription: Inscription) -> None:
     conn.execute(
         "INSERT INTO inscriptions (id, id_federal, epreuve_id) VALUES (?, ?, ?)",
@@ -392,16 +389,13 @@ def insert_inscription(conn: sqlite3.Connection, inscription: Inscription) -> No
     conn.commit()
 
 
-def list_inscriptions_by_epreuve(
-    conn: sqlite3.Connection, epreuve_id: str
-) -> list[Inscription]:
-    rows = conn.execute(
-        "SELECT * FROM inscriptions WHERE epreuve_id = ?", (epreuve_id,)
-    ).fetchall()
+def list_inscriptions_by_epreuve(conn: sqlite3.Connection, epreuve_id: str) -> list[Inscription]:
+    rows = conn.execute("SELECT * FROM inscriptions WHERE epreuve_id = ?", (epreuve_id,)).fetchall()
     return [Inscription(r["id"], r["id_federal"], r["epreuve_id"]) for r in rows]
 
 
 # --------------------------------------------------------------- Score --
+
 
 def upsert_score(conn: sqlite3.Connection, score: Score) -> None:
     """Insère ou remplace la volée (inscription_id, numero_volee) --
@@ -438,9 +432,7 @@ def _row_to_score(row: sqlite3.Row) -> Score:
     )
 
 
-def list_scores_by_inscription(
-    conn: sqlite3.Connection, inscription_id: str
-) -> list[Score]:
+def list_scores_by_inscription(conn: sqlite3.Connection, inscription_id: str) -> list[Score]:
     rows = conn.execute(
         "SELECT * FROM scores WHERE inscription_id = ? ORDER BY numero_volee",
         (inscription_id,),
@@ -449,6 +441,7 @@ def list_scores_by_inscription(
 
 
 # --------------------------------------------------------------- Token --
+
 
 def insert_token(conn: sqlite3.Connection, token: Token) -> None:
     conn.execute(
@@ -482,9 +475,7 @@ def _row_to_token(row: sqlite3.Row) -> Token:
 
 
 def get_token_by_code_court(conn: sqlite3.Connection, code_court: str) -> Token | None:
-    row = conn.execute(
-        "SELECT * FROM tokens WHERE code_court = ?", (code_court,)
-    ).fetchone()
+    row = conn.execute("SELECT * FROM tokens WHERE code_court = ?", (code_court,)).fetchone()
     return _row_to_token(row) if row else None
 
 
@@ -499,9 +490,8 @@ def revoquer_token(conn: sqlite3.Connection, id_federal: str, competition_id: st
 
 # ----------------------------------------------- Demande de rattachement --
 
-def insert_demande_rattachement(
-    conn: sqlite3.Connection, demande: DemandeRattachement
-) -> None:
+
+def insert_demande_rattachement(conn: sqlite3.Connection, demande: DemandeRattachement) -> None:
     conn.execute(
         """INSERT INTO demandes_rattachement
            (id, id_federal, competition_id, statut, horodatage)

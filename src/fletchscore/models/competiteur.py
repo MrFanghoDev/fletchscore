@@ -88,9 +88,5 @@ class Competiteur:
             DivisionAge.ADULT: "A",
             DivisionAge.VETERAN: "V",
             DivisionAge.SENIOR: "S",
-        }[
-            self.categorie_age(
-                date_reference, categories_veteran_actives=categories_veteran_actives
-            )
-        ]
+        }[self.categorie_age(date_reference, categories_veteran_actives=categories_veteran_actives)]
         return f"{prefixe_age}{self.sexe.value}{self.code_style}"

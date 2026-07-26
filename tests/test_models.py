@@ -15,48 +15,34 @@ from fletchscore.models import (
 
 class TestCategorieAge(unittest.TestCase):
     def test_cub_moins_de_13(self):
-        self.assertEqual(
-            categorie_age(date(2015, 6, 1), date(2026, 1, 1)), DivisionAge.CUB
-        )
+        self.assertEqual(categorie_age(date(2015, 6, 1), date(2026, 1, 1)), DivisionAge.CUB)
 
     def test_junior_13_a_16(self):
-        self.assertEqual(
-            categorie_age(date(2011, 6, 1), date(2026, 1, 1)), DivisionAge.JUNIOR
-        )
+        self.assertEqual(categorie_age(date(2011, 6, 1), date(2026, 1, 1)), DivisionAge.JUNIOR)
 
     def test_young_adult_17_a_20(self):
-        self.assertEqual(
-            categorie_age(date(2007, 6, 1), date(2026, 1, 1)), DivisionAge.YOUNG_ADULT
-        )
+        self.assertEqual(categorie_age(date(2007, 6, 1), date(2026, 1, 1)), DivisionAge.YOUNG_ADULT)
 
     def test_adult_par_defaut_sans_veteran_actif(self):
         # 60 ans, mais categories_veteran_actives=False -> reste Adult
-        self.assertEqual(
-            categorie_age(date(1966, 1, 1), date(2026, 1, 1)), DivisionAge.ADULT
-        )
+        self.assertEqual(categorie_age(date(1966, 1, 1), date(2026, 1, 1)), DivisionAge.ADULT)
 
     def test_veteran_si_actif(self):
         self.assertEqual(
-            categorie_age(
-                date(1966, 1, 1), date(2026, 1, 1), categories_veteran_actives=True
-            ),
+            categorie_age(date(1966, 1, 1), date(2026, 1, 1), categories_veteran_actives=True),
             DivisionAge.VETERAN,
         )
 
     def test_senior_si_actif(self):
         self.assertEqual(
-            categorie_age(
-                date(1955, 1, 1), date(2026, 1, 1), categories_veteran_actives=True
-            ),
+            categorie_age(date(1955, 1, 1), date(2026, 1, 1), categories_veteran_actives=True),
             DivisionAge.SENIOR,
         )
 
     def test_anniversaire_pas_encore_passe_cette_annee(self):
         # Né le 2011-12-31 : au 2026-01-01, n'a *pas encore* fêté ses 15 ans
         # (les fête le 2026-12-31) -> encore 14 ans, toujours Junior.
-        self.assertEqual(
-            categorie_age(date(2011, 12, 31), date(2026, 1, 1)), DivisionAge.JUNIOR
-        )
+        self.assertEqual(categorie_age(date(2011, 12, 31), date(2026, 1, 1)), DivisionAge.JUNIOR)
 
     def test_date_reference_avant_naissance_leve(self):
         with self.assertRaises(ValueError):
@@ -80,24 +66,18 @@ class TestCompetiteur(unittest.TestCase):
     def test_code_categorie_reproduit_exemple_reglement(self):
         # AMBB-R = Adulte Homme Barebow-Recurve, exemple du règlement.
         competiteur = self._competiteur(sexe=Sexe.M, date_naissance=date(1995, 3, 14))
-        self.assertEqual(
-            competiteur.code_categorie(date(2026, 1, 1)), "AMBB-R"
-        )
+        self.assertEqual(competiteur.code_categorie(date(2026, 1, 1)), "AMBB-R")
 
     def test_licence_valide_sans_date_renseignee(self):
         competiteur = self._competiteur(licence_valide_jusqu_au=None)
         self.assertTrue(competiteur.licence_valide(date(2026, 1, 1)))
 
     def test_licence_expiree(self):
-        competiteur = self._competiteur(
-            licence_valide_jusqu_au=date(2025, 12, 31)
-        )
+        competiteur = self._competiteur(licence_valide_jusqu_au=date(2025, 12, 31))
         self.assertFalse(competiteur.licence_valide(date(2026, 1, 1)))
 
     def test_licence_encore_valide(self):
-        competiteur = self._competiteur(
-            licence_valide_jusqu_au=date(2026, 8, 31)
-        )
+        competiteur = self._competiteur(licence_valide_jusqu_au=date(2026, 8, 31))
         self.assertTrue(competiteur.licence_valide(date(2026, 1, 1)))
 
 
