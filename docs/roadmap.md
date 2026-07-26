@@ -12,9 +12,10 @@ en compétition live avant d'aller plus loin).
 - [x] `models/` + `storage/` -- entités (Compétiteur, Club, Style,
       Competition, Épreuve, Barème, Inscription, Score, Token,
       DemandeRattachement), schéma SQLite. 43 tests, tous verts.
-- [ ] `referentiels/` + `io/import_csv.py` -- chargement `styles.csv`
+- [x] `referentiels/` + `io/import_csv.py` -- chargement `styles.csv`
       (pré-rempli IFAA), import `clubs.csv`/`competiteurs.csv` avec
-      rapport d'erreurs (jamais de création automatique silencieuse)
+      rapport d'erreurs (jamais de création automatique silencieuse).
+      64 tests, tous verts.
 - [ ] `scoring/` -- calcul de score par volée, cas particuliers (flèches
       en trop/manquantes, mauvaise cible), classement par catégorie,
       départage au X. Isolé et testé unitairement en premier, sans GUI ni
