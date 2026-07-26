@@ -124,10 +124,29 @@ dans cet ordre, avant de livrer quoi que ce soit :
 
 ## Erreurs déjà commises, à ne pas répéter
 
-*Section à compléter au fil du développement de FletchScore -- aucune
-erreur spécifique enregistrée pour l'instant. Voir le `CLAUDE.md` de
-FletchTime pour la liste équivalente sur le projet frère (cibles SVG
-génériques, badge shields.io non vérifié, fuite de logo club dans un
-zip) : les mêmes catégories de risque (référence visuelle non vérifiée,
-syntaxe externe non vérifiée, données réelles non exclues d'une
-livraison) s'appliquent directement ici.*
+- **Enums `class X(str, Enum)` au lieu de `StrEnum`.** Ruff (règle
+  UP042) l'a signalé au premier push -- le projet cible Python >=3.11,
+  qui a `enum.StrEnum` en natif. Toujours préférer `StrEnum` pour un
+  nouvel enum de valeurs texte.
+- **Noms de variable ambigus `l`, `I`, `O`.** Ruff (règle E741) les
+  signale systématiquement -- ressemblent trop à `1`/`0` à la lecture.
+  Utilisé `l` pour une ligne de classement dans une lambda de tri et dans
+  plusieurs tests ; corrigé en `ligne` partout. À éviter dès l'écriture,
+  pas seulement à la correction : ni `l`, ni `I`, ni `O` comme nom de
+  variable, même court-vécu (lambda, compréhension de liste).
+- **`config/` vide fait échouer `pyinstaller fletchscore.spec` en CI.**
+  Git ne suit pas les dossiers vides -- un dossier référencé dans les
+  `datas` du spec doit toujours contenir au moins un fichier suivi par
+  git (voir `config/README.md`), sinon il n'existe simplement pas une
+  fois le dépôt cloné sur le runner.
+- **Pas de Black/Ruff en local dans cet environnement de travail** (pas
+  d'accès réseau pour les installer) -- toute vérification de style
+  reste donc approximative (comptage manuel de longueur de ligne) tant
+  que la CI n'a pas confirmé. Ne jamais présenter cette vérification
+  manuelle comme équivalente à un vrai passage de Ruff/Black.
+
+*Voir aussi le `CLAUDE.md` de FletchTime pour les leçons équivalentes sur
+le projet frère (cibles SVG génériques, badge shields.io non vérifié,
+fuite de logo club dans un zip) -- mêmes catégories de risque
+(référence non vérifiée, données réelles non exclues d'une livraison)
+à surveiller ici aussi.*

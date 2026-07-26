@@ -68,5 +68,6 @@ homologué.
 
 Voir le [cahier des charges](cahier-des-charges/roadmap.rst) pour le
 détail : style de tir (extension FFTL ?), format d'export fédération,
-catégories Vétérans/Seniors optionnelles, bibliothèque PDF à choisir
-(voir `pyproject.toml`).
+bibliothèque PDF à choisir (voir `pyproject.toml`). Vétérans/Seniors est
+tranché (`Competition.categories_veteran_actives`), voir "Points
+tranchés" dans le cahier des charges.
