@@ -58,9 +58,7 @@ def creer_competition(
     if not nom.strip():
         raise ErreurMetier("Le nom de la compétition ne peut pas être vide.")
     if date_fin < date_debut:
-        raise ErreurMetier(
-            "La date de fin ne peut pas précéder la date de début."
-        )
+        raise ErreurMetier("La date de fin ne peut pas précéder la date de début.")
 
     competition = Competition(
         id=_nouvel_id(),
@@ -89,9 +87,7 @@ def creer_epreuve(
     if competition is None:
         raise ErreurMetier("Compétition introuvable.")
     if competition.statut == StatutCompetition.CLOTUREE:
-        raise ErreurMetier(
-            "Cette compétition est clôturée -- impossible d'y ajouter une épreuve."
-        )
+        raise ErreurMetier("Cette compétition est clôturée -- impossible d'y ajouter une épreuve.")
     if not nom.strip():
         raise ErreurMetier("Le nom de l'épreuve ne peut pas être vide.")
     if db.get_bareme(conn, bareme_id) is None:
@@ -116,32 +112,25 @@ def creer_epreuve(
 # ------------------------------------------------------- Inscription --
 
 
-def inscrire(
-    conn: sqlite3.Connection, id_federal: str, epreuve_id: str
-) -> Inscription:
+def inscrire(conn: sqlite3.Connection, id_federal: str, epreuve_id: str) -> Inscription:
     competiteur = db.get_competiteur(conn, id_federal)
     if competiteur is None:
         raise ErreurMetier(
-            f"Compétiteur inconnu : {id_federal} -- importe d'abord la base "
-            "des compétiteurs."
+            f"Compétiteur inconnu : {id_federal} -- importe d'abord la base " "des compétiteurs."
         )
     epreuve = db.get_epreuve(conn, epreuve_id)
     if epreuve is None:
         raise ErreurMetier("Épreuve introuvable.")
 
     deja_inscrit = any(
-        i.id_federal == id_federal
-        for i in db.list_inscriptions_by_epreuve(conn, epreuve_id)
+        i.id_federal == id_federal for i in db.list_inscriptions_by_epreuve(conn, epreuve_id)
     )
     if deja_inscrit:
         raise ErreurMetier(
-            f"{competiteur.prenom} {competiteur.nom} est déjà inscrit·e à "
-            "cette épreuve."
+            f"{competiteur.prenom} {competiteur.nom} est déjà inscrit·e à " "cette épreuve."
         )
 
-    inscription = Inscription(
-        id=_nouvel_id(), id_federal=id_federal, epreuve_id=epreuve_id
-    )
+    inscription = Inscription(id=_nouvel_id(), id_federal=id_federal, epreuve_id=epreuve_id)
     db.insert_inscription(conn, inscription)
     return inscription
 
@@ -191,8 +180,7 @@ def saisir_volee(
         )
     if nombre_x > 0 and not bareme.departage_par_x:
         raise ErreurMetier(
-            f"Le barème « {bareme.nom} » n'utilise pas de zone X -- laisse ce "
-            "compteur à 0."
+            f"Le barème « {bareme.nom} » n'utilise pas de zone X -- laisse ce " "compteur à 0."
         )
 
     try:
