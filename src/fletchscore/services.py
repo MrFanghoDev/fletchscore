@@ -1,0 +1,277 @@
+"""Couche service -- cas d'usage de l'organisateur.
+
+Fait le lien entre le stockage (storage/), les règles (scoring/) et
+l'interface (gui/). Volontairement séparée des widgets : la GUI ne
+contient que de l'affichage et des appels à ces fonctions, ce qui rend
+tout le comportement testable sans affichage Tkinter (voir CLAUDE.md --
+la GUI réelle n'est pas vérifiable dans l'environnement de dev).
+
+Génère les identifiants (uuid4) plutôt que de les demander à
+l'appelant : la GUI n'a pas à s'en préoccuper.
+"""
+
+from __future__ import annotations
+
+import sqlite3
+import uuid
+from datetime import date
+
+from fletchscore.models import (
+    Competiteur,
+    Competition,
+    Epreuve,
+    Inscription,
+    Score,
+    StatutCompetition,
+    StatutScore,
+)
+from fletchscore.scoring import classement_par_categorie, normaliser_volee
+from fletchscore.scoring.classement import LigneClassement
+from fletchscore.storage import db
+
+
+class ErreurMetier(Exception):
+    """Erreur attendue, à afficher telle quelle à l'organisateur.
+
+    Distincte d'une exception technique (sqlite3.Error, etc.) : le
+    message est rédigé pour être lu par un bénévole, pas par un
+    développeur.
+    """
+
+
+def _nouvel_id() -> str:
+    return str(uuid.uuid4())
+
+
+# ------------------------------------------------------- Compétition --
+
+
+def creer_competition(
+    conn: sqlite3.Connection,
+    nom: str,
+    date_debut: date,
+    date_fin: date,
+    *,
+    lieu: str = "",
+    categories_veteran_actives: bool = False,
+) -> Competition:
+    if not nom.strip():
+        raise ErreurMetier("Le nom de la compétition ne peut pas être vide.")
+    if date_fin < date_debut:
+        raise ErreurMetier(
+            "La date de fin ne peut pas précéder la date de début."
+        )
+
+    competition = Competition(
+        id=_nouvel_id(),
+        nom=nom.strip(),
+        date_debut=date_debut,
+        date_fin=date_fin,
+        lieu=lieu.strip(),
+        statut=StatutCompetition.OUVERTE,
+        categories_veteran_actives=categories_veteran_actives,
+    )
+    db.insert_competition(conn, competition)
+    return competition
+
+
+# ----------------------------------------------------------- Épreuve --
+
+
+def creer_epreuve(
+    conn: sqlite3.Connection,
+    competition_id: str,
+    nom: str,
+    date_epreuve: date,
+    bareme_id: str,
+) -> Epreuve:
+    competition = db.get_competition(conn, competition_id)
+    if competition is None:
+        raise ErreurMetier("Compétition introuvable.")
+    if competition.statut == StatutCompetition.CLOTUREE:
+        raise ErreurMetier(
+            "Cette compétition est clôturée -- impossible d'y ajouter une épreuve."
+        )
+    if not nom.strip():
+        raise ErreurMetier("Le nom de l'épreuve ne peut pas être vide.")
+    if db.get_bareme(conn, bareme_id) is None:
+        raise ErreurMetier(f"Barème inconnu : {bareme_id}")
+    if not competition.couvre(date_epreuve):
+        raise ErreurMetier(
+            "La date de l'épreuve est en dehors des dates de la compétition "
+            f"({competition.date_debut} -- {competition.date_fin})."
+        )
+
+    epreuve = Epreuve(
+        id=_nouvel_id(),
+        competition_id=competition_id,
+        nom=nom.strip(),
+        date=date_epreuve,
+        bareme_id=bareme_id,
+    )
+    db.insert_epreuve(conn, epreuve)
+    return epreuve
+
+
+# ------------------------------------------------------- Inscription --
+
+
+def inscrire(
+    conn: sqlite3.Connection, id_federal: str, epreuve_id: str
+) -> Inscription:
+    competiteur = db.get_competiteur(conn, id_federal)
+    if competiteur is None:
+        raise ErreurMetier(
+            f"Compétiteur inconnu : {id_federal} -- importe d'abord la base "
+            "des compétiteurs."
+        )
+    epreuve = db.get_epreuve(conn, epreuve_id)
+    if epreuve is None:
+        raise ErreurMetier("Épreuve introuvable.")
+
+    deja_inscrit = any(
+        i.id_federal == id_federal
+        for i in db.list_inscriptions_by_epreuve(conn, epreuve_id)
+    )
+    if deja_inscrit:
+        raise ErreurMetier(
+            f"{competiteur.prenom} {competiteur.nom} est déjà inscrit·e à "
+            "cette épreuve."
+        )
+
+    inscription = Inscription(
+        id=_nouvel_id(), id_federal=id_federal, epreuve_id=epreuve_id
+    )
+    db.insert_inscription(conn, inscription)
+    return inscription
+
+
+# ------------------------------------------------------------- Score --
+
+
+def saisir_volee(
+    conn: sqlite3.Connection,
+    inscription_id: str,
+    numero_serie: int,
+    numero_volee: int,
+    valeurs: list[int],
+    *,
+    nombre_x: int = 0,
+    statut: StatutScore = StatutScore.VALIDE,
+) -> Score:
+    """Enregistre (ou corrige) une volée saisie par l'organisateur.
+
+    Les valeurs passent par ``normaliser_volee`` : flèches en trop
+    ramenées aux N plus faibles, flèches manquantes complétées à 0. Une
+    valeur hors zones du barème est refusée (``ErreurMetier``) plutôt que
+    corrigée silencieusement -- c'est un signal de saisie erronée.
+
+    Le statut par défaut est ``VALIDE`` : une saisie faite par
+    l'organisateur lui-même n'a pas à repasser par une file de validation
+    (voir docs/cahier-des-charges/securite.rst §7.2).
+    """
+    epreuve, bareme = _epreuve_et_bareme_de(conn, inscription_id)
+
+    if not 1 <= numero_serie <= bareme.nb_series:
+        raise ErreurMetier(
+            f"Numéro de série invalide : {numero_serie} -- ce barème en "
+            f"compte {bareme.nb_series}."
+        )
+    if not 1 <= numero_volee <= bareme.volees_par_serie:
+        raise ErreurMetier(
+            f"Numéro de volée invalide : {numero_volee} -- ce barème compte "
+            f"{bareme.volees_par_serie} volées par série."
+        )
+    if nombre_x < 0:
+        raise ErreurMetier("Le nombre de X ne peut pas être négatif.")
+    if nombre_x > bareme.fleches_par_volee:
+        raise ErreurMetier(
+            f"Le nombre de X ({nombre_x}) dépasse le nombre de flèches de la "
+            f"volée ({bareme.fleches_par_volee})."
+        )
+    if nombre_x > 0 and not bareme.departage_par_x:
+        raise ErreurMetier(
+            f"Le barème « {bareme.nom} » n'utilise pas de zone X -- laisse ce "
+            "compteur à 0."
+        )
+
+    try:
+        valeurs_normalisees = normaliser_volee(bareme, valeurs)
+    except ValueError as erreur:
+        raise ErreurMetier(str(erreur)) from erreur
+
+    score = Score(
+        id=_nouvel_id(),
+        inscription_id=inscription_id,
+        numero_serie=numero_serie,
+        numero_volee=numero_volee,
+        valeurs=valeurs_normalisees,
+        nombre_x=nombre_x,
+        statut=statut,
+    )
+    db.upsert_score(conn, score)
+    return score
+
+
+def _epreuve_et_bareme_de(conn: sqlite3.Connection, inscription_id: str):
+    """Remonte de l'inscription jusqu'au barème de son épreuve.
+
+    Passe par une requête directe plutôt que par
+    ``list_inscriptions_by_epreuve`` : on n'a que l'id d'inscription en
+    entrée, pas celui de l'épreuve.
+    """
+    row = conn.execute(
+        "SELECT epreuve_id FROM inscriptions WHERE id = ?", (inscription_id,)
+    ).fetchone()
+    if row is None:
+        raise ErreurMetier("Inscription introuvable.")
+
+    epreuve = db.get_epreuve(conn, row["epreuve_id"])
+    if epreuve is None:
+        raise ErreurMetier("Épreuve introuvable.")
+
+    bareme = db.get_bareme(conn, epreuve.bareme_id)
+    if bareme is None:
+        raise ErreurMetier(f"Barème introuvable : {epreuve.bareme_id}")
+
+    return epreuve, bareme
+
+
+# -------------------------------------------------------- Classement --
+
+
+def classement_epreuve(
+    conn: sqlite3.Connection, epreuve_id: str
+) -> dict[str, list[LigneClassement]]:
+    """Classement live d'une épreuve, groupé par catégorie.
+
+    Le paramètre ``categories_veteran_actives`` est lu sur la Compétition
+    parente -- l'organisateur l'a choisi une fois à la création, la GUI
+    n'a pas à le repasser à chaque affichage.
+    """
+    epreuve = db.get_epreuve(conn, epreuve_id)
+    if epreuve is None:
+        raise ErreurMetier("Épreuve introuvable.")
+
+    bareme = db.get_bareme(conn, epreuve.bareme_id)
+    if bareme is None:
+        raise ErreurMetier(f"Barème introuvable : {epreuve.bareme_id}")
+
+    competition = db.get_competition(conn, epreuve.competition_id)
+    if competition is None:
+        raise ErreurMetier("Compétition introuvable.")
+
+    entrees: list[tuple[Competiteur, list[Score]]] = []
+    for inscription in db.list_inscriptions_by_epreuve(conn, epreuve_id):
+        competiteur = db.get_competiteur(conn, inscription.id_federal)
+        if competiteur is None:
+            continue
+        scores = db.list_scores_by_inscription(conn, inscription.id)
+        entrees.append((competiteur, scores))
+
+    return classement_par_categorie(
+        bareme,
+        epreuve.date,
+        entrees,
+        categories_veteran_actives=competition.categories_veteran_actives,
+    )

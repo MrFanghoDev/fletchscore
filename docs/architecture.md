@@ -18,9 +18,12 @@ directement sur le code.
   catégorie d'âge, code de catégorie combiné (ex. `AMBB-R`).
 - **Import CSV** : implémenté (`io/import_csv.py`) -- clubs et
   compétiteurs, avec rapport d'erreurs par ligne.
-- **Deux vues, un seul outil** *(prévu, pas encore codé)* : GUI
-  organisateur (customtkinter) + page web compétiteur servie localement
-  (`http.server`).
+- **Couche `services.py`** : implémenté -- cas d'usage organisateur
+  (créer compétition/épreuve, inscrire, saisir une volée, classement
+  live), validations métier, `ErreurMetier` avec messages lisibles.
+- **Deux vues, un seul outil** *(widgets pas encore codés)* : GUI
+  organisateur (customtkinter, appellera `services.py`) + page web
+  compétiteur servie localement (`http.server`).
 - **Couche `scoring/`** : implémenté (`scoring/volee.py`,
   `scoring/classement.py`) -- normalisation de volée (cas particuliers du
   règlement), classement par catégorie, départage au X, rangs avec
@@ -110,3 +113,13 @@ directement sur le code.
   pas le calcul du score (les valeurs de zones ne dépendent pas de la
   distance). Reporté à `gui/` : à modéliser seulement si l'écran de
   saisie en a réellement besoin, pas avant.
+
+- **Une couche `services.py` entre la GUI et le reste.** Les widgets
+  Tkinter ne contiennent que de l'affichage : tous les cas d'usage
+  (créer une compétition, inscrire, saisir une volée, calculer le
+  classement) vivent dans `services.py`, qui valide les entrées et lève
+  `ErreurMetier` avec un message rédigé pour un bénévole. Motivation
+  directe : la GUI réelle n'est pas vérifiable dans l'environnement de
+  dev (pas d'affichage Tkinter), donc tout ce qui peut être testé sans
+  affichage doit vivre en dehors des widgets. Les identifiants (uuid4)
+  sont générés par cette couche, pas demandés à l'appelant.

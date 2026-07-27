@@ -22,6 +22,11 @@ en compétition live avant d'aller plus loin).
       DB réelle. 80 tests, tous verts.
 - [ ] `gui/` -- créer une compétition/épreuve avec un barème, inscrire des
       compétiteurs, saisir les scores volée par volée, classement live
+  - [x] `services.py` -- couche de cas d'usage appelée par la GUI
+        (créer compétition/épreuve, inscrire, saisir une volée,
+        classement live), avec validations métier et messages destinés à
+        l'organisateur. 105 tests, tous verts.
+  - [ ] Widgets customtkinter (écrans réels)
 - [ ] `io/export/` -- Excel, PDF, CSV + podiums par catégorie
 
 **Jalon utilisable seul** : ce point donne un FletchScore fonctionnel en
