@@ -25,8 +25,18 @@ en compétition live avant d'aller plus loin).
   - [x] `services.py` -- couche de cas d'usage appelée par la GUI
         (créer compétition/épreuve, inscrire, saisir une volée,
         classement live), avec validations métier et messages destinés à
-        l'organisateur. 105 tests, tous verts.
-  - [ ] Widgets customtkinter (écrans réels)
+        l'organisateur
+  - [x] `gui/config.py` -- préférences d'affichage (thème) persistées
+        dans `config/gui.toml`, tolérantes à un fichier absent ou corrompu
+  - [x] `storage.db.ouvrir_base()` + branchement de `__main__` sur la GUI
+        (`fletchscore --db chemin.db`)
+  - [x] Coquille de la fenêtre : barre latérale, navigation, sélecteur de
+        thème — ⚠️ **rendu non vérifié**, pas d'affichage Tkinter dans
+        l'environnement de dev
+  - [ ] Écran « Compétitions » (créer/lister compétitions et épreuves)
+  - [ ] Écran « Compétiteurs » (import CSV, liste)
+  - [ ] Écran « Saisie des scores »
+  - [ ] Écran « Classement »
 - [ ] `io/export/` -- Excel, PDF, CSV + podiums par catégorie
 
 **Jalon utilisable seul** : ce point donne un FletchScore fonctionnel en

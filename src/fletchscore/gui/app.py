@@ -1,0 +1,138 @@
+"""Fenêtre principale de l'organisateur.
+
+⚠️ Non vérifiée dans l'environnement de développement (pas d'affichage
+Tkinter disponible) -- le rendu réel doit être confirmé en la lançant
+sur une vraie machine. Tout ce qui pouvait être testé sans affichage vit
+volontairement ailleurs : les cas d'usage dans ``fletchscore.services``,
+les préférences dans ``fletchscore.gui.config``. Ce module ne contient
+que de l'agencement de widgets et des appels à ces couches.
+"""
+
+from __future__ import annotations
+
+import sqlite3
+from pathlib import Path
+
+import customtkinter as ctk
+
+from fletchscore.gui import config as gui_config
+from fletchscore.storage.db import ouvrir_base
+
+CHEMIN_BASE_PAR_DEFAUT = Path("fletchscore.db")
+
+LIBELLES_SECTIONS = {
+    "competitions": "Compétitions",
+    "competiteurs": "Compétiteurs",
+    "saisie": "Saisie des scores",
+    "classement": "Classement",
+}
+
+
+class FenetrePrincipale(ctk.CTk):
+    def __init__(self, conn: sqlite3.Connection, config: gui_config.ConfigGui) -> None:
+        super().__init__()
+        self.conn = conn
+        self.config_gui = config
+
+        self.title("FletchScore")
+        self.geometry("1100x700")
+        self.minsize(900, 600)
+
+        ctk.set_appearance_mode(self.config_gui.theme)
+
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+
+        self._construire_barre_laterale()
+        self._construire_zone_contenu()
+        self.afficher_section("competitions")
+
+    # -- Construction de l'interface ------------------------------------
+
+    def _construire_barre_laterale(self) -> None:
+        self.barre_laterale = ctk.CTkFrame(self, width=220, corner_radius=0)
+        self.barre_laterale.grid(row=0, column=0, sticky="nsew")
+        self.barre_laterale.grid_rowconfigure(len(LIBELLES_SECTIONS) + 1, weight=1)
+
+        ctk.CTkLabel(
+            self.barre_laterale,
+            text="FletchScore",
+            font=ctk.CTkFont(size=20, weight="bold"),
+        ).grid(row=0, column=0, padx=20, pady=(20, 15))
+
+        self.boutons_sections: dict[str, ctk.CTkButton] = {}
+        for index, (cle, libelle) in enumerate(LIBELLES_SECTIONS.items(), start=1):
+            bouton = ctk.CTkButton(
+                self.barre_laterale,
+                text=libelle,
+                anchor="w",
+                command=lambda c=cle: self.afficher_section(c),
+            )
+            bouton.grid(row=index, column=0, padx=20, pady=6, sticky="ew")
+            self.boutons_sections[cle] = bouton
+
+        ctk.CTkLabel(self.barre_laterale, text="Thème").grid(
+            row=len(LIBELLES_SECTIONS) + 2, column=0, padx=20, pady=(10, 0), sticky="w"
+        )
+        self.menu_theme = ctk.CTkOptionMenu(
+            self.barre_laterale,
+            values=list(gui_config.THEMES_VALIDES),
+            command=self.changer_theme,
+        )
+        self.menu_theme.set(self.config_gui.theme)
+        self.menu_theme.grid(
+            row=len(LIBELLES_SECTIONS) + 3, column=0, padx=20, pady=(5, 20), sticky="ew"
+        )
+
+    def _construire_zone_contenu(self) -> None:
+        self.zone_contenu = ctk.CTkFrame(self, corner_radius=0, fg_color="transparent")
+        self.zone_contenu.grid(row=0, column=1, sticky="nsew", padx=20, pady=20)
+        self.zone_contenu.grid_columnconfigure(0, weight=1)
+        self.zone_contenu.grid_rowconfigure(1, weight=1)
+
+        self.titre_section = ctk.CTkLabel(
+            self.zone_contenu, text="", font=ctk.CTkFont(size=24, weight="bold")
+        )
+        self.titre_section.grid(row=0, column=0, sticky="w", pady=(0, 15))
+
+        self.cadre_section = ctk.CTkFrame(self.zone_contenu)
+        self.cadre_section.grid(row=1, column=0, sticky="nsew")
+        self.cadre_section.grid_columnconfigure(0, weight=1)
+        self.cadre_section.grid_rowconfigure(0, weight=1)
+
+    # -- Navigation -------------------------------------------------------
+
+    def afficher_section(self, cle: str) -> None:
+        for widget in self.cadre_section.winfo_children():
+            widget.destroy()
+
+        self.titre_section.configure(text=LIBELLES_SECTIONS[cle])
+
+        # Écrans réels ajoutés un par un dans les incréments suivants --
+        # voir docs/roadmap.md, jalon gui/.
+        ctk.CTkLabel(
+            self.cadre_section,
+            text=f"Écran « {LIBELLES_SECTIONS[cle]} » à venir.",
+            font=ctk.CTkFont(size=14),
+        ).grid(row=0, column=0, padx=20, pady=20)
+
+    # -- Préférences -------------------------------------------------------
+
+    def changer_theme(self, theme: str) -> None:
+        self.config_gui.theme = theme
+        ctk.set_appearance_mode(theme)
+        gui_config.sauvegarder(self.config_gui)
+
+
+def lancer(chemin_base: Path | str = CHEMIN_BASE_PAR_DEFAUT) -> None:
+    """Point d'entrée de la fenêtre organisateur, appelé par __main__."""
+    conn = ouvrir_base(chemin_base)
+    config = gui_config.charger()
+    application = FenetrePrincipale(conn, config)
+    try:
+        application.mainloop()
+    finally:
+        conn.close()
+
+
+__all__ = ["FenetrePrincipale", "lancer", "ouvrir_base"]

@@ -14,6 +14,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("-v", "--verbose", action="store_true", help="Sortie verbeuse")
     parser.add_argument("-d", "--debug", action="store_true", help="Mode debug")
     parser.add_argument(
+        "--db",
+        default="fletchscore.db",
+        help="Chemin du fichier de base locale (défaut : fletchscore.db)",
+    )
+    parser.add_argument(
         "--http-port",
         type=int,
         default=None,
@@ -36,9 +41,19 @@ def main() -> None:
         print(__version__)
         return
 
-    # TODO: lancer la GUI organisateur + le serveur HTTP local
-    # (vue compétiteur) -- voir docs/roadmap.md.
-    raise NotImplementedError("FletchScore n'est pas encore implémenté.")
+    # Import tardif : garde `--version` fonctionnel même si customtkinter
+    # est absent ou cassé sur cette machine (cas plausible sous Pydroid),
+    # et évite de payer le coût d'import de la GUI pour rien.
+    try:
+        from fletchscore.gui.app import lancer
+    except ImportError as erreur:
+        raise SystemExit(
+            "Impossible de charger l'interface graphique "
+            f"({erreur}).\nVérifie que customtkinter est installé : "
+            "pip install customtkinter"
+        ) from erreur
+
+    lancer(args.db)
 
 
 if __name__ == "__main__":

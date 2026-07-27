@@ -265,26 +265,22 @@ class TestCompetitionEpreuveInscriptionScore(StorageTestCase):
         db.upsert_score(
             self.conn,
             Score(
-                id="s1",
-                inscription_id="insc-1",
-                numero_serie=1,
-                numero_volee=1,
-                valeurs=[5, 4, 3, 3],
+                id="s1", inscription_id="insc-1",
+                numero_serie=1, numero_volee=1, valeurs=[5, 4, 3, 3],
             ),
         )
         db.upsert_score(
             self.conn,
             Score(
-                id="s2",
-                inscription_id="insc-1",
-                numero_serie=2,
-                numero_volee=1,
-                valeurs=[4, 4, 3, 3],
+                id="s2", inscription_id="insc-1",
+                numero_serie=2, numero_volee=1, valeurs=[4, 4, 3, 3],
             ),
         )
         recuperes = db.list_scores_by_inscription(self.conn, "insc-1")
         self.assertEqual(len(recuperes), 2)
-        self.assertEqual([(s.numero_serie, s.numero_volee) for s in recuperes], [(1, 1), (2, 1)])
+        self.assertEqual(
+            [(s.numero_serie, s.numero_volee) for s in recuperes], [(1, 1), (2, 1)]
+        )
 
 
 class TestTokenEtRattachement(StorageTestCase):

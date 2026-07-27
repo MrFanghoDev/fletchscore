@@ -63,7 +63,9 @@ class TestCreerCompetition(ServiceTestCase):
 
     def test_date_fin_avant_debut_refusee(self):
         with self.assertRaises(ErreurMetier):
-            self._competition(date_debut=date(2026, 3, 15), date_fin=date(2026, 3, 14))
+            self._competition(
+                date_debut=date(2026, 3, 15), date_fin=date(2026, 3, 14)
+            )
 
     def test_nom_et_lieu_sont_nettoyes(self):
         competition = self._competition(nom="  Test  ", lieu="  Ville  ")
@@ -139,7 +141,9 @@ class TestSaisirVolee(ServiceTestCase):
         self.assertEqual(score.total, 9)
 
     def test_trop_de_fleches_garde_les_plus_faibles(self):
-        score = services.saisir_volee(self.conn, self.inscription.id, 1, 1, [5, 5, 5, 5, 5, 1])
+        score = services.saisir_volee(
+            self.conn, self.inscription.id, 1, 1, [5, 5, 5, 5, 5, 1]
+        )
         self.assertEqual(len(score.valeurs), 5)
         self.assertEqual(score.total, 21)  # 1 + 5*4, le 5 en trop est écarté
 
@@ -159,14 +163,20 @@ class TestSaisirVolee(ServiceTestCase):
 
     def test_nombre_x_superieur_au_nombre_de_fleches_refuse(self):
         with self.assertRaises(ErreurMetier):
-            services.saisir_volee(self.conn, self.inscription.id, 1, 1, [5, 5, 5, 5, 5], nombre_x=6)
+            services.saisir_volee(
+                self.conn, self.inscription.id, 1, 1, [5, 5, 5, 5, 5], nombre_x=6
+            )
 
     def test_x_refuse_si_le_bareme_nen_utilise_pas(self):
         # Flint Indoor : departage_par_x=False.
-        epreuve_flint = self._epreuve(self.competition, bareme_id="flint-indoor", nom="Flint")
+        epreuve_flint = self._epreuve(
+            self.competition, bareme_id="flint-indoor", nom="Flint"
+        )
         inscription = services.inscrire(self.conn, "FR-1", epreuve_flint.id)
         with self.assertRaises(ErreurMetier) as contexte:
-            services.saisir_volee(self.conn, inscription.id, 1, 1, [5, 4, 3, 3], nombre_x=1)
+            services.saisir_volee(
+                self.conn, inscription.id, 1, 1, [5, 4, 3, 3], nombre_x=1
+            )
         self.assertIn("n'utilise pas de zone X", str(contexte.exception))
 
     def test_correction_dune_volee_ne_cree_pas_de_doublon(self):

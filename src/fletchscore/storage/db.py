@@ -539,3 +539,22 @@ def update_statut_demande(
         (statut.value, demande_id),
     )
     conn.commit()
+
+
+# ------------------------------------------------- Ouverture complète --
+
+
+def ouvrir_base(chemin: str = "fletchscore.db") -> sqlite3.Connection:
+    """Ouvre la base locale, crée le schéma et charge les référentiels.
+
+    Point d'entrée unique du démarrage : la GUI comme les scripts passent
+    par ici plutôt que d'enchaîner connect/init_schema/seed à la main.
+    Les deux ``seed_*`` sont idempotents -- les appeler à chaque
+    démarrage ne duplique rien et rattrape une base créée par une version
+    antérieure qui n'aurait pas encore tel barème.
+    """
+    conn = connect(chemin)
+    init_schema(conn)
+    seed_referentiel_styles(conn)
+    seed_baremes_preconfigures(conn)
+    return conn
