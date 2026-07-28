@@ -17,6 +17,7 @@ from pathlib import Path
 import customtkinter as ctk
 
 from fletchscore.gui import config as gui_config
+from fletchscore.gui.ecran_competitions import EcranCompetitions
 from fletchscore.gui.robustesse import (
     ErreurAffichageIndisponible,
     construire_fenetre,
@@ -113,6 +114,11 @@ class FenetrePrincipale(ctk.CTk):
             widget.destroy()
 
         self.titre_section.configure(text=LIBELLES_SECTIONS[cle])
+
+        if cle == "competitions":
+            ecran = EcranCompetitions(self.cadre_section, self.conn)
+            ecran.grid(row=0, column=0, sticky="nsew")
+            return
 
         # Écrans réels ajoutés un par un dans les incréments suivants --
         # voir docs/roadmap.md, jalon gui/.

@@ -139,3 +139,17 @@ directement sur le code.
   Ctrl+C et `kill` (SIGINT/SIGTERM) referment la fenêtre proprement
   (`application.destroy()`) avant de fermer la connexion SQLite, plutôt
   que de laisser le process mourir en plein milieu d'une écriture.
+
+- **`parser_date()` vit dans `services.py`, pas dans un module `gui/`.**
+  Même raisonnement que `gui/robustesse.py` : une fonction qui convertit
+  un texte AAAA-MM-JJ en date n'a besoin d'aucune dépendance à
+  customtkinter, donc elle reste testable ici en vivant à côté des autres
+  cas d'usage plutôt qu'à l'intérieur d'un écran.
+
+- **`gui/ecran_competitions.py` : premier écran réel, non vérifié.**
+  Deux colonnes (compétitions / épreuves de la sélection), formulaires
+  de création, erreurs affichées via un `CTkLabel` rouge alimenté par
+  `ErreurMetier`. Comme toujours, la validation vit entièrement dans
+  `services.py` (déjà testée) -- ce fichier ne fait qu'agencer des
+  widgets. `list_competitions()` et `list_baremes()` ajoutés à
+  `storage/db.py` à cette occasion (manquaient).

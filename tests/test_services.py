@@ -3,7 +3,7 @@ from datetime import date
 
 from fletchscore import services
 from fletchscore.models import Club, Competiteur, Sexe, StatutCompetition, StatutScore
-from fletchscore.services import ErreurMetier
+from fletchscore.services import ErreurMetier, parser_date
 from fletchscore.storage import db
 
 
@@ -211,6 +211,23 @@ class TestClassementEpreuve(ServiceTestCase):
     def test_epreuve_inconnue_refusee(self):
         with self.assertRaises(ErreurMetier):
             services.classement_epreuve(self.conn, "epreuve-fantome")
+
+
+class TestParserDate(ServiceTestCase):
+    def test_date_valide(self):
+        self.assertEqual(parser_date("2026-03-14", "Date"), date(2026, 3, 14))
+
+    def test_espaces_autour_tolerees(self):
+        self.assertEqual(parser_date("  2026-03-14  ", "Date"), date(2026, 3, 14))
+
+    def test_format_invalide_leve_erreur_metier(self):
+        with self.assertRaises(ErreurMetier) as contexte:
+            parser_date("14/03/2026", "Date de début")
+        self.assertIn("Date de début invalide", str(contexte.exception))
+
+    def test_chaine_vide_leve_erreur_metier(self):
+        with self.assertRaises(ErreurMetier):
+            parser_date("", "Date")
 
 
 if __name__ == "__main__":

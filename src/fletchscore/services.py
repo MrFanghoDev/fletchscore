@@ -43,6 +43,21 @@ def _nouvel_id() -> str:
     return str(uuid.uuid4())
 
 
+def parser_date(texte: str, nom_champ: str) -> date:
+    """Convertit un champ de saisie AAAA-MM-JJ en date.
+
+    Utilitaire partagé par les écrans GUI (qui ne manipulent que du
+    texte saisi) -- vit ici plutôt que dans un module ``gui/`` pour
+    rester testable sans customtkinter.
+    """
+    try:
+        return date.fromisoformat(texte.strip())
+    except ValueError as erreur:
+        raise ErreurMetier(
+            f"{nom_champ} invalide : « {texte} » -- format attendu AAAA-MM-JJ"
+        ) from erreur
+
+
 # ------------------------------------------------------- Compétition --
 
 

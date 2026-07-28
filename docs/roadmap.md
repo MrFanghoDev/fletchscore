@@ -36,7 +36,8 @@ en compétition live avant d'aller plus loin).
   - [x] Robustesse : arrêt propre sur Ctrl+C/`kill` (SIGINT/SIGTERM),
         message clair si aucun affichage n'est disponible plutôt qu'une
         trace Tcl brute (`gui/robustesse.py`, testable sans tkinter)
-  - [ ] Écran « Compétitions » (créer/lister compétitions et épreuves)
+  - [x] Écran « Compétitions » (créer/lister compétitions et épreuves)
+        — ⚠️ **rendu non vérifié**
   - [ ] Écran « Compétiteurs » (import CSV, liste)
   - [ ] Écran « Saisie des scores »
   - [ ] Écran « Classement »

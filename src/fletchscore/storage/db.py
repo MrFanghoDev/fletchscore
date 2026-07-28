@@ -279,10 +279,7 @@ def insert_bareme(
         conn.commit()
 
 
-def get_bareme(conn: sqlite3.Connection, bareme_id: str) -> Bareme | None:
-    row = conn.execute("SELECT * FROM baremes WHERE id = ?", (bareme_id,)).fetchone()
-    if not row:
-        return None
+def _row_to_bareme(row: sqlite3.Row) -> Bareme:
     return Bareme(
         id=row["id"],
         nom=row["nom"],
@@ -292,6 +289,16 @@ def get_bareme(conn: sqlite3.Connection, bareme_id: str) -> Bareme | None:
         valeurs_zones=json.loads(row["valeurs_zones"]),
         departage_par_x=bool(row["departage_par_x"]),
     )
+
+
+def get_bareme(conn: sqlite3.Connection, bareme_id: str) -> Bareme | None:
+    row = conn.execute("SELECT * FROM baremes WHERE id = ?", (bareme_id,)).fetchone()
+    return _row_to_bareme(row) if row else None
+
+
+def list_baremes(conn: sqlite3.Connection) -> list[Bareme]:
+    rows = conn.execute("SELECT * FROM baremes ORDER BY nom").fetchall()
+    return [_row_to_bareme(r) for r in rows]
 
 
 # --------------------------------------------------------- Compétition --
@@ -316,10 +323,7 @@ def insert_competition(conn: sqlite3.Connection, competition: Competition) -> No
     conn.commit()
 
 
-def get_competition(conn: sqlite3.Connection, competition_id: str) -> Competition | None:
-    row = conn.execute("SELECT * FROM competitions WHERE id = ?", (competition_id,)).fetchone()
-    if not row:
-        return None
+def _row_to_competition(row: sqlite3.Row) -> Competition:
     return Competition(
         id=row["id"],
         nom=row["nom"],
@@ -329,6 +333,18 @@ def get_competition(conn: sqlite3.Connection, competition_id: str) -> Competitio
         statut=StatutCompetition(row["statut"]),
         categories_veteran_actives=bool(row["categories_veteran_actives"]),
     )
+
+
+def get_competition(conn: sqlite3.Connection, competition_id: str) -> Competition | None:
+    row = conn.execute("SELECT * FROM competitions WHERE id = ?", (competition_id,)).fetchone()
+    return _row_to_competition(row) if row else None
+
+
+def list_competitions(conn: sqlite3.Connection) -> list[Competition]:
+    """Triées par date de début décroissante -- la plus récente (ou à
+    venir) en premier, la plus utile à retrouver pour un organisateur."""
+    rows = conn.execute("SELECT * FROM competitions ORDER BY date_debut DESC").fetchall()
+    return [_row_to_competition(r) for r in rows]
 
 
 # ------------------------------------------------------------- Épreuve --
