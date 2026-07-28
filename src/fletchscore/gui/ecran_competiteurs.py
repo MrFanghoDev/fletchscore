@@ -36,9 +36,9 @@ class EcranCompetiteurs(ctk.CTkFrame):
         cadre = ctk.CTkFrame(self, fg_color="transparent")
         cadre.grid(row=0, column=0, sticky="ew", pady=(0, 10))
 
-        ctk.CTkButton(
-            cadre, text="Importer clubs.csv", command=self._importer_clubs
-        ).grid(row=0, column=0, padx=(0, 10))
+        ctk.CTkButton(cadre, text="Importer clubs.csv", command=self._importer_clubs).grid(
+            row=0, column=0, padx=(0, 10)
+        )
 
         ctk.CTkButton(
             cadre,
@@ -58,9 +58,7 @@ class EcranCompetiteurs(ctk.CTkFrame):
         self.zone_rapport.configure(state="disabled")
 
     def _importer_clubs(self) -> None:
-        chemin = filedialog.askopenfilename(
-            title="Choisir clubs.csv", filetypes=[("CSV", "*.csv")]
-        )
+        chemin = filedialog.askopenfilename(title="Choisir clubs.csv", filetypes=[("CSV", "*.csv")])
         if not chemin:
             return  # dialogue annulé par l'organisateur -- pas une erreur
 
@@ -81,9 +79,9 @@ class EcranCompetiteurs(ctk.CTkFrame):
     # -- Liste ---------------------------------------------------------------
 
     def _construire_liste_competiteurs(self) -> None:
-        ctk.CTkLabel(
-            self, text="Compétiteurs", font=ctk.CTkFont(size=16, weight="bold")
-        ).grid(row=2, column=0, sticky="w", pady=(0, 5))
+        ctk.CTkLabel(self, text="Compétiteurs", font=ctk.CTkFont(size=16, weight="bold")).grid(
+            row=2, column=0, sticky="w", pady=(0, 5)
+        )
 
         self.liste_competiteurs = ctk.CTkScrollableFrame(self, fg_color="transparent")
         self.liste_competiteurs.grid(row=3, column=0, sticky="nsew")
