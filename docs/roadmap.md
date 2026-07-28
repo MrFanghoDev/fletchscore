@@ -38,7 +38,8 @@ en compétition live avant d'aller plus loin).
         trace Tcl brute (`gui/robustesse.py`, testable sans tkinter)
   - [x] Écran « Compétitions » (créer/lister compétitions et épreuves)
         — ⚠️ **rendu non vérifié**
-  - [ ] Écran « Compétiteurs » (import CSV, liste)
+  - [x] Écran « Compétiteurs » (import CSV, liste) — ⚠️ **rendu non
+        vérifié**
   - [ ] Écran « Saisie des scores »
   - [ ] Écran « Classement »
 - [ ] `io/export/` -- Excel, PDF, CSV + podiums par catégorie

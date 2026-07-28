@@ -153,3 +153,12 @@ directement sur le code.
   `services.py` (déjà testée) -- ce fichier ne fait qu'agencer des
   widgets. `list_competitions()` et `list_baremes()` ajoutés à
   `storage/db.py` à cette occasion (manquaient).
+
+- **`gui/ecran_competiteurs.py` : import CSV (sélecteur de fichier) +
+  liste.** `formater_rapport()` ajouté à `io/import_csv.py` (pas dans un
+  module `gui/`) pour rester testable -- convertit un `RapportImport` en
+  texte affichable tel quel. Bug de grille repéré et corrigé en
+  relisant avant livraison : le titre "Compétiteurs" et la zone de
+  rapport partageaient la même ligne (`row=1`) et se seraient
+  chevauchés -- aucun moyen de le voir tourner ici pour le confirmer
+  autrement qu'en relisant soigneusement le code.

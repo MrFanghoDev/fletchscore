@@ -2,7 +2,13 @@ import io
 import unittest
 from datetime import date
 
-from fletchscore.io.import_csv import import_clubs, import_competiteurs
+from fletchscore.io.import_csv import (
+    ErreurImport,
+    RapportImport,
+    formater_rapport,
+    import_clubs,
+    import_competiteurs,
+)
 from fletchscore.models import Club
 from fletchscore.storage import db
 
@@ -181,6 +187,40 @@ class TestImportCompetiteurs(unittest.TestCase):
         self.assertEqual(rapport.importees, 1)
         self.assertEqual(len(rapport.erreurs), 2)
         self.assertEqual([e.numero_ligne for e in rapport.erreurs], [3, 4])
+
+
+class TestFormaterRapport(unittest.TestCase):
+    def test_rapport_sans_erreur(self):
+        rapport = RapportImport(lignes_traitees=3, importees=2, ignorees=1)
+        texte = formater_rapport(rapport)
+        self.assertIn("2 importé(s)", texte)
+        self.assertIn("1 ignoré(s)", texte)
+        self.assertIn("0 erreur(s)", texte)
+        self.assertIn("sur 3 ligne(s)", texte)
+
+    def test_rapport_avec_erreurs_liste_chaque_ligne(self):
+        rapport = RapportImport(
+            lignes_traitees=2,
+            importees=1,
+            erreurs=[ErreurImport(3, "code_club inconnu")],
+        )
+        texte = formater_rapport(rapport)
+        self.assertIn("1 erreur(s)", texte)
+        self.assertIn("ligne 3 : code_club inconnu", texte)
+
+    def test_rapport_avec_erreurs_reel_apres_import(self):
+        conn = db.connect(":memory:")
+        db.init_schema(conn)
+        db.seed_referentiel_styles(conn)
+        db.insert_club(conn, Club("77123", "Archers Libres de FLP"))
+        fichier = io.StringIO(
+            "id_federal,nom,prenom,code_club,sexe,date_naissance,code_style\n"
+            "FR-1,X,Y,CLUB-FANTOME,F,1995-01-01,BB-R\n"
+        )
+        rapport = import_competiteurs(conn, fichier)
+        texte = formater_rapport(rapport)
+        self.assertIn("CLUB-FANTOME", texte)
+        conn.close()
 
 
 if __name__ == "__main__":

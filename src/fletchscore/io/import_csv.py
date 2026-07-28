@@ -49,6 +49,19 @@ class RapportImport:
         return not self.erreurs
 
 
+def formater_rapport(rapport: RapportImport) -> str:
+    """Résumé lisible d'un RapportImport, pensé pour être affiché tel
+    quel à l'organisateur (GUI ou sortie CLI) -- vit ici plutôt que dans
+    un module ``gui/`` pour rester testable sans customtkinter."""
+    lignes = [
+        f"{rapport.importees} importé(s), {rapport.ignorees} ignoré(s), "
+        f"{len(rapport.erreurs)} erreur(s) sur {rapport.lignes_traitees} ligne(s)."
+    ]
+    for erreur in rapport.erreurs:
+        lignes.append(f"  - ligne {erreur.numero_ligne} : {erreur.message}")
+    return "\n".join(lignes)
+
+
 def _ouvrir(source: str | TextIO) -> TextIO:
     if isinstance(source, str):
         return open(source, encoding="utf-8-sig", newline="")
