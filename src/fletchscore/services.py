@@ -194,9 +194,7 @@ def lister_competiteurs_non_inscrits(
     """Compétiteurs de la base qui ne sont pas encore inscrits à cette
     épreuve -- pour alimenter un sélecteur GUI sans proposer deux fois
     la même personne."""
-    deja_inscrits = {
-        i.id_federal for i in db.list_inscriptions_by_epreuve(conn, epreuve_id)
-    }
+    deja_inscrits = {i.id_federal for i in db.list_inscriptions_by_epreuve(conn, epreuve_id)}
     return [
         competiteur
         for competiteur in db.list_competiteurs(conn)
