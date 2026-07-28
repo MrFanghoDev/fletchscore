@@ -58,6 +58,30 @@ def parser_date(texte: str, nom_champ: str) -> date:
         ) from erreur
 
 
+def parser_valeurs_fleches(textes: list[str]) -> list[int]:
+    """Convertit les champs de saisie d'une volée (un texte par flèche)
+    en liste d'entiers.
+
+    Les champs vides sont ignorés plutôt que convertis en 0 : une volée
+    incomplète doit passer par ``normaliser_volee`` (via
+    ``saisir_volee``), qui applique la bonne règle du barème (compléter
+    à 0), plutôt que d'imposer 0 ici pour un champ simplement pas encore
+    rempli par l'organisateur.
+    """
+    valeurs: list[int] = []
+    for texte in textes:
+        texte = texte.strip()
+        if not texte:
+            continue
+        try:
+            valeurs.append(int(texte))
+        except ValueError as erreur:
+            raise ErreurMetier(
+                f"Valeur de flèche invalide : « {texte} » -- un nombre entier est attendu"
+            ) from erreur
+    return valeurs
+
+
 # ------------------------------------------------------- Compétition --
 
 
@@ -124,6 +148,20 @@ def creer_epreuve(
     return epreuve
 
 
+def lister_epreuves_toutes(conn: sqlite3.Connection) -> list[tuple[Competition, Epreuve]]:
+    """Toutes les épreuves, toutes compétitions confondues, triées par
+    date décroissante -- pour un sélecteur GUI qui n'a pas besoin de
+    naviguer compétition par compétition pour retrouver l'épreuve du
+    jour."""
+    resultat = [
+        (competition, epreuve)
+        for competition in db.list_competitions(conn)
+        for epreuve in db.list_epreuves_by_competition(conn, competition.id)
+    ]
+    resultat.sort(key=lambda paire: paire[1].date, reverse=True)
+    return resultat
+
+
 # ------------------------------------------------------- Inscription --
 
 
@@ -148,6 +186,22 @@ def inscrire(conn: sqlite3.Connection, id_federal: str, epreuve_id: str) -> Insc
     inscription = Inscription(id=_nouvel_id(), id_federal=id_federal, epreuve_id=epreuve_id)
     db.insert_inscription(conn, inscription)
     return inscription
+
+
+def lister_competiteurs_non_inscrits(
+    conn: sqlite3.Connection, epreuve_id: str
+) -> list[Competiteur]:
+    """Compétiteurs de la base qui ne sont pas encore inscrits à cette
+    épreuve -- pour alimenter un sélecteur GUI sans proposer deux fois
+    la même personne."""
+    deja_inscrits = {
+        i.id_federal for i in db.list_inscriptions_by_epreuve(conn, epreuve_id)
+    }
+    return [
+        competiteur
+        for competiteur in db.list_competiteurs(conn)
+        if competiteur.id_federal not in deja_inscrits
+    ]
 
 
 # ------------------------------------------------------------- Score --

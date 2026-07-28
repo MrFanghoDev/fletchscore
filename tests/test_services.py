@@ -230,5 +230,70 @@ class TestParserDate(ServiceTestCase):
             parser_date("", "Date")
 
 
+class TestParserValeursFleches(unittest.TestCase):
+    def test_valeurs_simples(self):
+        self.assertEqual(services.parser_valeurs_fleches(["5", "4", "3"]), [5, 4, 3])
+
+    def test_champs_vides_ignores_pas_convertis_en_zero(self):
+        self.assertEqual(services.parser_valeurs_fleches(["5", "", "  ", "3"]), [5, 3])
+
+    def test_valeur_non_numerique_leve_erreur_metier(self):
+        with self.assertRaises(ErreurMetier) as contexte:
+            services.parser_valeurs_fleches(["5", "abc"])
+        self.assertIn("abc", str(contexte.exception))
+
+    def test_toutes_vides_donne_liste_vide(self):
+        self.assertEqual(services.parser_valeurs_fleches(["", "", ""]), [])
+
+
+class TestListerEpreuvesToutes(ServiceTestCase):
+    def test_toutes_competitions_confondues_triees_par_date_desc(self):
+        c1 = self._competition(
+            nom="Ancienne", date_debut=date(2025, 1, 1), date_fin=date(2025, 1, 2)
+        )
+        e1 = self._epreuve(c1, date_epreuve=date(2025, 1, 1))
+        c2 = self._competition(
+            nom="Récente", date_debut=date(2026, 3, 14), date_fin=date(2026, 3, 15)
+        )
+        e2 = self._epreuve(c2, date_epreuve=date(2026, 3, 14))
+
+        resultat = services.lister_epreuves_toutes(self.conn)
+
+        self.assertEqual([e.id for _, e in resultat], [e2.id, e1.id])
+
+    def test_liste_vide_si_aucune_epreuve(self):
+        self.assertEqual(services.lister_epreuves_toutes(self.conn), [])
+
+
+class TestListerCompetiteursNonInscrits(ServiceTestCase):
+    def setUp(self):
+        super().setUp()
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-2",
+                nom="Martin",
+                prenom="Léo",
+                code_club="77123",
+                sexe=Sexe.M,
+                date_naissance=date(1995, 6, 1),
+                code_style="BB-R",
+            ),
+        )
+
+    def test_exclut_les_deja_inscrits(self):
+        epreuve = self._epreuve(self._competition())
+        services.inscrire(self.conn, "FR-1", epreuve.id)
+
+        non_inscrits = services.lister_competiteurs_non_inscrits(self.conn, epreuve.id)
+
+        self.assertEqual([c.id_federal for c in non_inscrits], ["FR-2"])
+
+    def test_tous_non_inscrits_si_aucune_inscription(self):
+        epreuve = self._epreuve(self._competition())
+        non_inscrits = services.lister_competiteurs_non_inscrits(self.conn, epreuve.id)
+        self.assertEqual({c.id_federal for c in non_inscrits}, {"FR-1", "FR-2"})
+
+
 if __name__ == "__main__":
     unittest.main()

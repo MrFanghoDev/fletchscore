@@ -40,7 +40,7 @@ en compétition live avant d'aller plus loin).
         — ⚠️ **rendu non vérifié**
   - [x] Écran « Compétiteurs » (import CSV, liste) — ⚠️ **rendu non
         vérifié**
-  - [ ] Écran « Saisie des scores »
+  - [x] Écran « Saisie des scores » — ⚠️ **rendu non vérifié**
   - [ ] Écran « Classement »
 - [ ] `io/export/` -- Excel, PDF, CSV + podiums par catégorie
 

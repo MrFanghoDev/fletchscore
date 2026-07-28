@@ -162,3 +162,19 @@ directement sur le code.
   rapport partageaient la même ligne (`row=1`) et se seraient
   chevauchés -- aucun moyen de le voir tourner ici pour le confirmer
   autrement qu'en relisant soigneusement le code.
+
+- **`gui/ecran_saisie.py` : le plus complexe des quatre écrans.**
+  Sélecteur d'épreuve (toutes compétitions confondues), inscription à la
+  volée, formulaire de saisie dont le nombre de champs de flèches se
+  régénère selon `bareme.fleches_par_volee`. Trois fonctions ajoutées à
+  `services.py` pour rester testable : `parser_valeurs_fleches()` (les
+  champs vides sont ignorés, pas convertis en 0 -- c'est
+  `normaliser_volee` qui décide de compléter à 0, pas la GUI),
+  `lister_epreuves_toutes()`, `lister_competiteurs_non_inscrits()`.
+  **Deux bugs de grille repérés en relisant, pas en le lançant** :
+  un `grid_rowconfigure` résiduel d'un premier brouillon contredisait la
+  valeur correcte posée plus bas (poids d'extension sur la mauvaise
+  ligne) ; le poids d'extension de la colonne de saisie visait le label
+  d'erreur (ligne 4) au lieu de la liste des volées déjà saisies (ligne
+  7). Aucun des deux n'aurait été détecté sans relecture attentive --
+  toujours pas de substitut à un vrai lancement.

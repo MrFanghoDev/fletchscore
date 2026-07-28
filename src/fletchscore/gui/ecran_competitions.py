@@ -40,9 +40,9 @@ class EcranCompetitions(ctk.CTkFrame):
         colonne.grid_rowconfigure(1, weight=1)
         colonne.grid_columnconfigure(0, weight=1)
 
-        ctk.CTkLabel(colonne, text="Compétitions", font=ctk.CTkFont(size=16, weight="bold")).grid(
-            row=0, column=0, sticky="w", padx=15, pady=(15, 5)
-        )
+        ctk.CTkLabel(
+            colonne, text="Compétitions", font=ctk.CTkFont(size=16, weight="bold")
+        ).grid(row=0, column=0, sticky="w", padx=15, pady=(15, 5))
 
         self.liste_competitions = ctk.CTkScrollableFrame(colonne, fg_color="transparent")
         self.liste_competitions.grid(row=1, column=0, sticky="nsew", padx=15)
@@ -87,9 +87,9 @@ class EcranCompetitions(ctk.CTkFrame):
 
         competitions = db.list_competitions(self.conn)
         if not competitions:
-            ctk.CTkLabel(self.liste_competitions, text="Aucune compétition pour l'instant.").grid(
-                row=0, column=0, sticky="w", pady=10
-            )
+            ctk.CTkLabel(
+                self.liste_competitions, text="Aucune compétition pour l'instant."
+            ).grid(row=0, column=0, sticky="w", pady=10)
             return
 
         for index, competition in enumerate(competitions):

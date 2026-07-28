@@ -19,6 +19,7 @@ import customtkinter as ctk
 from fletchscore.gui import config as gui_config
 from fletchscore.gui.ecran_competiteurs import EcranCompetiteurs
 from fletchscore.gui.ecran_competitions import EcranCompetitions
+from fletchscore.gui.ecran_saisie import EcranSaisie
 from fletchscore.gui.robustesse import (
     ErreurAffichageIndisponible,
     construire_fenetre,
@@ -123,6 +124,11 @@ class FenetrePrincipale(ctk.CTk):
 
         if cle == "competiteurs":
             ecran = EcranCompetiteurs(self.cadre_section, self.conn)
+            ecran.grid(row=0, column=0, sticky="nsew")
+            return
+
+        if cle == "saisie":
+            ecran = EcranSaisie(self.cadre_section, self.conn)
             ecran.grid(row=0, column=0, sticky="nsew")
             return
 
