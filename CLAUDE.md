@@ -144,6 +144,14 @@ dans cet ordre, avant de livrer quoi que ce soit :
   reste donc approximative (comptage manuel de longueur de ligne) tant
   que la CI n'a pas confirmé. Ne jamais présenter cette vérification
   manuelle comme équivalente à un vrai passage de Ruff/Black.
+- **`tkinter` lui-même n'est pas installé ici, pas seulement
+  `customtkinter`.** Supposé à tort que le paquet stdlib serait présent
+  même sans `customtkinter` ; en réalité le paquet système `python3-tk`
+  manque aussi. Conséquence pratique : tout module qui doit rester
+  testable dans cet environnement ne doit importer ni l'un ni l'autre,
+  même pour un simple `except tkinter.TclError` -- voir
+  `gui/robustesse.py`, qui détecte le cas par nom de classe d'exception
+  plutôt que par `isinstance`.
 
 *Voir aussi le `CLAUDE.md` de FletchTime pour les leçons équivalentes sur
 le projet frère (cibles SVG génériques, badge shields.io non vérifié,

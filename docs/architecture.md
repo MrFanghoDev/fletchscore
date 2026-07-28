@@ -123,3 +123,19 @@ directement sur le code.
   dev (pas d'affichage Tkinter), donc tout ce qui peut être testé sans
   affichage doit vivre en dehors des widgets. Les identifiants (uuid4)
   sont générés par cette couche, pas demandés à l'appelant.
+
+- **`gui/robustesse.py` : ni `tkinter` ni `customtkinter` importés.**
+  Découvert en voulant tester la gestion de l'absence d'affichage et de
+  l'arrêt utilisateur (Ctrl+C, `kill`) : l'environnement de dev n'a même
+  pas le paquet système `python3-tk` (pas seulement `customtkinter`).
+  `construire_fenetre()` détecte une absence d'affichage par le *nom* de
+  la classe d'exception (`type(erreur).__name__ == "TclError"`) plutôt
+  que par `isinstance(erreur, tkinter.TclError)` -- évite toute
+  dépendance à tkinter dans ce module, qui reste donc testable ici avec
+  de simples doublures (`unittest.mock.Mock` + une classe d'exception
+  factice nommée `TclError`). `gui/app.py`, lui, importe bien
+  `customtkinter` et n'est pas testable dans cet environnement -- son
+  rendu doit être vérifié en le lançant sur une vraie machine.
+  Ctrl+C et `kill` (SIGINT/SIGTERM) referment la fenêtre proprement
+  (`application.destroy()`) avant de fermer la connexion SQLite, plutôt
+  que de laisser le process mourir en plein milieu d'une écriture.

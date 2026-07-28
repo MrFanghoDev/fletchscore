@@ -10,12 +10,18 @@ que de l'agencement de widgets et des appels à ces couches.
 
 from __future__ import annotations
 
+import signal
 import sqlite3
 from pathlib import Path
 
 import customtkinter as ctk
 
 from fletchscore.gui import config as gui_config
+from fletchscore.gui.robustesse import (
+    ErreurAffichageIndisponible,
+    construire_fenetre,
+    construire_gestionnaire_arret,
+)
 from fletchscore.storage.db import ouvrir_base
 
 CHEMIN_BASE_PAR_DEFAUT = Path("fletchscore.db")
@@ -127,12 +133,38 @@ class FenetrePrincipale(ctk.CTk):
 def lancer(chemin_base: Path | str = CHEMIN_BASE_PAR_DEFAUT) -> None:
     """Point d'entrée de la fenêtre organisateur, appelé par __main__."""
     conn = ouvrir_base(chemin_base)
-    config = gui_config.charger()
-    application = FenetrePrincipale(conn, config)
     try:
-        application.mainloop()
+        config = gui_config.charger()
+
+        try:
+            application = construire_fenetre(conn, config, FenetrePrincipale)
+        except ErreurAffichageIndisponible as erreur:
+            raise SystemExit(str(erreur)) from erreur
+
+        gestionnaire_arret = construire_gestionnaire_arret(application)
+        for signal_gere in (signal.SIGINT, signal.SIGTERM):
+            try:
+                signal.signal(signal_gere, gestionnaire_arret)
+            except (ValueError, OSError, AttributeError):
+                # ValueError : pas dans le thread principal.
+                # OSError/AttributeError : signal non disponible sur cette
+                # plateforme (ex. SIGTERM a un support limité sous Windows).
+                # Dans tous les cas, Ctrl+C reste rattrapé plus bas par
+                # KeyboardInterrupt -- ce n'est qu'un filet supplémentaire.
+                pass
+
+        try:
+            application.mainloop()
+        except KeyboardInterrupt:
+            print("\nFletchScore interrompu (Ctrl+C) -- fermeture propre en cours...")
+            application.destroy()
     finally:
         conn.close()
 
 
-__all__ = ["FenetrePrincipale", "lancer", "ouvrir_base"]
+__all__ = [
+    "ErreurAffichageIndisponible",
+    "FenetrePrincipale",
+    "lancer",
+    "ouvrir_base",
+]
