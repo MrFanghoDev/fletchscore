@@ -126,9 +126,7 @@ class EcranSaisie(ctk.CTkFrame):
         non_inscrits = services.lister_competiteurs_non_inscrits(
             self.conn, self.epreuve_courante.id
         )
-        self._non_inscrits_par_libelle = {
-            libelle_competiteur(c): c for c in non_inscrits
-        }
+        self._non_inscrits_par_libelle = {libelle_competiteur(c): c for c in non_inscrits}
         if not non_inscrits:
             self.menu_non_inscrits.configure(values=["(aucun)"])
             self.menu_non_inscrits.set("(aucun)")

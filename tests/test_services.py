@@ -311,9 +311,7 @@ class TestLibelles(ServiceTestCase):
 
     def test_libelle_competiteur_inclut_lid_federal(self):
         competiteur = db.get_competiteur(self.conn, "FR-1")
-        self.assertEqual(
-            libelle_competiteur(competiteur), "Marie Dupont (FR-1)"
-        )
+        self.assertEqual(libelle_competiteur(competiteur), "Marie Dupont (FR-1)")
 
 
 if __name__ == "__main__":
