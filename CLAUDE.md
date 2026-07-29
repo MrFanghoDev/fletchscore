@@ -152,6 +152,15 @@ dans cet ordre, avant de livrer quoi que ce soit :
   même pour un simple `except tkinter.TclError` -- voir
   `gui/robustesse.py`, qui détecte le cas par nom de classe d'exception
   plutôt que par `isinstance`.
+- **Une dépendance non installable ici (fpdf2, pas de réseau) peut
+  casser la collecte de TOUTE la suite**, pas juste ses propres tests --
+  `unittest discover` échoue dès qu'un module de test lève une exception
+  à l'import, avant même d'atteindre les autres fichiers. Dès qu'un test
+  a besoin d'une bibliothèque qui pourrait manquer ici, entourer
+  l'import du module testé d'un `try/except ImportError` et décorer la
+  classe de test avec `@unittest.skipUnless(...)` -- la suite reste
+  propre (`OK (skipped=N)`) et les tests s'exécuteront pour de vrai dès
+  que la dépendance est disponible (CI, machine réelle).
 
 *Voir aussi le `CLAUDE.md` de FletchTime pour les leçons équivalentes sur
 le projet frère (cibles SVG génériques, badge shields.io non vérifié,

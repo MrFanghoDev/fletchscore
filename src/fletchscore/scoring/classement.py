@@ -77,6 +77,25 @@ def classement_par_categorie(
     return par_categorie
 
 
+def podium_par_categorie(
+    classement: dict[str, list[LigneClassement]], taille: int = 3
+) -> dict[str, list[LigneClassement]]:
+    """Extrait le podium (par défaut top 3) de chaque catégorie d'un
+    classement déjà calculé.
+
+    Filtre sur le *rang* (``ligne.rang <= taille``), pas sur la position
+    dans la liste : si deux personnes sont ex-aequo au rang 1, les DEUX
+    sont sur le podium, comme au rang 2 il n'y en aura donc aucune --
+    cohérent avec la convention 1, 2, 2, 4 déjà utilisée pour l'attribution
+    des rangs. Une catégorie avec moins de compétiteurs que ``taille``
+    retourne simplement tout le monde.
+    """
+    return {
+        categorie: [ligne for ligne in lignes if ligne.rang <= taille]
+        for categorie, lignes in classement.items()
+    }
+
+
 def _attribuer_rangs(lignes: list[LigneClassement], *, depart_par_x: bool) -> None:
     rang_courant = 0
     precedent: tuple[int, int] | None = None

@@ -1,8 +1,9 @@
 # Roadmap FletchScore
 
-**État actuel : 155 tests, tous verts.** `models/`, `storage/`,
-`referentiels/`, `io/import_csv.py`, `scoring/` et `gui/` sont codés ;
-`io/export/` reste à faire pour boucler la v0.1.
+**État actuel : 168 tests (165 exécutés + 3 conditionnés), tous
+verts.** `models/`, `storage/`, `referentiels/`, `io/import_csv.py`,
+`scoring/` et `gui/` sont codés ; `io/export/` en cours (CSV et PDF
+faits, Excel reste).
 
 Découpage par jalons livrables, dans l'ordre des dépendances réelles :
 impossible de tester le scoring sans modèle de données, impossible de
@@ -50,6 +51,19 @@ en compétition live avant d'aller plus loin).
   - [x] Écran « Saisie des scores »
   - [x] Écran « Classement »
 - [ ] `io/export/` -- Excel, PDF, CSV + podiums par catégorie
+  - [x] `scoring.podium_par_categorie()` -- extrait le top N (défaut 3)
+        d'un classement déjà calculé, par rang (pas par position --
+        une égalité au rang 1 met deux personnes sur le podium)
+  - [x] `io/export/csv.py` -- export brut de secours, classement complet
+        ou podium seul (même fonction, le filtrage se fait en amont)
+  - [ ] `io/export/excel.py`
+  - [x] `io/export/pdf.py` -- fpdf2 (choisi : pur Python, plus sûr sur
+        Pydroid qu'une lib avec composants C ; besoin simple, un tableau,
+        pas une mise en page élaborée). ⚠️ **non exécuté ici** -- fpdf2
+        pas installable dans l'environnement de dev (pas de réseau), les
+        3 tests sont conditionnés (`skipUnless`) et se contentent de ne
+        pas casser le reste de la suite ; à confirmer par la CI ou en
+        lançant `python3 run_tests.py` côté utilisateur
 
 **Jalon utilisable seul** : ce point donne un FletchScore fonctionnel en
 club, sans la partie web/compétiteur. Bon moment pour un premier vrai

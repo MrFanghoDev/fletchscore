@@ -9,7 +9,7 @@ from fletchscore.models import (
     Sexe,
     StatutScore,
 )
-from fletchscore.scoring import classement_par_categorie, total_scores
+from fletchscore.scoring import classement_par_categorie, podium_par_categorie, total_scores
 
 
 def _competiteur(id_federal: str, sexe: Sexe, code_style: str, annee_naissance: int) -> Competiteur:
@@ -146,6 +146,60 @@ class TestClassementParCategorie(unittest.TestCase):
         )
         self.assertIn("AMBB-R", sans_veteran)
         self.assertIn("VMBB-R", avec_veteran)
+
+
+class TestPodiumParCategorie(unittest.TestCase):
+    def test_garde_seulement_les_rangs_1_a_3(self):
+        c1 = _competiteur("FR-1", Sexe.M, "BB-R", 1995)
+        c2 = _competiteur("FR-2", Sexe.M, "BB-R", 1995)
+        c3 = _competiteur("FR-3", Sexe.M, "BB-R", 1995)
+        c4 = _competiteur("FR-4", Sexe.M, "BB-R", 1995)
+        entrees = [
+            (c1, [_score("i1", 1, [5, 5, 5, 5])]),
+            (c2, [_score("i2", 1, [5, 5, 5, 4])]),
+            (c3, [_score("i3", 1, [5, 5, 4, 4])]),
+            (c4, [_score("i4", 1, [4, 4, 4, 4])]),
+        ]
+        classement = classement_par_categorie(BAREME_FLINT_INDOOR, date(2026, 1, 1), entrees)
+        podium = podium_par_categorie(classement)
+
+        self.assertEqual(
+            [ligne.competiteur.id_federal for ligne in podium["AMBB-R"]],
+            ["FR-1", "FR-2", "FR-3"],
+        )
+
+    def test_egalite_au_rang_1_donne_deux_personnes_sur_le_podium(self):
+        c1 = _competiteur("FR-1", Sexe.M, "BB-R", 1995)
+        c2 = _competiteur("FR-2", Sexe.M, "BB-R", 1995)
+        c3 = _competiteur("FR-3", Sexe.M, "BB-R", 1995)
+        entrees = [
+            (c1, [_score("i1", 1, [5, 5, 5, 5])]),
+            (c2, [_score("i2", 1, [5, 5, 5, 5])]),  # ex-aequo rang 1
+            (c3, [_score("i3", 1, [4, 4, 4, 4])]),  # rang 3 (2 sauté)
+        ]
+        classement = classement_par_categorie(BAREME_FLINT_INDOOR, date(2026, 1, 1), entrees)
+        podium = podium_par_categorie(classement)
+
+        self.assertEqual(len(podium["AMBB-R"]), 3)
+        self.assertEqual([ligne.rang for ligne in podium["AMBB-R"]], [1, 1, 3])
+
+    def test_categorie_avec_moins_de_trois_retourne_tout_le_monde(self):
+        c1 = _competiteur("FR-1", Sexe.M, "BB-R", 1995)
+        entrees = [(c1, [_score("i1", 1, [5, 5, 5, 5])])]
+        classement = classement_par_categorie(BAREME_FLINT_INDOOR, date(2026, 1, 1), entrees)
+        podium = podium_par_categorie(classement)
+        self.assertEqual(len(podium["AMBB-R"]), 1)
+
+    def test_taille_personnalisee(self):
+        c1 = _competiteur("FR-1", Sexe.M, "BB-R", 1995)
+        c2 = _competiteur("FR-2", Sexe.M, "BB-R", 1995)
+        entrees = [
+            (c1, [_score("i1", 1, [5, 5, 5, 5])]),
+            (c2, [_score("i2", 1, [4, 4, 4, 4])]),
+        ]
+        classement = classement_par_categorie(BAREME_FLINT_INDOOR, date(2026, 1, 1), entrees)
+        podium = podium_par_categorie(classement, taille=1)
+        self.assertEqual(len(podium["AMBB-R"]), 1)
 
 
 if __name__ == "__main__":

@@ -210,3 +210,33 @@ ce test, restent donc les seuls de `gui/` jamais lancés.
   inconnu refusé, jamais créé à la volée ; identifiant déjà pris refusé,
   jamais écrasé) -- pour que les deux chemins (import en masse, saisie
   au coup par coup) restent cohérents entre eux.
+
+- **`podium_par_categorie()` filtre par rang, pas par position dans la
+  liste.** Une égalité au rang 1 met deux personnes sur le podium ; le
+  rang 2 n'existe alors pour personne (convention 1, 2, 2, 4 déjà
+  utilisée pour le classement complet) -- prendre les 3 premiers
+  éléments de la liste aurait silencieusement exclu un ex-aequo.
+
+- **`io/export/csv.py` : une seule fonction pour classement complet et
+  podium.** `exporter_classement_csv()` ne sait rien du "podium" -- elle
+  exporte le dict qu'on lui donne. Le filtrage (top 3 ou classement
+  entier) se décide en amont via `podium_par_categorie()`, pas par un
+  paramètre supplémentaire sur la fonction d'export -- une fonction, une
+  responsabilité.
+
+- **PDF : fpdf2, pas reportlab.** Pur Python (pas de composants C),
+  plus sûr sur Pydroid/Android ; API plus simple, suffisante pour un
+  tableau de classement -- pas besoin de la richesse de reportlab pour
+  ce besoin. Choisi sur demande explicite de proposer, faute de
+  préférence tranchée au moment de la décision.
+
+- **`io/export/pdf.py` et ses tests, jamais exécutés dans cet
+  environnement.** fpdf2 n'est pas installable ici (pas de réseau) --
+  contrairement à `gui/robustesse.py` (où la dépendance avait pu être
+  évitée entièrement), ici la bibliothèque est le véritable objet
+  testé : impossible de vérifier un PDF produit sans PDF réellement
+  produit. Les tests utilisent `unittest.skipUnless` conditionné sur la
+  réussite de l'import -- la suite reste propre (`OK (skipped=N)`) au
+  lieu de faire échouer la collecte de tous les autres tests, et les 3
+  tests s'exécuteront pour de vrai dès que fpdf2 est disponible (CI,
+  machine de l'utilisateur).
