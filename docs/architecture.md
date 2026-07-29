@@ -231,17 +231,20 @@ ce test, restent donc les seuls de `gui/` jamais lancés.
   préférence tranchée au moment de la décision.
 
 - **`io/export/pdf.py` et ses tests, jamais exécutés nulle part au
-  départ.** fpdf2 n'est pas installable ici (pas de réseau) --
-  contrairement à `gui/robustesse.py` (où la dépendance avait pu être
-  évitée entièrement), ici la bibliothèque est le véritable objet
-  testé : impossible de vérifier un PDF produit sans PDF réellement
-  produit. Les tests utilisent `unittest.skipUnless` conditionné sur la
-  réussite de l'import -- la suite reste propre (`OK (skipped=N)`) au
-  lieu de faire échouer la collecte de tous les autres tests. Pensé à
-  tort que la CI, elle, les exécutait pour de vrai (installation via
-  `pyproject.toml`) -- en réalité le job `test` de la CI ne faisait
-  jamais `pip install` du tout (voir plus bas, bug distinct trouvé par
-  l'utilisateur), donc ces tests étaient "skipped" partout jusqu'ici.
+  départ, puis confirmés par la CI.** fpdf2 n'est pas installable ici
+  (pas de réseau) -- contrairement à `gui/robustesse.py` (où la
+  dépendance avait pu être évitée entièrement), ici la bibliothèque est
+  le véritable objet testé : impossible de vérifier un PDF produit sans
+  PDF réellement produit. Les tests utilisent `unittest.skipUnless`
+  conditionné sur la réussite de l'import -- la suite reste propre
+  (`OK (skipped=N)`) au lieu de faire échouer la collecte de tous les
+  autres tests. Pensé à tort dans un premier temps que la CI, elle, les
+  exécutait pour de vrai (installation via `pyproject.toml`) -- en
+  réalité le job `test` de la CI ne faisait jamais `pip install` du tout
+  (voir plus bas). **Une fois ce bug corrigé, les 175 tests -- fpdf2
+  compris -- tournent réellement et passent en CI, plus aucun
+  `skipped`** : première vraie confirmation que l'export PDF fonctionne,
+  même si toujours pas vérifié dans cet environnement de dev précis.
 
 - **`io/export/excel.py` : premier export réellement vérifié de bout en
   bout.** `openpyxl` est installé dans cet environnement (contrairement
@@ -265,4 +268,5 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   `pip install -e ".[dev]"` avant les tests. Bug trouvé par
   l'utilisateur (échec réel de `test_export_excel.py` en CI), pas par
   moi -- je n'ai pas de moyen de faire tourner cette CI moi-même pour le
-  repérer en amont.
+  repérer en amont. **Confirmé corrigé** : les 175 tests passent en CI
+  sans aucun `skipped`, fpdf2 compris.

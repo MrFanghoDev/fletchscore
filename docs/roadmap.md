@@ -1,8 +1,10 @@
 # Roadmap FletchScore
 
-**État actuel : v0.1 complète -- 175 tests (172 exécutés + 3
-conditionnés), tous verts.** `models/`, `storage/`, `referentiels/`,
-`io/import_csv.py`, `scoring/`, `gui/` et `io/export/` sont tous codés.
+**État actuel : v0.1 complète -- 175 tests, tous verts, confirmés par la
+CI sans aucun `skipped`** (y compris les 3 tests fpdf2, jamais exécutables
+dans l'environnement de dev utilisé ici). `models/`, `storage/`,
+`referentiels/`, `io/import_csv.py`, `scoring/`, `gui/` et `io/export/`
+sont tous codés.
 
 Découpage par jalons livrables, dans l'ordre des dépendances réelles :
 impossible de tester le scoring sans modèle de données, impossible de
@@ -60,11 +62,11 @@ en compétition live avant d'aller plus loin).
         (openpyxl est installé ici, contrairement à fpdf2/customtkinter)
   - [x] `io/export/pdf.py` -- fpdf2 (choisi : pur Python, plus sûr sur
         Pydroid qu'une lib avec composants C ; besoin simple, un tableau,
-        pas une mise en page élaborée). ⚠️ **non exécuté ici** -- fpdf2
-        pas installable dans l'environnement de dev (pas de réseau), les
-        3 tests sont conditionnés (`skipUnless`) et se contentent de ne
-        pas casser le reste de la suite ; à confirmer par la CI ou en
-        lançant `python3 run_tests.py` côté utilisateur
+        pas une mise en page élaborée). Jamais exécutable dans
+        l'environnement de dev utilisé ici (pas de réseau pour installer
+        fpdf2) -- **confirmé exécuté et vert par la CI** après correction
+        du job `test.yml` (voir plus bas), les 3 tests tournent
+        réellement, plus aucun `skipped`
 
 **Jalon utilisable seul** : ce point donne un FletchScore fonctionnel en
 club, sans la partie web/compétiteur. Bon moment pour un premier vrai

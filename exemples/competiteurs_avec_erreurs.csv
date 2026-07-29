@@ -1,0 +1,7 @@
+id_federal,nom,prenom,code_club,sexe,date_naissance,code_style,licence_valide_jusqu_au
+FR-100011,Simon,Nathan,77123,M,1992-02-10,BB-R,2026-12-31
+FR-100012,Michel,Lea,CLUB-FANTOME,F,1998-03-03,BB-R,2026-12-31
+FR-100013,Garcia,Enzo,75001,X,2000-04-04,BB-R,2026-12-31
+FR-100014,David,Manon,69001,F,04-05-2001,BB-R,2026-12-31
+FR-100015,Bertrand,Louis,33000,M,1997-05-05,STYLE-FANTOME,2026-12-31
+FR-100001,Doublon,IdDejaPris,77123,F,1995-03-14,BB-R,2026-12-31
