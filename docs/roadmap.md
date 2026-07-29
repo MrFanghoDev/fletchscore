@@ -1,5 +1,9 @@
 # Roadmap FletchScore
 
+**État actuel : 155 tests, tous verts.** `models/`, `storage/`,
+`referentiels/`, `io/import_csv.py`, `scoring/` et `gui/` sont codés ;
+`io/export/` reste à faire pour boucler la v0.1.
+
 Découpage par jalons livrables, dans l'ordre des dépendances réelles :
 impossible de tester le scoring sans modèle de données, impossible de
 tester la vue compétiteur sans que le poste organisateur marche déjà
@@ -31,27 +35,32 @@ en compétition live avant d'aller plus loin).
   - [x] `storage.db.ouvrir_base()` + branchement de `__main__` sur la GUI
         (`fletchscore --db chemin.db`)
   - [x] Coquille de la fenêtre : barre latérale, navigation, sélecteur de
-        thème — ⚠️ **rendu non vérifié**, pas d'affichage Tkinter dans
-        l'environnement de dev
+        thème
   - [x] Robustesse : arrêt propre sur Ctrl+C/`kill` (SIGINT/SIGTERM),
         message clair si aucun affichage n'est disponible plutôt qu'une
         trace Tcl brute (`gui/robustesse.py`, testable sans tkinter)
   - [x] Écran « Compétitions » (créer/lister compétitions et épreuves)
-        — ⚠️ **rendu non vérifié**
-  - [x] Écran « Compétiteurs » (import CSV, liste) — ⚠️ **rendu non
-        vérifié**
+  - [x] Écran « Compétiteurs » (import CSV, liste)
   - [x] Saisie manuelle de club/compétiteur (sans passer par un CSV) --
         `services.creer_club()` / `services.creer_competiteur()`, mêmes
         règles que l'import (pas de création automatique de référence
-        manquante) -- ajouté après le premier essai réel, absent du
-        cahier des charges initial
-  - [x] Écran « Saisie des scores » — ⚠️ **rendu non vérifié**
-  - [x] Écran « Classement » — ⚠️ **rendu non vérifié**
+        manquante) -- ajouté après le premier essai réel (voir note
+        ci-dessous), absent du cahier des charges initial ; **pas encore
+        testé en réel**, contrairement au reste de `gui/`
+  - [x] Écran « Saisie des scores »
+  - [x] Écran « Classement »
 - [ ] `io/export/` -- Excel, PDF, CSV + podiums par catégorie
 
 **Jalon utilisable seul** : ce point donne un FletchScore fonctionnel en
 club, sans la partie web/compétiteur. Bon moment pour un premier vrai
 test en conditions réelles avant d'aller plus loin.
+
+**Premier essai réel effectué** (juillet 2026) sur la coquille GUI et
+les écrans Compétitions/Compétiteurs/Saisie/Classement -- retour
+positif. Pas de confirmation détaillée écran par écran ni d'ergonomie
+poussée (ex. champs de date en texte libre) ; les formulaires d'ajout
+manuel de club/compétiteur, ajoutés juste après ce test, n'ont pas
+encore été essayés.
 
 ## v0.2 -- Vue compétiteur, lecture seule
 

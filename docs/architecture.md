@@ -194,11 +194,12 @@ directement sur le code.
   trouvé cette fois en relisant, mais ça ne remplace pas un vrai
   lancement pour le confirmer.
 
-Les 4 écrans de `gui/` sont maintenant en place (v0.1). **Aucun n'a été
-vérifié visuellement** -- l'environnement de dev n'a ni `tkinter` ni
-`customtkinter`. Prochaine étape logique : les lancer sur une vraie
-machine avant d'aller plus loin, plutôt que d'empiler `io/export/`
-par-dessus des écrans jamais vus tourner.
+Les 4 écrans de `gui/` étaient en place (v0.1) sans jamais avoir tourné
+une seule fois -- l'environnement de dev n'a ni `tkinter` ni
+`customtkinter`. **Premier essai réel effectué par l'utilisateur,
+retour positif** (pas de détail écran par écran ni d'ergonomie poussée
+remonté). Les formulaires d'ajout manuel ci-dessous, ajoutés juste après
+ce test, restent donc les seuls de `gui/` jamais lancés.
 
 - **Saisie manuelle de club/compétiteur ajoutée après le premier test
   réel.** Absente du cahier des charges initial -- l'import CSV en masse
