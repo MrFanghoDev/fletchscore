@@ -21,6 +21,7 @@ from fletchscore.models import (
     Competiteur,
     Competition,
     Epreuve,
+    EpreuveTemplate,
     Inscription,
     Score,
     Sexe,
@@ -244,6 +245,61 @@ def lister_epreuves_toutes(conn: sqlite3.Connection) -> list[tuple[Competition, 
     ]
     resultat.sort(key=lambda paire: paire[1].date, reverse=True)
     return resultat
+
+
+def creer_template_epreuve(conn: sqlite3.Connection, nom: str, bareme_id: str) -> EpreuveTemplate:
+    """Crée un modèle d'épreuve réutilisable (nom + barème), indépendant
+    de toute compétition -- voir EpreuveTemplate."""
+    nom = nom.strip()
+    if not nom:
+        raise ErreurMetier("Le nom du modèle ne peut pas être vide.")
+    if db.get_bareme(conn, bareme_id) is None:
+        raise ErreurMetier(f"Barème inconnu : {bareme_id}")
+
+    template = EpreuveTemplate(id=_nouvel_id(), nom=nom, bareme_id=bareme_id)
+    db.insert_epreuve_template(conn, template)
+    return template
+
+
+def creer_template_depuis_epreuve(
+    conn: sqlite3.Connection, epreuve_id: str, nom_template: str | None = None
+) -> EpreuveTemplate:
+    """Enregistre une épreuve existante comme modèle réutilisable --
+    reprend son nom par défaut (personnalisable via ``nom_template``,
+    utile si on veut un nom de modèle différent du nom de l'épreuve
+    d'origine, ex. "IFAA Indoor -- samedi" -> modèle "IFAA Indoor")."""
+    epreuve = db.get_epreuve(conn, epreuve_id)
+    if epreuve is None:
+        raise ErreurMetier("Épreuve introuvable.")
+
+    return creer_template_epreuve(conn, nom_template or epreuve.nom, epreuve.bareme_id)
+
+
+def lister_templates_epreuve(conn: sqlite3.Connection) -> list[EpreuveTemplate]:
+    return db.list_epreuve_templates(conn)
+
+
+def creer_epreuve_depuis_template(
+    conn: sqlite3.Connection,
+    competition_id: str,
+    template_id: str,
+    date_epreuve: date,
+) -> Epreuve:
+    """Crée une épreuve à partir d'un modèle -- seule la date reste à
+    saisir, nom et barème sont repris du modèle. Passe par
+    ``creer_epreuve()`` pour ne pas dupliquer ses validations (compétition
+    ouverte, date dans les bornes de la compétition...)."""
+    template = db.get_epreuve_template(conn, template_id)
+    if template is None:
+        raise ErreurMetier("Modèle d'épreuve introuvable.")
+
+    return creer_epreuve(
+        conn,
+        competition_id=competition_id,
+        nom=template.nom,
+        date_epreuve=date_epreuve,
+        bareme_id=template.bareme_id,
+    )
 
 
 # ------------------------------------------------------- Inscription --

@@ -336,6 +336,78 @@ class TestListerEpreuvesToutes(ServiceTestCase):
         self.assertEqual(services.lister_epreuves_toutes(self.conn), [])
 
 
+class TestTemplateEpreuve(ServiceTestCase):
+    def test_creer_template_valide(self):
+        template = services.creer_template_epreuve(self.conn, "IFAA Indoor", "ifaa-indoor")
+        self.assertEqual(template.nom, "IFAA Indoor")
+        self.assertIn(template, services.lister_templates_epreuve(self.conn))
+
+    def test_nom_vide_refuse(self):
+        with self.assertRaises(ErreurMetier):
+            services.creer_template_epreuve(self.conn, "   ", "ifaa-indoor")
+
+    def test_bareme_inconnu_refuse(self):
+        with self.assertRaises(ErreurMetier):
+            services.creer_template_epreuve(self.conn, "Modèle", "bareme-fantome")
+
+    def test_creer_template_depuis_epreuve_existante(self):
+        epreuve = self._epreuve(self._competition(), nom="IFAA Indoor -- samedi")
+        template = services.creer_template_depuis_epreuve(self.conn, epreuve.id)
+        self.assertEqual(template.nom, "IFAA Indoor -- samedi")
+        self.assertEqual(template.bareme_id, epreuve.bareme_id)
+
+    def test_creer_template_depuis_epreuve_avec_nom_personnalise(self):
+        epreuve = self._epreuve(self._competition(), nom="IFAA Indoor -- samedi")
+        template = services.creer_template_depuis_epreuve(
+            self.conn, epreuve.id, nom_template="IFAA Indoor"
+        )
+        self.assertEqual(template.nom, "IFAA Indoor")
+
+    def test_creer_template_depuis_epreuve_inconnue_refuse(self):
+        with self.assertRaises(ErreurMetier):
+            services.creer_template_depuis_epreuve(self.conn, "epreuve-fantome")
+
+    def test_creer_epreuve_depuis_template(self):
+        competition_source = self._competition()
+        epreuve_source = self._epreuve(
+            competition_source, nom="IFAA Indoor -- samedi", bareme_id="ifaa-indoor"
+        )
+        template = services.creer_template_depuis_epreuve(
+            self.conn, epreuve_source.id, nom_template="IFAA Indoor"
+        )
+
+        autre_competition = self._competition(
+            nom="Autre compétition",
+            date_debut=date(2026, 5, 1),
+            date_fin=date(2026, 5, 2),
+        )
+        nouvelle_epreuve = services.creer_epreuve_depuis_template(
+            self.conn, autre_competition.id, template.id, date(2026, 5, 1)
+        )
+
+        self.assertEqual(nouvelle_epreuve.nom, "IFAA Indoor")
+        self.assertEqual(nouvelle_epreuve.bareme_id, "ifaa-indoor")
+        self.assertEqual(nouvelle_epreuve.competition_id, autre_competition.id)
+
+    def test_creer_epreuve_depuis_template_reprend_les_validations_de_creer_epreuve(self):
+        # Une date hors des bornes de la compétition doit être refusée,
+        # exactement comme creer_epreuve() -- pas de chemin de contournement
+        # via un modèle.
+        template = services.creer_template_epreuve(self.conn, "IFAA Indoor", "ifaa-indoor")
+        competition = self._competition()  # 2026-03-14 -- 2026-03-15
+        with self.assertRaises(ErreurMetier):
+            services.creer_epreuve_depuis_template(
+                self.conn, competition.id, template.id, date(2026, 4, 1)
+            )
+
+    def test_template_inconnu_refuse(self):
+        competition = self._competition()
+        with self.assertRaises(ErreurMetier):
+            services.creer_epreuve_depuis_template(
+                self.conn, competition.id, "template-fantome", date(2026, 3, 14)
+            )
+
+
 class TestListerCompetiteursNonInscrits(ServiceTestCase):
     def setUp(self):
         super().setUp()

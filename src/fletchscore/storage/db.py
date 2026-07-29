@@ -22,6 +22,7 @@ from fletchscore.models import (
     Competition,
     DemandeRattachement,
     Epreuve,
+    EpreuveTemplate,
     Inscription,
     Score,
     Sexe,
@@ -82,6 +83,12 @@ CREATE TABLE IF NOT EXISTS epreuves (
     competition_id TEXT NOT NULL REFERENCES competitions(id),
     nom TEXT NOT NULL,
     date TEXT NOT NULL,
+    bareme_id TEXT NOT NULL REFERENCES baremes(id)
+);
+
+CREATE TABLE IF NOT EXISTS epreuve_templates (
+    id TEXT PRIMARY KEY,
+    nom TEXT NOT NULL,
     bareme_id TEXT NOT NULL REFERENCES baremes(id)
 );
 
@@ -393,6 +400,31 @@ def list_epreuves_by_competition(conn: sqlite3.Connection, competition_id: str) 
         )
         for r in rows
     ]
+
+
+# ------------------------------------------------------ EpreuveTemplate --
+
+
+def insert_epreuve_template(conn: sqlite3.Connection, template: EpreuveTemplate) -> None:
+    conn.execute(
+        "INSERT INTO epreuve_templates (id, nom, bareme_id) VALUES (?, ?, ?)",
+        (template.id, template.nom, template.bareme_id),
+    )
+    conn.commit()
+
+
+def get_epreuve_template(conn: sqlite3.Connection, template_id: str) -> EpreuveTemplate | None:
+    row = conn.execute(
+        "SELECT * FROM epreuve_templates WHERE id = ?", (template_id,)
+    ).fetchone()
+    if not row:
+        return None
+    return EpreuveTemplate(id=row["id"], nom=row["nom"], bareme_id=row["bareme_id"])
+
+
+def list_epreuve_templates(conn: sqlite3.Connection) -> list[EpreuveTemplate]:
+    rows = conn.execute("SELECT * FROM epreuve_templates ORDER BY nom").fetchall()
+    return [EpreuveTemplate(id=r["id"], nom=r["nom"], bareme_id=r["bareme_id"]) for r in rows]
 
 
 # --------------------------------------------------------- Inscription --

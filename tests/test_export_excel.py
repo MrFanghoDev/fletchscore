@@ -40,7 +40,9 @@ class TestExporterClassementExcel(unittest.TestCase):
             (_competiteur("FR-1", Sexe.M), [_score("i1", [5, 5, 5, 5])]),
             (_competiteur("FR-2", Sexe.F), [_score("i2", [5, 5, 5, 4])]),
         ]
-        self.classement = classement_par_categorie(BAREME_FLINT_INDOOR, date(2026, 1, 1), entrees)
+        self.classement = classement_par_categorie(
+            BAREME_FLINT_INDOOR, date(2026, 1, 1), entrees
+        )
 
     def _charger(self, destination) -> list[list]:
         classeur = load_workbook(destination)
@@ -65,9 +67,7 @@ class TestExporterClassementExcel(unittest.TestCase):
             cellule.value
             for ligne in feuille.iter_rows()
             for cellule in ligne
-            if cellule.column == 1
-            and cellule.font
-            and cellule.font.bold
+            if cellule.column == 1 and cellule.font and cellule.font.bold
             and cellule.value not in ("Rang",)
         ]
         self.assertEqual(set(titres_gras), {"AMBB-R", "AFBB-R"})

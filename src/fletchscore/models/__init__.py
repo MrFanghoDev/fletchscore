@@ -17,6 +17,7 @@ from fletchscore.models.enums import (
     StatutToken,
 )
 from fletchscore.models.epreuve import Epreuve
+from fletchscore.models.epreuve_template import EpreuveTemplate
 from fletchscore.models.inscription import Inscription
 from fletchscore.models.score import Score
 from fletchscore.models.style import STYLES_IFAA, Style
@@ -39,6 +40,7 @@ __all__ = [
     "StatutScore",
     "StatutToken",
     "Epreuve",
+    "EpreuveTemplate",
     "Inscription",
     "Score",
     "STYLES_IFAA",

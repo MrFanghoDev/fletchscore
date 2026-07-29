@@ -270,3 +270,11 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   moi -- je n'ai pas de moyen de faire tourner cette CI moi-même pour le
   repérer en amont. **Confirmé corrigé** : les 175 tests passent en CI
   sans aucun `skipped`, fpdf2 compris.
+
+- **`EpreuveTemplate` : entité séparée d'`Epreuve`, pas un champ
+  optionnel dessus.** Une Épreuve reste toujours liée à une compétition
+  et une date précises ; un modèle n'a ni l'une ni l'autre -- seulement
+  ce qui se réutilise (nom, barème). `creer_epreuve_depuis_template()`
+  appelle `creer_epreuve()` plutôt que de réimplémenter ses vérifications
+  (compétition clôturée, date hors bornes...) -- un modèle ne doit pas
+  ouvrir un chemin de contournement des règles normales de création.

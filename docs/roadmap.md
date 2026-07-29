@@ -1,10 +1,11 @@
 # Roadmap FletchScore
 
-**État actuel : v0.1 complète -- 175 tests, tous verts, confirmés par la
+**État actuel : v0.1 complète -- 189 tests, tous verts, confirmés par la
 CI sans aucun `skipped`** (y compris les 3 tests fpdf2, jamais exécutables
 dans l'environnement de dev utilisé ici). `models/`, `storage/`,
 `referentiels/`, `io/import_csv.py`, `scoring/`, `gui/` et `io/export/`
-sont tous codés.
+sont tous codés. Extension en cours : modèles d'épreuve réutilisables
+(backend fait, GUI à venir).
 
 Découpage par jalons livrables, dans l'ordre des dépendances réelles :
 impossible de tester le scoring sans modèle de données, impossible de
@@ -107,6 +108,37 @@ fonctionnalité visible en soi, mais indispensable avant la v0.4.
 Jalon le plus sensible (premières écritures externes en compétition
 réelle) -- à tester d'abord en interne/amical avant un vrai concours
 homologué.
+
+## Extension -- Import/export de compétitions
+
+Question posée par l'utilisateur, absente du cahier des charges
+initial : "importer/exporter des événements/compétitions" recouvre en
+fait trois besoins distincts, tous jugés pertinents (pas un choix
+exclusif) :
+
+1. Sauvegarder/restaurer une compétition entière (archiver, transférer
+   d'une machine à une autre)
+2. Réutiliser une épreuve type (nom, barème) d'une compétition à l'autre
+   sans tout retaper -- **priorité retenue en premier**
+3. Exporter un paquet complet pour la fédération (définition + scores +
+   classement en un seul fichier)
+
+Avancement :
+
+- [x] **Besoin 2 -- modèles d'épreuve, backend** : `EpreuveTemplate`
+      (nom + barème, indépendant de toute compétition -- la date reste
+      propre à chaque épreuve, jamais dans le modèle).
+      `services.creer_template_epreuve()`,
+      `creer_template_depuis_epreuve()` (enregistrer une épreuve
+      existante comme modèle, nom personnalisable),
+      `creer_epreuve_depuis_template()` (ne duplique pas les
+      validations de `creer_epreuve()` -- une date hors des bornes de
+      la compétition reste refusée même via un modèle). 9 tests.
+- [ ] Besoin 2 -- écrans GUI (choisir un modèle à la création d'une
+      épreuve, bouton "Enregistrer comme modèle" sur une épreuve
+      existante)
+- [ ] Besoin 1 -- sauvegarde/restauration d'une compétition complète
+- [ ] Besoin 3 -- export fédération tout-en-un
 
 ## v0.5 -- Finition
 
