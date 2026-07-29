@@ -240,3 +240,16 @@ ce test, restent donc les seuls de `gui/` jamais lancés.
   lieu de faire échouer la collecte de tous les autres tests, et les 3
   tests s'exécuteront pour de vrai dès que fpdf2 est disponible (CI,
   machine de l'utilisateur).
+
+- **`io/export/excel.py` : premier export réellement vérifié de bout en
+  bout.** `openpyxl` est installé dans cet environnement (contrairement
+  à `customtkinter`/`tkinter`/`fpdf2`) -- les 7 tests tournent pour de
+  vrai, et le fichier produit a été inspecté cellule par cellule (pas
+  seulement "le test passe", le contenu réel a été relu). Une feuille,
+  groupée par catégorie triée alphabétiquement, avec une ligne vide entre
+  catégories et un titre de feuille tronqué à 31 caractères (limite dure
+  d'Excel, sinon `openpyxl` lève une erreur à l'écriture).
+
+La v0.1 est complète : un FletchScore utilisable en club, sans la partie
+web/compétiteur. Bon moment pour un test en conditions réelles plus
+poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
