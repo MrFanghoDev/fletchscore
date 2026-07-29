@@ -414,9 +414,7 @@ def insert_epreuve_template(conn: sqlite3.Connection, template: EpreuveTemplate)
 
 
 def get_epreuve_template(conn: sqlite3.Connection, template_id: str) -> EpreuveTemplate | None:
-    row = conn.execute(
-        "SELECT * FROM epreuve_templates WHERE id = ?", (template_id,)
-    ).fetchone()
+    row = conn.execute("SELECT * FROM epreuve_templates WHERE id = ?", (template_id,)).fetchone()
     if not row:
         return None
     return EpreuveTemplate(id=row["id"], nom=row["nom"], bareme_id=row["bareme_id"])
