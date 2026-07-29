@@ -40,9 +40,9 @@ class EcranCompetiteurs(ctk.CTkFrame):
         cadre = ctk.CTkFrame(self, fg_color="transparent")
         cadre.grid(row=0, column=0, sticky="ew", pady=(0, 10))
 
-        ctk.CTkButton(
-            cadre, text="Importer clubs.csv", command=self._importer_clubs
-        ).grid(row=0, column=0, padx=(0, 10))
+        ctk.CTkButton(cadre, text="Importer clubs.csv", command=self._importer_clubs).grid(
+            row=0, column=0, padx=(0, 10)
+        )
 
         ctk.CTkButton(
             cadre,
@@ -62,9 +62,7 @@ class EcranCompetiteurs(ctk.CTkFrame):
         self.zone_rapport.configure(state="disabled")
 
     def _importer_clubs(self) -> None:
-        chemin = filedialog.askopenfilename(
-            title="Choisir clubs.csv", filetypes=[("CSV", "*.csv")]
-        )
+        chemin = filedialog.askopenfilename(title="Choisir clubs.csv", filetypes=[("CSV", "*.csv")])
         if not chemin:
             return  # dialogue annulé par l'organisateur -- pas une erreur
 
@@ -142,9 +140,9 @@ class EcranCompetiteurs(ctk.CTkFrame):
         cadre.grid(row=0, column=1, sticky="new", padx=(5, 0))
         cadre.grid_columnconfigure(0, weight=1)
 
-        ctk.CTkLabel(
-            cadre, text="Ajouter un compétiteur", font=ctk.CTkFont(weight="bold")
-        ).grid(row=0, column=0, sticky="w", padx=10, pady=(10, 5))
+        ctk.CTkLabel(cadre, text="Ajouter un compétiteur", font=ctk.CTkFont(weight="bold")).grid(
+            row=0, column=0, sticky="w", padx=10, pady=(10, 5)
+        )
 
         self.champ_id_federal = ctk.CTkEntry(cadre, placeholder_text="Id fédéral")
         self.champ_id_federal.grid(row=1, column=0, sticky="ew", padx=10, pady=2)
@@ -161,9 +159,7 @@ class EcranCompetiteurs(ctk.CTkFrame):
         self.menu_sexe = ctk.CTkOptionMenu(cadre, values=[s.value for s in Sexe])
         self.menu_sexe.grid(row=5, column=0, sticky="ew", padx=10, pady=2)
 
-        self.champ_date_naissance = ctk.CTkEntry(
-            cadre, placeholder_text="Naissance AAAA-MM-JJ"
-        )
+        self.champ_date_naissance = ctk.CTkEntry(cadre, placeholder_text="Naissance AAAA-MM-JJ")
         self.champ_date_naissance.grid(row=6, column=0, sticky="ew", padx=10, pady=2)
 
         self.menu_style_competiteur = ctk.CTkOptionMenu(cadre, values=["(aucun style)"])
@@ -174,9 +170,7 @@ class EcranCompetiteurs(ctk.CTkFrame):
         )
         self.champ_licence.grid(row=8, column=0, sticky="ew", padx=10, pady=2)
 
-        self.erreur_competiteur = ctk.CTkLabel(
-            cadre, text="", text_color="red", wraplength=260
-        )
+        self.erreur_competiteur = ctk.CTkLabel(cadre, text="", text_color="red", wraplength=260)
         self.erreur_competiteur.grid(row=9, column=0, sticky="w", padx=10)
 
         ctk.CTkButton(cadre, text="Ajouter", command=self._creer_competiteur).grid(
@@ -224,9 +218,7 @@ class EcranCompetiteurs(ctk.CTkFrame):
         try:
             date_naissance = parser_date(self.champ_date_naissance.get(), "Date de naissance")
             licence = (
-                parser_date(texte_licence, "Licence valide jusqu'au")
-                if texte_licence
-                else None
+                parser_date(texte_licence, "Licence valide jusqu'au") if texte_licence else None
             )
             services.creer_competiteur(
                 self.conn,
@@ -253,9 +245,9 @@ class EcranCompetiteurs(ctk.CTkFrame):
     # -- Liste ---------------------------------------------------------------
 
     def _construire_liste_competiteurs(self) -> None:
-        ctk.CTkLabel(
-            self, text="Compétiteurs", font=ctk.CTkFont(size=16, weight="bold")
-        ).grid(row=3, column=0, sticky="w", pady=(0, 5))
+        ctk.CTkLabel(self, text="Compétiteurs", font=ctk.CTkFont(size=16, weight="bold")).grid(
+            row=3, column=0, sticky="w", pady=(0, 5)
+        )
 
         self.liste_competiteurs = ctk.CTkScrollableFrame(self, fg_color="transparent")
         self.liste_competiteurs.grid(row=4, column=0, sticky="nsew")

@@ -104,14 +104,12 @@ class EcranSaisie(ctk.CTkFrame):
             row=1, column=0, sticky="ew"
         )
 
-        self.erreur_inscription = ctk.CTkLabel(
-            colonne, text="", text_color="red", wraplength=280
-        )
+        self.erreur_inscription = ctk.CTkLabel(colonne, text="", text_color="red", wraplength=280)
         self.erreur_inscription.grid(row=1, column=0, sticky="w", padx=15)
 
-        ctk.CTkLabel(
-            colonne, text="Inscrit·e·s", font=ctk.CTkFont(size=14, weight="bold")
-        ).grid(row=2, column=0, sticky="nw", padx=15)
+        ctk.CTkLabel(colonne, text="Inscrit·e·s", font=ctk.CTkFont(size=14, weight="bold")).grid(
+            row=2, column=0, sticky="nw", padx=15
+        )
 
         self.liste_inscrits = ctk.CTkScrollableFrame(colonne, fg_color="transparent")
         self.liste_inscrits.grid(row=3, column=0, sticky="nsew", padx=15, pady=(5, 15))
@@ -128,9 +126,7 @@ class EcranSaisie(ctk.CTkFrame):
         non_inscrits = services.lister_competiteurs_non_inscrits(
             self.conn, self.epreuve_courante.id
         )
-        self._non_inscrits_par_libelle = {
-            libelle_competiteur(c): c for c in non_inscrits
-        }
+        self._non_inscrits_par_libelle = {libelle_competiteur(c): c for c in non_inscrits}
         if not non_inscrits:
             self.menu_non_inscrits.configure(values=["(aucun)"])
             self.menu_non_inscrits.set("(aucun)")

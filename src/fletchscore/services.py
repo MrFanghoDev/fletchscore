@@ -100,9 +100,7 @@ def libelle_competiteur(competiteur: Competiteur) -> str:
 # ------------------------------------------------------------ Référentiels --
 
 
-def creer_club(
-    conn: sqlite3.Connection, code_club: str, nom: str, ville: str = ""
-) -> Club:
+def creer_club(conn: sqlite3.Connection, code_club: str, nom: str, ville: str = "") -> Club:
     """Ajoute un club manuellement -- mêmes règles que l'import CSV
     (voir io/import_csv.py) : code et nom obligatoires, code déjà pris
     refusé plutôt qu'écrasé silencieusement."""
@@ -280,9 +278,7 @@ def lister_competiteurs_non_inscrits(
     """Compétiteurs de la base qui ne sont pas encore inscrits à cette
     épreuve -- pour alimenter un sélecteur GUI sans proposer deux fois
     la même personne."""
-    deja_inscrits = {
-        i.id_federal for i in db.list_inscriptions_by_epreuve(conn, epreuve_id)
-    }
+    deja_inscrits = {i.id_federal for i in db.list_inscriptions_by_epreuve(conn, epreuve_id)}
     return [
         competiteur
         for competiteur in db.list_competiteurs(conn)
