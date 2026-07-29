@@ -46,18 +46,14 @@ def _score(inscription_id: str, valeurs: list[int]) -> Score:
     )
 
 
-@unittest.skipUnless(
-    FPDF2_DISPONIBLE, "fpdf2 n'est pas installé dans cet environnement de test"
-)
+@unittest.skipUnless(FPDF2_DISPONIBLE, "fpdf2 n'est pas installé dans cet environnement de test")
 class TestExporterClassementPdf(unittest.TestCase):
     def setUp(self):
         entrees = [
             (_competiteur("FR-1", Sexe.M), [_score("i1", [5, 5, 5, 5])]),
             (_competiteur("FR-2", Sexe.F), [_score("i2", [5, 5, 5, 4])]),
         ]
-        self.classement = classement_par_categorie(
-            BAREME_FLINT_INDOOR, date(2026, 1, 1), entrees
-        )
+        self.classement = classement_par_categorie(BAREME_FLINT_INDOOR, date(2026, 1, 1), entrees)
 
     def test_produit_un_pdf_valide_dans_un_flux_binaire(self):
         destination = io.BytesIO()

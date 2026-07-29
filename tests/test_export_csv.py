@@ -37,9 +37,7 @@ class TestExporterClassementCsv(unittest.TestCase):
             (_competiteur("FR-1", Sexe.M), [_score("i1", [5, 5, 5, 5])]),
             (_competiteur("FR-2", Sexe.F), [_score("i2", [5, 5, 5, 4])]),
         ]
-        self.classement = classement_par_categorie(
-            BAREME_FLINT_INDOOR, date(2026, 1, 1), entrees
-        )
+        self.classement = classement_par_categorie(BAREME_FLINT_INDOOR, date(2026, 1, 1), entrees)
 
     def test_entete_correcte(self):
         destination = io.StringIO()
