@@ -40,6 +40,11 @@ en compétition live avant d'aller plus loin).
         — ⚠️ **rendu non vérifié**
   - [x] Écran « Compétiteurs » (import CSV, liste) — ⚠️ **rendu non
         vérifié**
+  - [x] Saisie manuelle de club/compétiteur (sans passer par un CSV) --
+        `services.creer_club()` / `services.creer_competiteur()`, mêmes
+        règles que l'import (pas de création automatique de référence
+        manquante) -- ajouté après le premier essai réel, absent du
+        cahier des charges initial
   - [x] Écran « Saisie des scores » — ⚠️ **rendu non vérifié**
   - [x] Écran « Classement » — ⚠️ **rendu non vérifié**
 - [ ] `io/export/` -- Excel, PDF, CSV + podiums par catégorie

@@ -218,6 +218,72 @@ class TestClassementEpreuve(ServiceTestCase):
             services.classement_epreuve(self.conn, "epreuve-fantome")
 
 
+class TestCreerClub(ServiceTestCase):
+    def test_creation_valide(self):
+        club = services.creer_club(self.conn, "75001", "Club de Paris", "Paris")
+        self.assertEqual(db.get_club(self.conn, "75001"), club)
+
+    def test_ville_optionnelle(self):
+        club = services.creer_club(self.conn, "75001", "Club de Paris")
+        self.assertEqual(club.ville, "")
+
+    def test_code_vide_refuse(self):
+        with self.assertRaises(ErreurMetier):
+            services.creer_club(self.conn, "   ", "Club de Paris")
+
+    def test_nom_vide_refuse(self):
+        with self.assertRaises(ErreurMetier):
+            services.creer_club(self.conn, "75001", "   ")
+
+    def test_code_deja_pris_refuse_sans_ecraser(self):
+        with self.assertRaises(ErreurMetier) as contexte:
+            services.creer_club(self.conn, "77123", "Nom différent")
+        self.assertIn("existe déjà", str(contexte.exception))
+        self.assertEqual(db.get_club(self.conn, "77123").nom, "Archers Libres de FLP")
+
+
+class TestCreerCompetiteur(ServiceTestCase):
+    def test_creation_valide(self):
+        competiteur = services.creer_competiteur(
+            self.conn, "FR-2", "Martin", "Léo", "77123", Sexe.M, date(1995, 6, 1), "BB-R"
+        )
+        self.assertEqual(db.get_competiteur(self.conn, "FR-2"), competiteur)
+
+    def test_licence_optionnelle(self):
+        competiteur = services.creer_competiteur(
+            self.conn, "FR-2", "Martin", "Léo", "77123", Sexe.M, date(1995, 6, 1), "BB-R"
+        )
+        self.assertIsNone(competiteur.licence_valide_jusqu_au)
+
+    def test_id_federal_deja_pris_refuse_sans_ecraser(self):
+        with self.assertRaises(ErreurMetier) as contexte:
+            services.creer_competiteur(
+                self.conn, "FR-1", "Autre", "Nom", "77123", Sexe.M, date(2000, 1, 1), "BB-R"
+            )
+        self.assertIn("existe déjà", str(contexte.exception))
+        self.assertEqual(db.get_competiteur(self.conn, "FR-1").nom, "Dupont")
+
+    def test_club_inconnu_refuse_sans_creation_automatique(self):
+        with self.assertRaises(ErreurMetier) as contexte:
+            services.creer_competiteur(
+                self.conn, "FR-2", "X", "Y", "CLUB-FANTOME", Sexe.M, date(2000, 1, 1), "BB-R"
+            )
+        self.assertIn("Club inconnu", str(contexte.exception))
+        self.assertIsNone(db.get_club(self.conn, "CLUB-FANTOME"))
+
+    def test_style_inconnu_refuse(self):
+        with self.assertRaises(ErreurMetier):
+            services.creer_competiteur(
+                self.conn, "FR-2", "X", "Y", "77123", Sexe.M, date(2000, 1, 1), "STYLE-FANTOME"
+            )
+
+    def test_nom_vide_refuse(self):
+        with self.assertRaises(ErreurMetier):
+            services.creer_competiteur(
+                self.conn, "FR-2", "  ", "Y", "77123", Sexe.M, date(2000, 1, 1), "BB-R"
+            )
+
+
 class TestParserDate(ServiceTestCase):
     def test_date_valide(self):
         self.assertEqual(parser_date("2026-03-14", "Date"), date(2026, 3, 14))
@@ -311,7 +377,9 @@ class TestLibelles(ServiceTestCase):
 
     def test_libelle_competiteur_inclut_lid_federal(self):
         competiteur = db.get_competiteur(self.conn, "FR-1")
-        self.assertEqual(libelle_competiteur(competiteur), "Marie Dupont (FR-1)")
+        self.assertEqual(
+            libelle_competiteur(competiteur), "Marie Dupont (FR-1)"
+        )
 
 
 if __name__ == "__main__":

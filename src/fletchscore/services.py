@@ -17,11 +17,13 @@ import uuid
 from datetime import date
 
 from fletchscore.models import (
+    Club,
     Competiteur,
     Competition,
     Epreuve,
     Inscription,
     Score,
+    Sexe,
     StatutCompetition,
     StatutScore,
 )
@@ -93,6 +95,77 @@ def libelle_competiteur(competiteur: Competiteur) -> str:
     """Libellé d'affichage d'un compétiteur, id fédéral inclus pour
     distinguer deux personnes du même nom."""
     return f"{competiteur.prenom} {competiteur.nom} ({competiteur.id_federal})"
+
+
+# ------------------------------------------------------------ Référentiels --
+
+
+def creer_club(
+    conn: sqlite3.Connection, code_club: str, nom: str, ville: str = ""
+) -> Club:
+    """Ajoute un club manuellement -- mêmes règles que l'import CSV
+    (voir io/import_csv.py) : code et nom obligatoires, code déjà pris
+    refusé plutôt qu'écrasé silencieusement."""
+    code_club = code_club.strip()
+    nom = nom.strip()
+    if not code_club:
+        raise ErreurMetier("Le code du club ne peut pas être vide.")
+    if not nom:
+        raise ErreurMetier("Le nom du club ne peut pas être vide.")
+    if db.get_club(conn, code_club) is not None:
+        raise ErreurMetier(f"Un club avec le code « {code_club} » existe déjà.")
+
+    club = Club(code_club, nom, ville.strip())
+    db.insert_club(conn, club)
+    return club
+
+
+def creer_competiteur(
+    conn: sqlite3.Connection,
+    id_federal: str,
+    nom: str,
+    prenom: str,
+    code_club: str,
+    sexe: Sexe,
+    date_naissance: date,
+    code_style: str,
+    licence_valide_jusqu_au: date | None = None,
+) -> Competiteur:
+    """Ajoute un compétiteur manuellement -- mêmes règles que l'import
+    CSV : club et style doivent déjà exister dans leur référentiel
+    (jamais créés à la volée), id fédéral déjà pris refusé plutôt
+    qu'écrasé silencieusement (voir io/import_csv.py, même principe)."""
+    id_federal = id_federal.strip()
+    nom = nom.strip()
+    prenom = prenom.strip()
+    code_club = code_club.strip()
+    code_style = code_style.strip()
+
+    if not id_federal:
+        raise ErreurMetier("L'id fédéral ne peut pas être vide.")
+    if not nom:
+        raise ErreurMetier("Le nom ne peut pas être vide.")
+    if not prenom:
+        raise ErreurMetier("Le prénom ne peut pas être vide.")
+    if db.get_competiteur(conn, id_federal) is not None:
+        raise ErreurMetier(f"Un compétiteur avec l'id fédéral « {id_federal} » existe déjà.")
+    if db.get_club(conn, code_club) is None:
+        raise ErreurMetier(f"Club inconnu : {code_club} -- crée-le d'abord.")
+    if db.get_style(conn, code_style) is None:
+        raise ErreurMetier(f"Style inconnu : {code_style}.")
+
+    competiteur = Competiteur(
+        id_federal=id_federal,
+        nom=nom,
+        prenom=prenom,
+        code_club=code_club,
+        sexe=sexe,
+        date_naissance=date_naissance,
+        code_style=code_style,
+        licence_valide_jusqu_au=licence_valide_jusqu_au,
+    )
+    db.insert_competiteur(conn, competiteur)
+    return competiteur
 
 
 # ------------------------------------------------------- Compétition --
@@ -207,7 +280,9 @@ def lister_competiteurs_non_inscrits(
     """Compétiteurs de la base qui ne sont pas encore inscrits à cette
     épreuve -- pour alimenter un sélecteur GUI sans proposer deux fois
     la même personne."""
-    deja_inscrits = {i.id_federal for i in db.list_inscriptions_by_epreuve(conn, epreuve_id)}
+    deja_inscrits = {
+        i.id_federal for i in db.list_inscriptions_by_epreuve(conn, epreuve_id)
+    }
     return [
         competiteur
         for competiteur in db.list_competiteurs(conn)

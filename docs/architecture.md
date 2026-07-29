@@ -199,3 +199,13 @@ vérifié visuellement** -- l'environnement de dev n'a ni `tkinter` ni
 `customtkinter`. Prochaine étape logique : les lancer sur une vraie
 machine avant d'aller plus loin, plutôt que d'empiler `io/export/`
 par-dessus des écrans jamais vus tourner.
+
+- **Saisie manuelle de club/compétiteur ajoutée après le premier test
+  réel.** Absente du cahier des charges initial -- l'import CSV en masse
+  avait été posé comme moyen principal, sans jamais trancher le cas "un
+  archer se présente sans être dans le fichier" ou "je veux corriger une
+  seule fiche". `services.creer_club()`/`creer_competiteur()` reprennent
+  exactement les règles de validation de l'import CSV (club/style
+  inconnu refusé, jamais créé à la volée ; identifiant déjà pris refusé,
+  jamais écrasé) -- pour que les deux chemins (import en masse, saisie
+  au coup par coup) restent cohérents entre eux.
