@@ -74,6 +74,15 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Installer le paquet et ses dépendances
+        # Sans cette étape, seuls les tests qui ne dépendent que de la
+        # stdlib passaient -- tout ce qui a besoin d'une vraie dépendance
+        # (openpyxl, fpdf2, customtkinter) échouait, ou était compté
+        # "skipped" à tort en pensant que c'était l'environnement de dev
+        # local qui manquait de réseau, alors que la CI ne l'installait
+        # simplement jamais non plus. Bug réel remonté par l'utilisateur.
+        run: pip install -e ".[dev]"
+
       - name: Lancer la suite de tests
         env:
           PYTHONPATH: src

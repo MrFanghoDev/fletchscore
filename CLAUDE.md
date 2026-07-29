@@ -161,6 +161,15 @@ dans cet ordre, avant de livrer quoi que ce soit :
   classe de test avec `@unittest.skipUnless(...)` -- la suite reste
   propre (`OK (skipped=N)`) et les tests s'exécuteront pour de vrai dès
   que la dépendance est disponible (CI, machine réelle).
+- **Le job `test` de la CI ne faisait jamais `pip install` du paquet.**
+  Il enchaînait `checkout` → `setup-python` → `python -m unittest
+  discover` directement -- ça passait par accident tant que les tests ne
+  dépendaient que de la stdlib, et faisait passer à tort les tests
+  fpdf2/openpyxl pour "ignorés faute de réseau local" alors que la CI ne
+  les installait simplement jamais non plus. Un `pip install -e
+  ".[dev]"` manquant dans un job de test peut donner une fausse
+  impression de couverture verte. Bug remonté par l'utilisateur (échec
+  de `test_export_excel.py` en CI), pas trouvé par moi.
 
 *Voir aussi le `CLAUDE.md` de FletchTime pour les leçons équivalentes sur
 le projet frère (cibles SVG génériques, badge shields.io non vérifié,

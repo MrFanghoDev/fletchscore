@@ -230,16 +230,18 @@ ce test, restent donc les seuls de `gui/` jamais lancés.
   ce besoin. Choisi sur demande explicite de proposer, faute de
   préférence tranchée au moment de la décision.
 
-- **`io/export/pdf.py` et ses tests, jamais exécutés dans cet
-  environnement.** fpdf2 n'est pas installable ici (pas de réseau) --
+- **`io/export/pdf.py` et ses tests, jamais exécutés nulle part au
+  départ.** fpdf2 n'est pas installable ici (pas de réseau) --
   contrairement à `gui/robustesse.py` (où la dépendance avait pu être
   évitée entièrement), ici la bibliothèque est le véritable objet
   testé : impossible de vérifier un PDF produit sans PDF réellement
   produit. Les tests utilisent `unittest.skipUnless` conditionné sur la
   réussite de l'import -- la suite reste propre (`OK (skipped=N)`) au
-  lieu de faire échouer la collecte de tous les autres tests, et les 3
-  tests s'exécuteront pour de vrai dès que fpdf2 est disponible (CI,
-  machine de l'utilisateur).
+  lieu de faire échouer la collecte de tous les autres tests. Pensé à
+  tort que la CI, elle, les exécutait pour de vrai (installation via
+  `pyproject.toml`) -- en réalité le job `test` de la CI ne faisait
+  jamais `pip install` du tout (voir plus bas, bug distinct trouvé par
+  l'utilisateur), donc ces tests étaient "skipped" partout jusqu'ici.
 
 - **`io/export/excel.py` : premier export réellement vérifié de bout en
   bout.** `openpyxl` est installé dans cet environnement (contrairement
@@ -253,3 +255,14 @@ ce test, restent donc les seuls de `gui/` jamais lancés.
 La v0.1 est complète : un FletchScore utilisable en club, sans la partie
 web/compétiteur. Bon moment pour un test en conditions réelles plus
 poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
+
+- **`test.yml` : le job `test` n'installait jamais le paquet.** Passait
+  directement de `setup-python` à `python -m unittest discover`, sans
+  `pip install` -- fonctionnait par accident tant qu'aucun test ne
+  dépendait d'une bibliothèque tierce (customtkinter/openpyxl/fpdf2
+  toutes absentes du runner), et masquait le fait que les tests
+  fpdf2 étaient "skipped" en CI aussi, pas seulement en local. Ajouté
+  `pip install -e ".[dev]"` avant les tests. Bug trouvé par
+  l'utilisateur (échec réel de `test_export_excel.py` en CI), pas par
+  moi -- je n'ai pas de moyen de faire tourner cette CI moi-même pour le
+  repérer en amont.
