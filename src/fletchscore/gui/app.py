@@ -17,6 +17,7 @@ from pathlib import Path
 import customtkinter as ctk
 
 from fletchscore.gui import config as gui_config
+from fletchscore.gui.ecran_classement import EcranClassement
 from fletchscore.gui.ecran_competiteurs import EcranCompetiteurs
 from fletchscore.gui.ecran_competitions import EcranCompetitions
 from fletchscore.gui.ecran_saisie import EcranSaisie
@@ -132,13 +133,12 @@ class FenetrePrincipale(ctk.CTk):
             ecran.grid(row=0, column=0, sticky="nsew")
             return
 
-        # Écrans réels ajoutés un par un dans les incréments suivants --
-        # voir docs/roadmap.md, jalon gui/.
-        ctk.CTkLabel(
-            self.cadre_section,
-            text=f"Écran « {LIBELLES_SECTIONS[cle]} » à venir.",
-            font=ctk.CTkFont(size=14),
-        ).grid(row=0, column=0, padx=20, pady=20)
+        if cle == "classement":
+            ecran = EcranClassement(self.cadre_section, self.conn)
+            ecran.grid(row=0, column=0, sticky="nsew")
+            return
+
+        raise ValueError(f"Section inconnue : {cle}")
 
     # -- Préférences -------------------------------------------------------
 

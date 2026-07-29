@@ -3,7 +3,12 @@ from datetime import date
 
 from fletchscore import services
 from fletchscore.models import Club, Competiteur, Sexe, StatutCompetition, StatutScore
-from fletchscore.services import ErreurMetier, parser_date
+from fletchscore.services import (
+    ErreurMetier,
+    libelle_competiteur,
+    libelle_epreuve,
+    parser_date,
+)
 from fletchscore.storage import db
 
 
@@ -293,6 +298,22 @@ class TestListerCompetiteursNonInscrits(ServiceTestCase):
         epreuve = self._epreuve(self._competition())
         non_inscrits = services.lister_competiteurs_non_inscrits(self.conn, epreuve.id)
         self.assertEqual({c.id_federal for c in non_inscrits}, {"FR-1", "FR-2"})
+
+
+class TestLibelles(ServiceTestCase):
+    def test_libelle_epreuve(self):
+        competition = self._competition(nom="Week-end FFTL")
+        epreuve = self._epreuve(competition, nom="IFAA Indoor", date_epreuve=date(2026, 3, 14))
+        self.assertEqual(
+            libelle_epreuve(competition, epreuve),
+            "Week-end FFTL — IFAA Indoor (2026-03-14)",
+        )
+
+    def test_libelle_competiteur_inclut_lid_federal(self):
+        competiteur = db.get_competiteur(self.conn, "FR-1")
+        self.assertEqual(
+            libelle_competiteur(competiteur), "Marie Dupont (FR-1)"
+        )
 
 
 if __name__ == "__main__":

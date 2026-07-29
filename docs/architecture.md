@@ -178,3 +178,24 @@ directement sur le code.
   d'erreur (ligne 4) au lieu de la liste des volées déjà saisies (ligne
   7). Aucun des deux n'aurait été détecté sans relecture attentive --
   toujours pas de substitut à un vrai lancement.
+
+- **`libelle_epreuve()`/`libelle_competiteur()` déplacées dans
+  `services.py`.** D'abord écrites en double dans `gui/ecran_saisie.py`
+  en le codant ; extraites avant d'écrire `gui/ecran_classement.py`
+  plutôt que de les dupliquer une 3e fois -- même raisonnement que
+  `parser_date`/`parser_valeurs_fleches`.
+
+- **`gui/ecran_classement.py` : dernier écran de `gui/`.** Sélecteur
+  d'épreuve (même liste que la saisie), classement affiché par
+  catégorie triée alphabétiquement, rang/total/X par ligne -- le calcul
+  vient entièrement de `services.classement_epreuve()`, déjà testé.
+  Layout plus simple que les écrans précédents (une seule colonne,
+  lignes générées dynamiquement par compteur) : pas de bug de grille
+  trouvé cette fois en relisant, mais ça ne remplace pas un vrai
+  lancement pour le confirmer.
+
+Les 4 écrans de `gui/` sont maintenant en place (v0.1). **Aucun n'a été
+vérifié visuellement** -- l'environnement de dev n'a ni `tkinter` ni
+`customtkinter`. Prochaine étape logique : les lancer sur une vraie
+machine avant d'aller plus loin, plutôt que d'empiler `io/export/`
+par-dessus des écrans jamais vus tourner.

@@ -15,16 +15,8 @@ import customtkinter as ctk
 
 from fletchscore import services
 from fletchscore.models import Bareme, Competiteur, Competition, Epreuve, Inscription
-from fletchscore.services import ErreurMetier
+from fletchscore.services import ErreurMetier, libelle_competiteur, libelle_epreuve
 from fletchscore.storage import db
-
-
-def _libelle_epreuve(competition: Competition, epreuve: Epreuve) -> str:
-    return f"{competition.nom} — {epreuve.nom} ({epreuve.date})"
-
-
-def _libelle_competiteur(competiteur: Competiteur) -> str:
-    return f"{competiteur.prenom} {competiteur.nom} ({competiteur.id_federal})"
 
 
 class EcranSaisie(ctk.CTkFrame):
@@ -65,7 +57,7 @@ class EcranSaisie(ctk.CTkFrame):
     def _rafraichir_epreuves(self) -> None:
         paires = services.lister_epreuves_toutes(self.conn)
         self._epreuves_par_libelle = {
-            _libelle_epreuve(competition, epreuve): (competition, epreuve)
+            libelle_epreuve(competition, epreuve): (competition, epreuve)
             for competition, epreuve in paires
         }
         if not self._epreuves_par_libelle:
@@ -137,7 +129,7 @@ class EcranSaisie(ctk.CTkFrame):
             self.conn, self.epreuve_courante.id
         )
         self._non_inscrits_par_libelle = {
-            _libelle_competiteur(c): c for c in non_inscrits
+            libelle_competiteur(c): c for c in non_inscrits
         }
         if not non_inscrits:
             self.menu_non_inscrits.configure(values=["(aucun)"])
@@ -184,7 +176,7 @@ class EcranSaisie(ctk.CTkFrame):
 
         for index, inscription in enumerate(inscriptions):
             competiteur = db.get_competiteur(self.conn, inscription.id_federal)
-            texte = _libelle_competiteur(competiteur) if competiteur else inscription.id_federal
+            texte = libelle_competiteur(competiteur) if competiteur else inscription.id_federal
             selectionne = (
                 self.inscription_selectionnee is not None
                 and self.inscription_selectionnee.id == inscription.id

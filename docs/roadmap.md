@@ -20,7 +20,7 @@ en compétition live avant d'aller plus loin).
       en trop/manquantes, mauvaise cible), classement par catégorie,
       départage au X. Isolé et testé unitairement en premier, sans GUI ni
       DB réelle. 80 tests, tous verts.
-- [ ] `gui/` -- créer une compétition/épreuve avec un barème, inscrire des
+- [x] `gui/` -- créer une compétition/épreuve avec un barème, inscrire des
       compétiteurs, saisir les scores volée par volée, classement live
   - [x] `services.py` -- couche de cas d'usage appelée par la GUI
         (créer compétition/épreuve, inscrire, saisir une volée,
@@ -41,7 +41,7 @@ en compétition live avant d'aller plus loin).
   - [x] Écran « Compétiteurs » (import CSV, liste) — ⚠️ **rendu non
         vérifié**
   - [x] Écran « Saisie des scores » — ⚠️ **rendu non vérifié**
-  - [ ] Écran « Classement »
+  - [x] Écran « Classement » — ⚠️ **rendu non vérifié**
 - [ ] `io/export/` -- Excel, PDF, CSV + podiums par catégorie
 
 **Jalon utilisable seul** : ce point donne un FletchScore fonctionnel en

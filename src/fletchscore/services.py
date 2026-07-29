@@ -82,6 +82,19 @@ def parser_valeurs_fleches(textes: list[str]) -> list[int]:
     return valeurs
 
 
+def libelle_epreuve(competition: Competition, epreuve: Epreuve) -> str:
+    """Libellé d'affichage d'une épreuve, avec sa compétition -- partagé
+    par les écrans qui doivent choisir une épreuve parmi toutes celles de
+    toutes les compétitions (saisie, classement)."""
+    return f"{competition.nom} — {epreuve.nom} ({epreuve.date})"
+
+
+def libelle_competiteur(competiteur: Competiteur) -> str:
+    """Libellé d'affichage d'un compétiteur, id fédéral inclus pour
+    distinguer deux personnes du même nom."""
+    return f"{competiteur.prenom} {competiteur.nom} ({competiteur.id_federal})"
+
+
 # ------------------------------------------------------- Compétition --
 
 
