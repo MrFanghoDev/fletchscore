@@ -1,11 +1,12 @@
 # Roadmap FletchScore
 
-**État actuel : v0.1 complète -- 189 tests, tous verts, confirmés par la
+**État actuel : v0.1 complète -- 193 tests, tous verts, confirmés par la
 CI sans aucun `skipped`** (y compris les 3 tests fpdf2, jamais exécutables
 dans l'environnement de dev utilisé ici). `models/`, `storage/`,
 `referentiels/`, `io/import_csv.py`, `scoring/`, `gui/` et `io/export/`
-sont tous codés. Extension en cours : modèles d'épreuve réutilisables
-(backend fait, GUI à venir).
+sont tous codés. Extension modèles d'épreuve réutilisables (besoin 2)
+également complète, backend et GUI. Version affichée automatiquement
+dans le titre GUI et la doc Sphinx (voir `docs/architecture.md`).
 
 Découpage par jalons livrables, dans l'ordre des dépendances réelles :
 impossible de tester le scoring sans modèle de données, impossible de

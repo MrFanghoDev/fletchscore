@@ -287,3 +287,15 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   méthodes dédiées (`_afficher_erreur_epreuve`/`_afficher_info_epreuve`)
   qui fixent systématiquement la couleur plutôt que de compter sur un
   état par défaut.
+
+- **Version affichée automatiquement, jamais recopiée à la main.**
+  `docs/conf.py` lit `importlib.metadata.version("fletchscore")` pour
+  `release`/`version` (thème furo l'affiche dans la barre latérale) ;
+  `gui/app.py` réutilise `fletchscore.__version__` (déjà généré par
+  setuptools_scm, voir `pyproject.toml`) dans le titre de la fenêtre et
+  un petit label en bas de la barre latérale. Les deux ont un repli
+  propre (`0.0.0+inconnue`/`0.0.0+unknown`) si le paquet n'est pas
+  installé -- jamais d'erreur bloquante juste pour un numéro de version
+  manquant. `docs/conf.py` n'étant jamais importé par le paquet (seul
+  Sphinx l'exécute), un test dédié l'exécute directement pour attraper
+  une erreur avant qu'elle ne casse `docs.yml` en CI.

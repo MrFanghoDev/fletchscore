@@ -16,6 +16,7 @@ from pathlib import Path
 
 import customtkinter as ctk
 
+from fletchscore import __version__
 from fletchscore.gui import config as gui_config
 from fletchscore.gui.ecran_classement import EcranClassement
 from fletchscore.gui.ecran_competiteurs import EcranCompetiteurs
@@ -44,7 +45,7 @@ class FenetrePrincipale(ctk.CTk):
         self.conn = conn
         self.config_gui = config
 
-        self.title("FletchScore")
+        self.title(f"FletchScore {__version__}")
         self.geometry("1100x700")
         self.minsize(900, 600)
 
@@ -93,6 +94,13 @@ class FenetrePrincipale(ctk.CTk):
         self.menu_theme.grid(
             row=len(LIBELLES_SECTIONS) + 3, column=0, padx=20, pady=(5, 20), sticky="ew"
         )
+
+        ctk.CTkLabel(
+            self.barre_laterale,
+            text=f"v{__version__}",
+            font=ctk.CTkFont(size=11),
+            text_color="gray60",
+        ).grid(row=len(LIBELLES_SECTIONS) + 4, column=0, padx=20, pady=(0, 10), sticky="w")
 
     def _construire_zone_contenu(self) -> None:
         self.zone_contenu = ctk.CTkFrame(self, corner_radius=0, fg_color="transparent")
