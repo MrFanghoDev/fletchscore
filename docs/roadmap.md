@@ -134,9 +134,11 @@ Avancement :
       `creer_epreuve_depuis_template()` (ne duplique pas les
       validations de `creer_epreuve()` -- une date hors des bornes de
       la compétition reste refusée même via un modèle). 9 tests.
-- [ ] Besoin 2 -- écrans GUI (choisir un modèle à la création d'une
-      épreuve, bouton "Enregistrer comme modèle" sur une épreuve
-      existante)
+- [x] **Besoin 2 -- modèles d'épreuve, GUI** : sélecteur de modèle dans
+      le formulaire de création d'épreuve (préremplit nom + barème,
+      "(aucun modèle -- saisie libre)" par défaut) ; bouton "Enregistrer
+      comme modèle" sur chaque épreuve listée. ⚠️ **rendu non vérifié**
+      -- comme toute la GUI, pas d'affichage disponible ici
 - [ ] Besoin 1 -- sauvegarde/restauration d'une compétition complète
 - [ ] Besoin 3 -- export fédération tout-en-un
 

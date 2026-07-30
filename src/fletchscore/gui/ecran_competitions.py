@@ -23,6 +23,8 @@ class EcranCompetitions(ctk.CTkFrame):
         super().__init__(parent, fg_color="transparent")
         self.conn = conn
         self.competition_selectionnee: Competition | None = None
+        self._baremes_par_nom: dict[str, str] = {}
+        self._templates_par_libelle: dict = {}
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
@@ -153,6 +155,7 @@ class EcranCompetitions(ctk.CTkFrame):
         self.liste_epreuves.grid_columnconfigure(0, weight=1)
 
         self._construire_formulaire_epreuve(colonne)
+        self._rafraichir_choix_modeles()
         self._activer_colonne_epreuves(False)
 
     def _construire_formulaire_epreuve(self, parent: ctk.CTkBaseClass) -> None:
@@ -165,25 +168,58 @@ class EcranCompetitions(ctk.CTkFrame):
             row=0, column=0, sticky="w", padx=10, pady=(10, 5)
         )
 
+        self.menu_modele = ctk.CTkOptionMenu(
+            cadre, values=["(aucun modèle -- saisie libre)"], command=self._appliquer_modele
+        )
+        self.menu_modele.grid(row=1, column=0, sticky="ew", padx=10, pady=2)
+
         self.champ_nom_epreuve = ctk.CTkEntry(cadre, placeholder_text="Nom")
-        self.champ_nom_epreuve.grid(row=1, column=0, sticky="ew", padx=10, pady=2)
+        self.champ_nom_epreuve.grid(row=2, column=0, sticky="ew", padx=10, pady=2)
 
         self.champ_date_epreuve = ctk.CTkEntry(cadre, placeholder_text="Date AAAA-MM-JJ")
-        self.champ_date_epreuve.grid(row=2, column=0, sticky="ew", padx=10, pady=2)
+        self.champ_date_epreuve.grid(row=3, column=0, sticky="ew", padx=10, pady=2)
 
         self.menu_bareme = ctk.CTkOptionMenu(cadre, values=["(aucun barème)"])
-        self.menu_bareme.grid(row=3, column=0, sticky="ew", padx=10, pady=2)
+        self.menu_bareme.grid(row=4, column=0, sticky="ew", padx=10, pady=2)
 
         self.erreur_epreuve = ctk.CTkLabel(cadre, text="", text_color="red", wraplength=280)
-        self.erreur_epreuve.grid(row=4, column=0, sticky="w", padx=10)
+        self.erreur_epreuve.grid(row=5, column=0, sticky="w", padx=10)
 
         ctk.CTkButton(cadre, text="Créer", command=self._creer_epreuve).grid(
-            row=5, column=0, sticky="ew", padx=10, pady=10
+            row=6, column=0, sticky="ew", padx=10, pady=10
         )
+
+    def _afficher_erreur_epreuve(self, message: str) -> None:
+        self.erreur_epreuve.configure(text=message, text_color="red")
+
+    def _afficher_info_epreuve(self, message: str) -> None:
+        self.erreur_epreuve.configure(text=message, text_color="green")
+
+    def _rafraichir_choix_modeles(self) -> None:
+        templates = services.lister_templates_epreuve(self.conn)
+        valeur_libre = "(aucun modèle -- saisie libre)"
+        self._templates_par_libelle = {t.nom: t for t in templates}
+        self.menu_modele.configure(values=[valeur_libre, *self._templates_par_libelle.keys()])
+        self.menu_modele.set(valeur_libre)
+
+    def _appliquer_modele(self, libelle: str) -> None:
+        template = self._templates_par_libelle.get(libelle)
+        if template is None:
+            return  # "(aucun modèle -- saisie libre)" -- rien à préremplir
+
+        bareme = db.get_bareme(self.conn, template.bareme_id)
+        if bareme is None:
+            return  # barème du modèle introuvable -- laisse la saisie libre
+
+        self.champ_nom_epreuve.delete(0, "end")
+        self.champ_nom_epreuve.insert(0, template.nom)
+        if bareme.nom in (self._baremes_par_nom or {}):
+            self.menu_bareme.set(bareme.nom)
 
     def _activer_colonne_epreuves(self, actif: bool) -> None:
         etat = "normal" if actif else "disabled"
         for widget in (
+            self.menu_modele,
             self.champ_nom_epreuve,
             self.champ_date_epreuve,
             self.menu_bareme,
@@ -221,24 +257,45 @@ class EcranCompetitions(ctk.CTkFrame):
             )
             return
 
+        self.liste_epreuves.grid_columnconfigure(0, weight=1)
         for index, epreuve in enumerate(epreuves):
             bareme = db.get_bareme(self.conn, epreuve.bareme_id)
             libelle_bareme = bareme.nom if bareme else epreuve.bareme_id
             texte = f"{epreuve.nom} -- {epreuve.date} ({libelle_bareme})"
-            ctk.CTkLabel(self.liste_epreuves, text=texte, anchor="w").grid(
-                row=index, column=0, sticky="ew", pady=3
-            )
+
+            ligne = ctk.CTkFrame(self.liste_epreuves, fg_color="transparent")
+            ligne.grid(row=index, column=0, sticky="ew", pady=3)
+            ligne.grid_columnconfigure(0, weight=1)
+
+            ctk.CTkLabel(ligne, text=texte, anchor="w").grid(row=0, column=0, sticky="ew")
+            ctk.CTkButton(
+                ligne,
+                text="Enregistrer comme modèle",
+                width=170,
+                command=lambda e=epreuve: self._enregistrer_comme_modele(e),
+            ).grid(row=0, column=1, padx=(10, 0))
+
+    def _enregistrer_comme_modele(self, epreuve) -> None:
+        self.erreur_epreuve.configure(text="")
+        try:
+            template = services.creer_template_depuis_epreuve(self.conn, epreuve.id)
+        except ErreurMetier as erreur:
+            self._afficher_erreur_epreuve(str(erreur))
+            return
+
+        self._rafraichir_choix_modeles()
+        self._afficher_info_epreuve(f"Modèle « {template.nom} » enregistré.")
 
     def _creer_epreuve(self) -> None:
         self.erreur_epreuve.configure(text="")
         if self.competition_selectionnee is None:
-            self.erreur_epreuve.configure(text="Sélectionne d'abord une compétition.")
+            self._afficher_erreur_epreuve("Sélectionne d'abord une compétition.")
             return
 
         nom_bareme = self.menu_bareme.get()
         bareme_id = self._baremes_par_nom.get(nom_bareme)
         if bareme_id is None:
-            self.erreur_epreuve.configure(text="Aucun barème disponible.")
+            self._afficher_erreur_epreuve("Aucun barème disponible.")
             return
 
         try:
@@ -251,9 +308,10 @@ class EcranCompetitions(ctk.CTkFrame):
                 bareme_id=bareme_id,
             )
         except ErreurMetier as erreur:
-            self.erreur_epreuve.configure(text=str(erreur))
+            self._afficher_erreur_epreuve(str(erreur))
             return
 
         self.champ_nom_epreuve.delete(0, "end")
         self.champ_date_epreuve.delete(0, "end")
+        self.menu_modele.set("(aucun modèle -- saisie libre)")
         self._rafraichir_epreuves()

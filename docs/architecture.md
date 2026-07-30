@@ -278,3 +278,12 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   appelle `creer_epreuve()` plutôt que de réimplémenter ses vérifications
   (compétition clôturée, date hors bornes...) -- un modèle ne doit pas
   ouvrir un chemin de contournement des règles normales de création.
+
+- **`ecran_competitions.py` : un label d'erreur peut rester vert.**
+  Repéré en écrivant le bouton "Enregistrer comme modèle" (message de
+  succès en vert) : `CTkLabel.configure(text=...)` sans repréciser
+  `text_color` garde la dernière couleur configurée -- un message de
+  succès suivi d'une erreur serait resté vert. Corrigé avec deux
+  méthodes dédiées (`_afficher_erreur_epreuve`/`_afficher_info_epreuve`)
+  qui fixent systématiquement la couleur plutôt que de compter sur un
+  état par défaut.
