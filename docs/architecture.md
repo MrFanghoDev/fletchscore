@@ -306,13 +306,14 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   toute confusion. `docs/conf.py::html_logo` pointe dessus directement
   (`../branding/logo.svg`) plutôt que de dupliquer le fichier dans
   `docs/_static/`, pour n'avoir qu'une seule source à tenir à jour.
-  `.ico` généré depuis le JPG fourni (126x128, rendu carré par
-  complément de transparent plutôt qu'étiré) : le SVG source n'a pas pu
-  être rastérisé ici, faute d'outil disponible sans réseau
-  (`rsvg-convert` absent, pas de `cairosvg` installable) -- à regénérer
-  en plus haute résolution depuis le SVG si l'occasion se présente. Testé
-  que le chemin `html_logo` résout vers un vrai fichier (`test_docs_conf.py`)
-  -- le seul moyen de vérifier ça sans Sphinx installé ici. Pas d'icône
-  de fenêtre GUI pour l'instant (empaqueter `branding/` dans l'exécutable
-  et gérer sa résolution de chemin en mode PyInstaller n'en valait pas
-  la complexité pour un gain cosmétique).
+  `.ico` généré depuis `branding/logo.png` (recadré automatiquement sur
+  le contenu réel d'un PNG 968x703 fourni par l'utilisateur, fond
+  transparent) -- contient un vrai 256x256, contrairement à la première
+  version générée depuis un JPG 126x128 (le SVG source n'a toujours pas
+  pu être rastérisé directement ici, faute d'outil disponible sans
+  réseau ; le PNG haute résolution fourni ensuite a rendu ce contournement
+  inutile). Testé que le chemin `html_logo` résout vers un vrai fichier
+  (`test_docs_conf.py`) -- le seul moyen de vérifier ça sans Sphinx
+  installé ici. Pas d'icône de fenêtre GUI pour l'instant (empaqueter
+  `branding/` dans l'exécutable et gérer sa résolution de chemin en mode
+  PyInstaller n'en valait pas la complexité pour un gain cosmétique).

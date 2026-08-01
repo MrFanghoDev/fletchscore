@@ -69,12 +69,10 @@ exe = EXE(
     # pages de l'appli une fois empaqueté. "." restaure l'ancien
     # comportement -- même piège que FletchTime, déjà documenté.
     contents_directory=".",
-    # Icône générée depuis branding/logo.jpg (voir branding/ -- le SVG
-    # source n'a pas pu être rastérisé à la construction de cette icône,
-    # faute d'outil disponible ; le JPG source ne fait que 126x128, donc
-    # l'ICO ne contient pas de résolution 256x256 -- correct mais un peu
-    # moins net dans un très grand affichage d'icône. À régénérer en plus
-    # haute résolution depuis le SVG si l'occasion se présente.
+    # Icône générée depuis branding/logo.png (recadré depuis un PNG haute
+    # résolution fourni par l'utilisateur, 968x703 -- contient un vrai
+    # 256x256, contrairement à la première version générée depuis le JPG
+    # 126x128 fourni initialement).
     icon=str(project_root / "branding" / "fletchscore.ico"),
 )
 
