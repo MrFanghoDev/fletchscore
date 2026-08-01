@@ -299,3 +299,20 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   manquant. `docs/conf.py` n'étant jamais importé par le paquet (seul
   Sphinx l'exécute), un test dédié l'exécute directement pour attraper
   une erreur avant qu'elle ne casse `docs.yml` en CI.
+
+- **Logo dans `branding/`, pas dans `web/` ni `docs/_static/`.** Ni
+  donnée de club (comme `web/assets/`), ni contenu packagé pour la vue
+  compétiteur (comme `src/fletchscore/web/`) -- un dossier séparé évite
+  toute confusion. `docs/conf.py::html_logo` pointe dessus directement
+  (`../branding/logo.svg`) plutôt que de dupliquer le fichier dans
+  `docs/_static/`, pour n'avoir qu'une seule source à tenir à jour.
+  `.ico` généré depuis le JPG fourni (126x128, rendu carré par
+  complément de transparent plutôt qu'étiré) : le SVG source n'a pas pu
+  être rastérisé ici, faute d'outil disponible sans réseau
+  (`rsvg-convert` absent, pas de `cairosvg` installable) -- à regénérer
+  en plus haute résolution depuis le SVG si l'occasion se présente. Testé
+  que le chemin `html_logo` résout vers un vrai fichier (`test_docs_conf.py`)
+  -- le seul moyen de vérifier ça sans Sphinx installé ici. Pas d'icône
+  de fenêtre GUI pour l'instant (empaqueter `branding/` dans l'exécutable
+  et gérer sa résolution de chemin en mode PyInstaller n'en valait pas
+  la complexité pour un gain cosmétique).

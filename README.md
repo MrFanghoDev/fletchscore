@@ -1,5 +1,7 @@
 # FletchScore
 
+<img src="branding/logo.svg" alt="Logo FletchScore" width="96" align="right">
+
 Application open source d'enregistrement des scores de compétitions de
 tir à l'arc (FFTL / IFAA), tous formats (Indoor, Flint, Field, Hunter,
 Animal...). Projet frère de [FletchTime](https://github.com/MrFanghoDev/fletchtime)
@@ -21,8 +23,23 @@ pour le détail.
 
 ## Installation
 
+**Version stable (PyPI)**, une fois une première Release publiée :
+
 ```bash
 pip install fletchscore
+fletchscore
+```
+
+**Dernière version de développement (TestPyPI)**, publiée à chaque push
+sur `main`/`master` -- utile pour tester une correction pas encore
+sortie en version stable. TestPyPI est un index séparé et quasiment vide
+: sans `--extra-index-url`, pip y cherche *aussi* les dépendances
+(fpdf2, openpyxl, customtkinter) et échoue à les trouver. La commande
+suivante cherche `fletchscore` sur TestPyPI et bascule sur le vrai PyPI
+pour tout le reste :
+
+```bash
+pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ fletchscore
 fletchscore
 ```
 

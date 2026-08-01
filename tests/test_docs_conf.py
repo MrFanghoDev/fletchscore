@@ -36,6 +36,14 @@ class TestDocsConf(unittest.TestCase):
         self.assertNotIn("+", version)
         self.assertNotIn(".dev", version)
 
+    def test_html_logo_pointe_vers_un_fichier_existant(self):
+        # html_logo est un chemin relatif au dossier de conf.py (docs/) --
+        # une faute de frappe ici ne casserait qu'au moment du build
+        # Sphinx, jamais détectée sinon dans cet environnement sans Sphinx.
+        namespace = self._executer()
+        chemin_logo = (CHEMIN_CONF.parent / namespace["html_logo"]).resolve()
+        self.assertTrue(chemin_logo.is_file(), f"{chemin_logo} introuvable")
+
 
 if __name__ == "__main__":
     unittest.main()
