@@ -409,3 +409,18 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   dupliquer ailleurs. Manque signalé par l'utilisateur après un premier
   test réel complet (créer, importer, exporter) -- pas anticipé dans le
   cahier des charges initial, qui ne parlait que d'import.
+
+- **`modifier_club()`/`modifier_competiteur()` : identifiant jamais
+  modifiable.** `code_club` et `id_federal` sont les clés référencées
+  ailleurs (fiches compétiteur pour l'un, inscriptions/tokens pour
+  l'autre) -- les changer casserait ces références, donc
+  `storage.update_club`/`update_competiteur` ne touchent jamais à la
+  clé primaire, seulement aux autres champs. Le champ correspondant est
+  grisé (`state="disabled"`) dans le formulaire GUI en mode édition,
+  pas seulement ignoré côté service -- évite de laisser croire à
+  l'organisateur qu'il peut le changer. Pas de liste de clubs dédiée
+  dans la GUI : le formulaire club a son propre sélecteur ("choisir un
+  club existant à modifier" + bouton "Modifier") plutôt que d'ajouter
+  un panneau de liste séparé, pour rester compact. Manque signalé par
+  l'utilisateur après un test réel -- pas anticipé dans le cahier des
+  charges initial.

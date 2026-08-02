@@ -96,6 +96,20 @@ def creer_club(conn: sqlite3.Connection, code_club: str, nom: str, ville: str = 
     return club
 
 
+def modifier_club(conn: sqlite3.Connection, code_club: str, nom: str, ville: str = "") -> Club:
+    """Corrige un club existant -- ``code_club`` n'est volontairement
+    pas modifiable (voir storage.update_club) : c'est la clé référencée
+    par les fiches compétiteur, la changer casserait ces références."""
+    if db.get_club(conn, code_club) is None:
+        raise ErreurMetier(f"Club introuvable : {code_club}")
+    if not nom.strip():
+        raise ErreurMetier("Le nom du club ne peut pas être vide.")
+
+    club = Club(code_club, nom.strip(), ville.strip())
+    db.update_club(conn, club)
+    return club
+
+
 def creer_competiteur(
     conn: sqlite3.Connection,
     id_federal: str,
@@ -141,6 +155,52 @@ def creer_competiteur(
         licence_valide_jusqu_au=licence_valide_jusqu_au,
     )
     db.insert_competiteur(conn, competiteur)
+    return competiteur
+
+
+def modifier_competiteur(
+    conn: sqlite3.Connection,
+    id_federal: str,
+    nom: str,
+    prenom: str,
+    code_club: str,
+    sexe: Sexe,
+    date_naissance: date,
+    code_style: str,
+    licence_valide_jusqu_au: date | None = None,
+) -> Competiteur:
+    """Corrige un compétiteur existant -- mêmes règles que
+    ``creer_competiteur()``. ``id_federal`` n'est volontairement pas
+    modifiable (voir storage.update_competiteur) : c'est l'identifiant
+    fédéral, la clé de tout le reste (inscriptions, tokens...)."""
+    if db.get_competiteur(conn, id_federal) is None:
+        raise ErreurMetier(f"Compétiteur introuvable : {id_federal}")
+
+    nom = nom.strip()
+    prenom = prenom.strip()
+    code_club = code_club.strip()
+    code_style = code_style.strip()
+
+    if not nom:
+        raise ErreurMetier("Le nom ne peut pas être vide.")
+    if not prenom:
+        raise ErreurMetier("Le prénom ne peut pas être vide.")
+    if db.get_club(conn, code_club) is None:
+        raise ErreurMetier(f"Club inconnu : {code_club} -- crée-le d'abord.")
+    if db.get_style(conn, code_style) is None:
+        raise ErreurMetier(f"Style inconnu : {code_style}.")
+
+    competiteur = Competiteur(
+        id_federal=id_federal,
+        nom=nom,
+        prenom=prenom,
+        code_club=code_club,
+        sexe=sexe,
+        date_naissance=date_naissance,
+        code_style=code_style,
+        licence_valide_jusqu_au=licence_valide_jusqu_au,
+    )
+    db.update_competiteur(conn, competiteur)
     return competiteur
 
 

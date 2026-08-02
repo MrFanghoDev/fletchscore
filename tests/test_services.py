@@ -455,6 +455,25 @@ class TestCreerClub(ServiceTestCase):
         self.assertEqual(db.get_club(self.conn, "77123").nom, "Archers Libres de FLP")
 
 
+class TestModifierClub(ServiceTestCase):
+    def test_modification_valide(self):
+        club = services.modifier_club(self.conn, "77123", "Nouveau nom", "Nouvelle ville")
+        self.assertEqual(club.nom, "Nouveau nom")
+        self.assertEqual(db.get_club(self.conn, "77123"), club)
+
+    def test_club_inconnu_refuse(self):
+        with self.assertRaises(ErreurMetier):
+            services.modifier_club(self.conn, "CLUB-FANTOME", "X")
+
+    def test_nom_vide_refuse(self):
+        with self.assertRaises(ErreurMetier):
+            services.modifier_club(self.conn, "77123", "   ")
+
+    def test_code_club_reste_le_meme(self):
+        club = services.modifier_club(self.conn, "77123", "Nouveau nom")
+        self.assertEqual(club.code_club, "77123")
+
+
 class TestCreerCompetiteur(ServiceTestCase):
     def test_creation_valide(self):
         competiteur = services.creer_competiteur(
@@ -495,6 +514,54 @@ class TestCreerCompetiteur(ServiceTestCase):
             services.creer_competiteur(
                 self.conn, "FR-2", "  ", "Y", "77123", Sexe.M, date(2000, 1, 1), "BB-R"
             )
+
+
+class TestModifierCompetiteur(ServiceTestCase):
+    def test_modification_valide(self):
+        competiteur = services.modifier_competiteur(
+            self.conn, "FR-1", "Nouveau nom", "Nouveau prenom", "77123", Sexe.M,
+            date(1990, 1, 1), "LB",
+        )
+        self.assertEqual(competiteur.nom, "Nouveau nom")
+        self.assertEqual(db.get_competiteur(self.conn, "FR-1"), competiteur)
+
+    def test_id_federal_reste_le_meme(self):
+        competiteur = services.modifier_competiteur(
+            self.conn, "FR-1", "X", "Y", "77123", Sexe.F, date(1995, 3, 14), "BB-R"
+        )
+        self.assertEqual(competiteur.id_federal, "FR-1")
+
+    def test_competiteur_inconnu_refuse(self):
+        with self.assertRaises(ErreurMetier):
+            services.modifier_competiteur(
+                self.conn, "FR-FANTOME", "X", "Y", "77123", Sexe.M, date(2000, 1, 1), "BB-R"
+            )
+
+    def test_nom_vide_refuse(self):
+        with self.assertRaises(ErreurMetier):
+            services.modifier_competiteur(
+                self.conn, "FR-1", "   ", "Y", "77123", Sexe.F, date(1995, 3, 14), "BB-R"
+            )
+
+    def test_club_inconnu_refuse_sans_creation_automatique(self):
+        with self.assertRaises(ErreurMetier) as contexte:
+            services.modifier_competiteur(
+                self.conn, "FR-1", "X", "Y", "CLUB-FANTOME", Sexe.F, date(1995, 3, 14), "BB-R"
+            )
+        self.assertIn("Club inconnu", str(contexte.exception))
+
+    def test_style_inconnu_refuse(self):
+        with self.assertRaises(ErreurMetier):
+            services.modifier_competiteur(
+                self.conn, "FR-1", "X", "Y", "77123", Sexe.F, date(1995, 3, 14), "STYLE-FANTOME"
+            )
+
+    def test_licence_modifiable(self):
+        competiteur = services.modifier_competiteur(
+            self.conn, "FR-1", "X", "Y", "77123", Sexe.F, date(1995, 3, 14), "BB-R",
+            licence_valide_jusqu_au=date(2026, 12, 31),
+        )
+        self.assertEqual(competiteur.licence_valide_jusqu_au, date(2026, 12, 31))
 
 
 class TestParserDate(ServiceTestCase):

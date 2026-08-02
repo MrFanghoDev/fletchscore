@@ -60,6 +60,13 @@ class TestReferentiels(StorageTestCase):
         recupere = db.get_club(self.conn, "77123")
         self.assertEqual(recupere, club)
 
+    def test_update_club_modifie_nom_et_ville(self):
+        db.insert_club(self.conn, Club("77123", "Ancien nom", "Ancienne ville"))
+        db.update_club(self.conn, Club("77123", "Nouveau nom", "Nouvelle ville"))
+        recupere = db.get_club(self.conn, "77123")
+        self.assertEqual(recupere.nom, "Nouveau nom")
+        self.assertEqual(recupere.ville, "Nouvelle ville")
+
     def test_style_personnalise_coexiste_avec_referentiel_ifaa(self):
         db.seed_referentiel_styles(self.conn)
         db.insert_style(self.conn, Style("XX-1", "Variante FFTL locale"))
@@ -103,6 +110,33 @@ class TestCompetiteur(StorageTestCase):
 
     def test_get_competiteur_inexistant_retourne_none(self):
         self.assertIsNone(db.get_competiteur(self.conn, "FR-INCONNU"))
+
+    def test_update_competiteur_modifie_les_champs(self):
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-1",
+                nom="Ancien nom",
+                prenom="Ancien prenom",
+                code_club="77123",
+                sexe=Sexe.M,
+                date_naissance=date(2000, 1, 1),
+                code_style="LB",
+            ),
+        )
+        modifie = Competiteur(
+            id_federal="FR-1",
+            nom="Nouveau nom",
+            prenom="Nouveau prenom",
+            code_club="77123",
+            sexe=Sexe.F,
+            date_naissance=date(1999, 5, 5),
+            code_style="BB-R",
+            licence_valide_jusqu_au=date(2026, 12, 31),
+        )
+        db.update_competiteur(self.conn, modifie)
+        recupere = db.get_competiteur(self.conn, "FR-1")
+        self.assertEqual(recupere, modifie)
 
     def test_code_club_inexistant_rejete_par_cle_etrangere(self):
         competiteur = Competiteur(

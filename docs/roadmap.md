@@ -1,6 +1,6 @@
 # Roadmap FletchScore
 
-**État actuel : v0.1 complète -- 217 tests, tous verts, confirmés par la
+**État actuel : v0.1 complète -- 230 tests, tous verts, confirmés par la
 CI sans aucun `skipped`** (y compris les 3 tests fpdf2, jamais exécutables
 dans l'environnement de dev utilisé ici). `models/`, `storage/`,
 `referentiels/`, `io/import_csv.py` (import + export CSV clubs/
@@ -65,6 +65,12 @@ en compétition live avant d'aller plus loin).
         manquante) -- ajouté après le premier essai réel (voir note
         ci-dessous), absent du cahier des charges initial ; **pas encore
         testé en réel**, contrairement au reste de `gui/`
+  - [x] Modification de club/compétiteur existant -- `services.
+        modifier_club()`/`modifier_competiteur()`, identifiant
+        (`code_club`/`id_federal`) non modifiable (clé référencée
+        ailleurs). Boutons "Modifier" sur la liste des compétiteurs et
+        sur un sélecteur dédié dans le formulaire club. ⚠️ **rendu non
+        vérifié** -- manque signalé par l'utilisateur après un test réel
   - [x] Écran « Saisie des scores »
   - [x] Écran « Classement »
 - [x] `io/export/` -- Excel, PDF, CSV + podiums par catégorie

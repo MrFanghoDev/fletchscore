@@ -180,6 +180,18 @@ def list_clubs(conn: sqlite3.Connection) -> list[Club]:
     return [Club(r["code_club"], r["nom"], r["ville"]) for r in rows]
 
 
+def update_club(conn: sqlite3.Connection, club: Club) -> None:
+    """``code_club`` n'est pas modifiable via cette fonction -- c'est
+    l'identifiant référencé par competiteurs.code_club, le changer
+    demanderait de mettre à jour toutes les fiches compétiteur qui le
+    référencent. Seuls nom et ville sont corrigibles."""
+    conn.execute(
+        "UPDATE clubs SET nom = ?, ville = ? WHERE code_club = ?",
+        (club.nom, club.ville, club.code_club),
+    )
+    conn.commit()
+
+
 # --------------------------------------------------------------- Style --
 
 
@@ -255,6 +267,33 @@ def get_competiteur(conn: sqlite3.Connection, id_federal: str) -> Competiteur | 
 def list_competiteurs(conn: sqlite3.Connection) -> list[Competiteur]:
     rows = conn.execute("SELECT * FROM competiteurs ORDER BY nom, prenom").fetchall()
     return [_row_to_competiteur(r) for r in rows]
+
+
+def update_competiteur(conn: sqlite3.Connection, competiteur: Competiteur) -> None:
+    """``id_federal`` n'est pas modifiable via cette fonction -- c'est
+    l'identifiant fédéral, la clé de tout le reste (inscriptions,
+    tokens...). Tous les autres champs sont corrigibles."""
+    conn.execute(
+        """UPDATE competiteurs SET
+               nom = ?, prenom = ?, code_club = ?, sexe = ?,
+               date_naissance = ?, code_style = ?, licence_valide_jusqu_au = ?
+           WHERE id_federal = ?""",
+        (
+            competiteur.nom,
+            competiteur.prenom,
+            competiteur.code_club,
+            competiteur.sexe.value,
+            competiteur.date_naissance.isoformat(),
+            competiteur.code_style,
+            (
+                competiteur.licence_valide_jusqu_au.isoformat()
+                if competiteur.licence_valide_jusqu_au
+                else None
+            ),
+            competiteur.id_federal,
+        ),
+    )
+    conn.commit()
 
 
 # -------------------------------------------------------------- Barème --
