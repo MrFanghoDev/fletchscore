@@ -85,24 +85,26 @@ class TestExporterClassementCsv(unittest.TestCase):
 class TestExporterClassementGlobalCsv(unittest.TestCase):
     def setUp(self):
         self.epreuve1 = Epreuve(
-            id="epr-1", competition_id="comp-1", nom="Indoor", date=date(2026, 3, 14),
+            id="epr-1",
+            competition_id="comp-1",
+            nom="Indoor",
+            date=date(2026, 3, 14),
             bareme_id="ifaa-indoor",
         )
         self.epreuve2 = Epreuve(
-            id="epr-2", competition_id="comp-1", nom="Flint", date=date(2026, 3, 15),
+            id="epr-2",
+            competition_id="comp-1",
+            nom="Flint",
+            date=date(2026, 3, 15),
             bareme_id="flint-indoor",
         )
         competiteur = _competiteur("FR-1", Sexe.M)
         entrees = [(competiteur, {"epr-1": _score("i1", 260), "epr-2": _score("i2", 220)})]
-        self.classement = classement_global(
-            date(2026, 3, 14), ["epr-1", "epr-2"], entrees
-        )
+        self.classement = classement_global(date(2026, 3, 14), ["epr-1", "epr-2"], entrees)
 
     def test_entete_contient_une_colonne_par_epreuve(self):
         destination = io.StringIO()
-        exporter_classement_global_csv(
-            [self.epreuve1, self.epreuve2], self.classement, destination
-        )
+        exporter_classement_global_csv([self.epreuve1, self.epreuve2], self.classement, destination)
         entete = destination.getvalue().splitlines()[0]
         self.assertIn("Indoor (2026-03-14)", entete)
         self.assertIn("Flint (2026-03-15)", entete)
@@ -110,9 +112,7 @@ class TestExporterClassementGlobalCsv(unittest.TestCase):
 
     def test_valeurs_dune_ligne(self):
         destination = io.StringIO()
-        exporter_classement_global_csv(
-            [self.epreuve1, self.epreuve2], self.classement, destination
-        )
+        exporter_classement_global_csv([self.epreuve1, self.epreuve2], self.classement, destination)
         lignes = list(csv.reader(io.StringIO(destination.getvalue())))
         ligne_fr1 = next(ligne for ligne in lignes[1:] if ligne[2] == "FR-1")
         # categorie, rang, id_federal, nom, prenom, epr1, epr2, total, x

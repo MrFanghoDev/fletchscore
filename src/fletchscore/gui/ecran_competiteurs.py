@@ -94,9 +94,7 @@ class EcranCompetiteurs(ctk.CTkFrame):
         self._rafraichir_selection_club()
 
     def _importer_competiteurs(self) -> None:
-        chemin = demander_chemin(
-            self, "Chemin de competiteurs.csv à importer", "competiteurs.csv"
-        )
+        chemin = demander_chemin(self, "Chemin de competiteurs.csv à importer", "competiteurs.csv")
         if not chemin:
             return
 
@@ -113,9 +111,7 @@ class EcranCompetiteurs(ctk.CTkFrame):
         self._afficher_rapport(f"Clubs exportés vers {chemin}")
 
     def _exporter_competiteurs(self) -> None:
-        chemin = demander_chemin(
-            self, "Chemin où exporter competiteurs.csv", "competiteurs.csv"
-        )
+        chemin = demander_chemin(self, "Chemin où exporter competiteurs.csv", "competiteurs.csv")
         if not chemin:
             return
 

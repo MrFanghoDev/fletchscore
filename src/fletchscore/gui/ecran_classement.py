@@ -84,9 +84,7 @@ class EcranClassement(ctk.CTkFrame):
         ctk.CTkButton(cadre, text="Exporter Excel", command=self._exporter_excel).grid(
             row=0, column=2, padx=(0, 10)
         )
-        ctk.CTkButton(cadre, text="Exporter PDF", command=self._exporter_pdf).grid(
-            row=0, column=3
-        )
+        ctk.CTkButton(cadre, text="Exporter PDF", command=self._exporter_pdf).grid(row=0, column=3)
 
         self.erreur_export = ctk.CTkLabel(cadre, text="", text_color="red", wraplength=500)
         self.erreur_export.grid(row=1, column=0, columnspan=4, sticky="w", pady=(5, 0))
