@@ -18,6 +18,8 @@ import customtkinter as ctk
 
 from fletchscore import __version__
 from fletchscore.gui import config as gui_config
+from fletchscore.gui.ecran_accueil import EcranAccueil
+from fletchscore.gui.ecran_aide import EcranAide
 from fletchscore.gui.ecran_classement import EcranClassement
 from fletchscore.gui.ecran_competiteurs import EcranCompetiteurs
 from fletchscore.gui.ecran_competitions import EcranCompetitions
@@ -32,10 +34,12 @@ from fletchscore.storage.db import ouvrir_base
 CHEMIN_BASE_PAR_DEFAUT = Path("fletchscore.db")
 
 LIBELLES_SECTIONS = {
+    "accueil": "Accueil",
     "competitions": "Compétitions",
     "competiteurs": "Compétiteurs",
     "saisie": "Saisie des scores",
     "classement": "Classement",
+    "aide": "Aide",
 }
 
 
@@ -56,7 +60,7 @@ class FenetrePrincipale(ctk.CTk):
 
         self._construire_barre_laterale()
         self._construire_zone_contenu()
-        self.afficher_section("competitions")
+        self.afficher_section("accueil")
 
     # -- Construction de l'interface ------------------------------------
 
@@ -126,6 +130,11 @@ class FenetrePrincipale(ctk.CTk):
 
         self.titre_section.configure(text=LIBELLES_SECTIONS[cle])
 
+        if cle == "accueil":
+            ecran = EcranAccueil(self.cadre_section, self.conn, self.afficher_section)
+            ecran.grid(row=0, column=0, sticky="nsew")
+            return
+
         if cle == "competitions":
             ecran = EcranCompetitions(self.cadre_section, self.conn)
             ecran.grid(row=0, column=0, sticky="nsew")
@@ -143,6 +152,11 @@ class FenetrePrincipale(ctk.CTk):
 
         if cle == "classement":
             ecran = EcranClassement(self.cadre_section, self.conn)
+            ecran.grid(row=0, column=0, sticky="nsew")
+            return
+
+        if cle == "aide":
+            ecran = EcranAide(self.cadre_section)
             ecran.grid(row=0, column=0, sticky="nsew")
             return
 

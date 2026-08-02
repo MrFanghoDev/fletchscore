@@ -1,6 +1,6 @@
 # Roadmap FletchScore
 
-**État actuel : v0.1 complète -- 219 tests, tous verts, confirmés par la
+**État actuel : v0.1 complète -- 222 tests, tous verts, confirmés par la
 CI sans aucun `skipped`** (y compris les 3 tests fpdf2, jamais exécutables
 dans l'environnement de dev utilisé ici). `models/`, `storage/`,
 `referentiels/`, `io/import_csv.py`, `scoring/`, `gui/` et `io/export/`
@@ -10,7 +10,9 @@ dans le titre GUI et la doc Sphinx (voir `docs/architecture.md`). Logo
 FletchScore intégré (`branding/`) : README, doc Sphinx, icône de
 l'exécutable Windows/Linux. Modification de compétitions/épreuves
 existantes possible (backend + GUI). 6 barèmes préconfigurés : Flint
-Indoor, IFAA Indoor, Field, Hunter, International, Expert Field.
+Indoor, IFAA Indoor, Field, Hunter, International, Expert Field. Écrans
+Accueil (résumé rapide + raccourcis) et Aide (mode d'emploi + lien doc)
+ajoutés.
 
 Découpage par jalons livrables, dans l'ordre des dépendances réelles :
 impossible de tester le scoring sans modèle de données, impossible de
@@ -169,6 +171,26 @@ saisie sans passer par un script Python à la main.
       "Annuler" pour sortir du mode édition sans enregistrer. ⚠️
       **rendu non vérifié** -- comme toute la GUI, pas d'affichage
       disponible ici.
+
+## Extension -- Accueil et aide dans la GUI
+
+Demande de l'utilisateur en cours de test réel : la fenêtre s'ouvrait
+directement sur l'écran Compétitions, sans vue d'ensemble ni aide
+accessible depuis l'appli.
+
+- [x] Écran « Accueil » (nouvel écran par défaut à l'ouverture) :
+      message de bienvenue, résumé chiffré (nb compétitions,
+      compétiteurs, épreuves), dernière épreuve en date, raccourcis vers
+      les 4 sections. `services.resumer_accueil()` -- "dernière
+      activité" interprétée comme l'épreuve la plus récente par date,
+      pas un horodatage d'action réelle (rien dans le modèle ne trace
+      "quand" une action a eu lieu). 5 tests.
+- [x] Écran « Aide » : résumé du mode d'emploi de chaque section
+      directement dans la GUI, plus un bouton qui ouvre la documentation
+      complète dans le navigateur par défaut (`webbrowser.open`, stdlib).
+      Contenu statique, rien à tester au-delà de la syntaxe.
+- Les deux : ⚠️ **rendu non vérifié** -- comme toute la GUI, pas
+  d'affichage disponible ici.
 
 ## v0.5 -- Finition
 

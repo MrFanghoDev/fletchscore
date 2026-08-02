@@ -674,5 +674,42 @@ class TestLibelles(ServiceTestCase):
         self.assertEqual(libelle_competiteur(competiteur), "Marie Dupont (FR-1)")
 
 
+class TestResumerAccueil(ServiceTestCase):
+    def test_base_vide(self):
+        # ServiceTestCase crée déjà un club, un style et FR-1 -- mais
+        # aucune compétition/épreuve tant qu'on n'en crée pas.
+        resume = services.resumer_accueil(self.conn)
+        self.assertEqual(resume.nb_competitions, 0)
+        self.assertEqual(resume.nb_competiteurs, 1)
+        self.assertEqual(resume.nb_epreuves, 0)
+        self.assertIsNone(resume.derniere_epreuve)
+
+    def test_compte_competitions_et_epreuves(self):
+        competition = self._competition()
+        self._epreuve(competition)
+
+        resume = services.resumer_accueil(self.conn)
+
+        self.assertEqual(resume.nb_competitions, 1)
+        self.assertEqual(resume.nb_epreuves, 1)
+
+    def test_derniere_epreuve_est_la_plus_recente(self):
+        c1 = self._competition(
+            nom="Ancienne", date_debut=date(2025, 1, 1), date_fin=date(2025, 1, 2)
+        )
+        self._epreuve(c1, nom="Vieille épreuve", date_epreuve=date(2025, 1, 1))
+        c2 = self._competition(
+            nom="Récente", date_debut=date(2026, 3, 14), date_fin=date(2026, 3, 15)
+        )
+        epreuve_recente = self._epreuve(c2, nom="Épreuve récente", date_epreuve=date(2026, 3, 14))
+
+        resume = services.resumer_accueil(self.conn)
+
+        self.assertIsNotNone(resume.derniere_epreuve)
+        competition_resultat, epreuve_resultat = resume.derniere_epreuve
+        self.assertEqual(epreuve_resultat.id, epreuve_recente.id)
+        self.assertEqual(competition_resultat.id, c2.id)
+
+
 if __name__ == "__main__":
     unittest.main()

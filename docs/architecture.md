@@ -345,3 +345,21 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   "unités standard" pour ces rounds-là (contrairement à Flint/IFAA
   Indoor, explicites sur ce point) -- valeur retenue par prudence, pas
   une certitude.
+
+- **`resumer_accueil()` : "dernière activité" = épreuve la plus
+  récente par date, pas un horodatage d'action.** Aucune table ne trace
+  "quand" une compétition, une épreuve ou un score a été créé/modifié --
+  ajouter ça partout juste pour un écran d'accueil aurait été
+  disproportionné. La date métier de l'épreuve (`Epreuve.date`, déjà
+  utilisée pour le tri de `lister_epreuves_toutes()`) sert de proxy
+  raisonnable : ce n'est pas littéralement "la dernière action de
+  l'organisateur", mais c'est l'information la plus proche déjà
+  disponible sans changement de schéma.
+
+- **Écran Aide : contenu statique + un seul bouton externe
+  (`webbrowser.open`).** Pas de widget hyperlien natif dans
+  customtkinter -- un bouton qui ouvre le navigateur par défaut reste
+  plus simple et plus prévisible qu'un label cliquable fait main. Le
+  texte d'aide dans la GUI reste un résumé volontairement court (une
+  phrase par section) ; le détail complet renvoie vers la doc Sphinx en
+  ligne plutôt que d'être dupliqué dans le code.

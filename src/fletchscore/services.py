@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import sqlite3
 import uuid
+from dataclasses import dataclass
 from datetime import date
 
 from fletchscore.models import (
@@ -563,4 +564,33 @@ def classement_epreuve(
         epreuve.date,
         entrees,
         categories_veteran_actives=competition.categories_veteran_actives,
+    )
+
+
+# ------------------------------------------------------------- Accueil --
+
+
+@dataclass(slots=True)
+class ResumeAccueil:
+    nb_competitions: int
+    nb_competiteurs: int
+    nb_epreuves: int
+    derniere_epreuve: tuple[Competition, Epreuve] | None
+    """La compétition et l'épreuve les plus récentes par date (pas un
+    horodatage de dernière action -- rien dans le modèle ne trace
+    "quand" une compétition ou un score a été saisi, seulement les dates
+    métier des épreuves elles-mêmes). C'est le meilleur indicateur
+    disponible de "ce qui se passe en ce moment" sans ajouter un champ
+    d'horodatage à plusieurs tables juste pour cet écran."""
+
+
+def resumer_accueil(conn: sqlite3.Connection) -> ResumeAccueil:
+    """Chiffres clés pour l'écran d'accueil -- une seule fonction, testée
+    une fois, plutôt que de laisser la GUI recompter elle-même."""
+    toutes_epreuves = lister_epreuves_toutes(conn)  # déjà triées par date décroissante
+    return ResumeAccueil(
+        nb_competitions=len(db.list_competitions(conn)),
+        nb_competiteurs=len(db.list_competiteurs(conn)),
+        nb_epreuves=len(toutes_epreuves),
+        derniere_epreuve=toutes_epreuves[0] if toutes_epreuves else None,
     )
