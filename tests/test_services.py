@@ -519,8 +519,14 @@ class TestCreerCompetiteur(ServiceTestCase):
 class TestModifierCompetiteur(ServiceTestCase):
     def test_modification_valide(self):
         competiteur = services.modifier_competiteur(
-            self.conn, "FR-1", "Nouveau nom", "Nouveau prenom", "77123", Sexe.M,
-            date(1990, 1, 1), "LB",
+            self.conn,
+            "FR-1",
+            "Nouveau nom",
+            "Nouveau prenom",
+            "77123",
+            Sexe.M,
+            date(1990, 1, 1),
+            "LB",
         )
         self.assertEqual(competiteur.nom, "Nouveau nom")
         self.assertEqual(db.get_competiteur(self.conn, "FR-1"), competiteur)
@@ -558,7 +564,14 @@ class TestModifierCompetiteur(ServiceTestCase):
 
     def test_licence_modifiable(self):
         competiteur = services.modifier_competiteur(
-            self.conn, "FR-1", "X", "Y", "77123", Sexe.F, date(1995, 3, 14), "BB-R",
+            self.conn,
+            "FR-1",
+            "X",
+            "Y",
+            "77123",
+            Sexe.F,
+            date(1995, 3, 14),
+            "BB-R",
             licence_valide_jusqu_au=date(2026, 12, 31),
         )
         self.assertEqual(competiteur.licence_valide_jusqu_au, date(2026, 12, 31))
