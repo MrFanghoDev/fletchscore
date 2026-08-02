@@ -1,10 +1,10 @@
 # Roadmap FletchScore
 
-**État actuel : v0.1 complète -- 209 tests, tous verts, confirmés par la
+**État actuel : v0.1 complète -- 217 tests, tous verts, confirmés par la
 CI sans aucun `skipped`** (y compris les 3 tests fpdf2, jamais exécutables
 dans l'environnement de dev utilisé ici). `models/`, `storage/`,
-`referentiels/`, `io/import_csv.py`, `scoring/`, `gui/` et `io/export/`
-sont tous codés. Extension modèles d'épreuve réutilisables (besoin 2)
+`referentiels/`, `io/import_csv.py` (import + export CSV clubs/
+compétiteurs), `scoring/`, `gui/` et `io/export/` sont tous codés. Extension modèles d'épreuve réutilisables (besoin 2)
 également complète, backend et GUI. Version affichée automatiquement
 dans le titre GUI et la doc Sphinx (voir `docs/architecture.md`). Logo
 FletchScore intégré (`branding/`) : README, doc Sphinx, icône de
@@ -56,6 +56,9 @@ en compétition live avant d'aller plus loin).
         trace Tcl brute (`gui/robustesse.py`, testable sans tkinter)
   - [x] Écran « Compétitions » (créer/lister compétitions et épreuves)
   - [x] Écran « Compétiteurs » (import CSV, liste)
+  - [x] Export CSV clubs/compétiteurs (symétrique à l'import, round-trip
+        garanti) -- manque signalé par l'utilisateur après un premier
+        test réel
   - [x] Saisie manuelle de club/compétiteur (sans passer par un CSV) --
         `services.creer_club()` / `services.creer_competiteur()`, mêmes
         règles que l'import (pas de création automatique de référence

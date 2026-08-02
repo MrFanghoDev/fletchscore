@@ -1,10 +1,16 @@
-"""Import des référentiels clubs.csv et competiteurs.csv.
+"""Import et export des référentiels clubs.csv et competiteurs.csv.
 
-Règle centrale (voir docs/cahier-des-charges/modele-donnees.rst §6.1) :
-si un code_club ou code_style référencé n'existe pas dans son référentiel,
-la ligne est REJETÉE avec un message explicite -- jamais de création
-automatique silencieuse, pour éviter les doublons du type "ALFP" /
-"Archers Libres FP".
+Règle centrale pour l'import (voir
+docs/cahier-des-charges/modele-donnees.rst §6.1) : si un code_club ou
+code_style référencé n'existe pas dans son référentiel, la ligne est
+REJETÉE avec un message explicite -- jamais de création automatique
+silencieuse, pour éviter les doublons du type "ALFP" / "Archers Libres
+FP".
+
+Les fonctions d'export utilisent exactement le même format de colonnes
+que l'import correspondant -- un fichier exporté ici se réimporte tel
+quel (round-trip garanti), utile pour sauvegarder, partager avec un
+autre club, ou corriger dans un tableur puis réimporter.
 
 Toutes les fonctions acceptent soit un chemin de fichier (str), soit un
 objet texte déjà ouvert (io.StringIO en test, un fichier uploadé...) --
@@ -67,6 +73,24 @@ def _ouvrir(source: str | TextIO) -> TextIO:
         return open(source, encoding="utf-8-sig", newline="")
     return source
 
+
+def _ouvrir_ecriture(destination: str | TextIO) -> TextIO:
+    if isinstance(destination, str):
+        return open(destination, "w", encoding="utf-8", newline="")
+    return destination
+
+
+_ENTETE_CLUBS = ["code_club", "nom", "ville"]
+_ENTETE_COMPETITEURS = [
+    "id_federal",
+    "nom",
+    "prenom",
+    "code_club",
+    "sexe",
+    "date_naissance",
+    "code_style",
+    "licence_valide_jusqu_au",
+]
 
 _COLONNES_CLUBS = {"code_club", "nom"}
 _COLONNES_COMPETITEURS = {
@@ -259,3 +283,50 @@ def _valider_et_inserer_competiteur(
     db.insert_competiteur(conn, competiteur)
     ids_vus_dans_ce_fichier.add(id_federal)
     return None
+
+
+# ------------------------------------------------------------- Export --
+
+
+def exporter_clubs_csv(clubs: list[Club], destination: str | TextIO) -> None:
+    """Exporte les clubs au même format que celui attendu par
+    ``import_clubs`` -- un fichier exporté ici se réimporte tel quel,
+    ailleurs ou après correction dans un tableur."""
+    fichier = _ouvrir_ecriture(destination)
+    try:
+        redacteur = csv.writer(fichier)
+        redacteur.writerow(_ENTETE_CLUBS)
+        for club in clubs:
+            redacteur.writerow([club.code_club, club.nom, club.ville])
+    finally:
+        if isinstance(destination, str):
+            fichier.close()
+
+
+def exporter_competiteurs_csv(competiteurs: list[Competiteur], destination: str | TextIO) -> None:
+    """Exporte les compétiteurs au même format que celui attendu par
+    ``import_competiteurs`` -- même principe que ``exporter_clubs_csv``."""
+    fichier = _ouvrir_ecriture(destination)
+    try:
+        redacteur = csv.writer(fichier)
+        redacteur.writerow(_ENTETE_COMPETITEURS)
+        for competiteur in competiteurs:
+            redacteur.writerow(
+                [
+                    competiteur.id_federal,
+                    competiteur.nom,
+                    competiteur.prenom,
+                    competiteur.code_club,
+                    competiteur.sexe.value,
+                    competiteur.date_naissance.isoformat(),
+                    competiteur.code_style,
+                    (
+                        competiteur.licence_valide_jusqu_au.isoformat()
+                        if competiteur.licence_valide_jusqu_au
+                        else ""
+                    ),
+                ]
+            )
+    finally:
+        if isinstance(destination, str):
+            fichier.close()

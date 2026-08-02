@@ -397,3 +397,15 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   empreinte de modification bien plus petite (une seule table/classe à
   toucher en profondeur au lieu de reporter le changement partout où
   `Inscription` est utilisée).
+
+- **Export CSV clubs/compétiteurs, symétrique à l'import.**
+  `exporter_clubs_csv()`/`exporter_competiteurs_csv()` écrivent
+  exactement les colonnes attendues par `import_clubs`/
+  `import_competiteurs` -- vérifié par un vrai test de round-trip
+  (export puis réimport, objet récupéré égal à l'objet exporté), pas
+  seulement "les deux fonctions existent séparément". Ajoutées dans
+  `io/import_csv.py` plutôt qu'un nouveau module -- même fichier connaît
+  déjà le format de colonnes des deux référentiels, pas de raison de le
+  dupliquer ailleurs. Manque signalé par l'utilisateur après un premier
+  test réel complet (créer, importer, exporter) -- pas anticipé dans le
+  cahier des charges initial, qui ne parlait que d'import.

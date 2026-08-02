@@ -14,7 +14,13 @@ import tkinter.filedialog as filedialog
 import customtkinter as ctk
 
 from fletchscore import services
-from fletchscore.io.import_csv import formater_rapport, import_clubs, import_competiteurs
+from fletchscore.io.import_csv import (
+    exporter_clubs_csv,
+    exporter_competiteurs_csv,
+    formater_rapport,
+    import_clubs,
+    import_competiteurs,
+)
 from fletchscore.models import Sexe
 from fletchscore.services import ErreurMetier, parser_date
 from fletchscore.storage import db
@@ -34,7 +40,7 @@ class EcranCompetiteurs(ctk.CTkFrame):
         self._construire_liste_competiteurs()
         self._rafraichir_liste()
 
-    # -- Import ------------------------------------------------------------
+    # -- Import / export -----------------------------------------------------
 
     def _construire_boutons_import(self) -> None:
         cadre = ctk.CTkFrame(self, fg_color="transparent")
@@ -43,12 +49,23 @@ class EcranCompetiteurs(ctk.CTkFrame):
         ctk.CTkButton(cadre, text="Importer clubs.csv", command=self._importer_clubs).grid(
             row=0, column=0, padx=(0, 10)
         )
-
         ctk.CTkButton(
             cadre,
             text="Importer compétiteurs.csv",
             command=self._importer_competiteurs,
-        ).grid(row=0, column=1)
+        ).grid(row=0, column=1, padx=(0, 10))
+        ctk.CTkButton(
+            cadre,
+            text="Exporter clubs.csv",
+            fg_color="gray40",
+            command=self._exporter_clubs,
+        ).grid(row=0, column=2, padx=(0, 10))
+        ctk.CTkButton(
+            cadre,
+            text="Exporter compétiteurs.csv",
+            fg_color="gray40",
+            command=self._exporter_competiteurs,
+        ).grid(row=0, column=3)
 
     def _construire_zone_rapport(self) -> None:
         self.zone_rapport = ctk.CTkTextbox(self, height=100, wrap="word")
@@ -80,6 +97,32 @@ class EcranCompetiteurs(ctk.CTkFrame):
         rapport = import_competiteurs(self.conn, chemin)
         self._afficher_rapport(formater_rapport(rapport))
         self._rafraichir_liste()
+
+    def _exporter_clubs(self) -> None:
+        chemin = filedialog.asksaveasfilename(
+            title="Exporter clubs.csv",
+            defaultextension=".csv",
+            initialfile="clubs.csv",
+            filetypes=[("CSV", "*.csv")],
+        )
+        if not chemin:
+            return  # dialogue annulé -- pas une erreur
+
+        exporter_clubs_csv(db.list_clubs(self.conn), chemin)
+        self._afficher_rapport(f"Clubs exportés vers {chemin}")
+
+    def _exporter_competiteurs(self) -> None:
+        chemin = filedialog.asksaveasfilename(
+            title="Exporter competiteurs.csv",
+            defaultextension=".csv",
+            initialfile="competiteurs.csv",
+            filetypes=[("CSV", "*.csv")],
+        )
+        if not chemin:
+            return
+
+        exporter_competiteurs_csv(db.list_competiteurs(self.conn), chemin)
+        self._afficher_rapport(f"Compétiteurs exportés vers {chemin}")
 
     # -- Ajout manuel ------------------------------------------------------
 

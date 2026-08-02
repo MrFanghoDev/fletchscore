@@ -5,11 +5,13 @@ from datetime import date
 from fletchscore.io.import_csv import (
     ErreurImport,
     RapportImport,
+    exporter_clubs_csv,
+    exporter_competiteurs_csv,
     formater_rapport,
     import_clubs,
     import_competiteurs,
 )
-from fletchscore.models import Club
+from fletchscore.models import Club, Competiteur, Sexe
 from fletchscore.storage import db
 
 
@@ -220,6 +222,95 @@ class TestFormaterRapport(unittest.TestCase):
         rapport = import_competiteurs(conn, fichier)
         texte = formater_rapport(rapport)
         self.assertIn("CLUB-FANTOME", texte)
+        conn.close()
+
+
+class TestExporterClubsCsv(unittest.TestCase):
+    def test_entete_correcte(self):
+        destination = io.StringIO()
+        exporter_clubs_csv([Club("77123", "Archers Libres de FLP", "Fontaine-le-Port")], destination)
+        lignes = destination.getvalue().splitlines()
+        self.assertEqual(lignes[0], "code_club,nom,ville")
+
+    def test_une_ligne_par_club(self):
+        clubs = [
+            Club("77123", "Archers Libres de FLP", "Fontaine-le-Port"),
+            Club("75001", "Compagnie d'Arc de Paris", "Paris"),
+        ]
+        destination = io.StringIO()
+        exporter_clubs_csv(clubs, destination)
+        lignes = destination.getvalue().splitlines()
+        self.assertEqual(len(lignes), 3)  # en-tête + 2 clubs
+
+    def test_liste_vide_donne_seulement_lentete(self):
+        destination = io.StringIO()
+        exporter_clubs_csv([], destination)
+        lignes = destination.getvalue().splitlines()
+        self.assertEqual(len(lignes), 1)
+
+    def test_export_puis_reimport_round_trip(self):
+        club = Club("77123", "Archers Libres de FLP", "Fontaine-le-Port")
+        destination = io.StringIO()
+        exporter_clubs_csv([club], destination)
+
+        conn = db.connect(":memory:")
+        db.init_schema(conn)
+        rapport = import_clubs(conn, io.StringIO(destination.getvalue()))
+
+        self.assertTrue(rapport.succes)
+        self.assertEqual(db.get_club(conn, "77123"), club)
+        conn.close()
+
+
+class TestExporterCompetiteursCsv(unittest.TestCase):
+    def _competiteur(self, **overrides) -> Competiteur:
+        defaults = dict(
+            id_federal="FR-1",
+            nom="Dupont",
+            prenom="Marie",
+            code_club="77123",
+            sexe=Sexe.F,
+            date_naissance=date(1995, 3, 14),
+            code_style="BB-R",
+        )
+        defaults.update(overrides)
+        return Competiteur(**defaults)
+
+    def test_entete_correcte(self):
+        destination = io.StringIO()
+        exporter_competiteurs_csv([self._competiteur()], destination)
+        lignes = destination.getvalue().splitlines()
+        self.assertEqual(
+            lignes[0],
+            "id_federal,nom,prenom,code_club,sexe,date_naissance,code_style,"
+            "licence_valide_jusqu_au",
+        )
+
+    def test_licence_absente_donne_un_champ_vide(self):
+        destination = io.StringIO()
+        exporter_competiteurs_csv([self._competiteur()], destination)
+        derniere_colonne = destination.getvalue().splitlines()[1].split(",")[-1]
+        self.assertEqual(derniere_colonne, "")
+
+    def test_liste_vide_donne_seulement_lentete(self):
+        destination = io.StringIO()
+        exporter_competiteurs_csv([], destination)
+        lignes = destination.getvalue().splitlines()
+        self.assertEqual(len(lignes), 1)
+
+    def test_export_puis_reimport_round_trip(self):
+        competiteur = self._competiteur(licence_valide_jusqu_au=date(2026, 12, 31))
+        destination = io.StringIO()
+        exporter_competiteurs_csv([competiteur], destination)
+
+        conn = db.connect(":memory:")
+        db.init_schema(conn)
+        db.seed_referentiel_styles(conn)
+        db.insert_club(conn, Club("77123", "Archers Libres de FLP"))
+        rapport = import_competiteurs(conn, io.StringIO(destination.getvalue()))
+
+        self.assertTrue(rapport.succes)
+        self.assertEqual(db.get_competiteur(conn, "FR-1"), competiteur)
         conn.close()
 
 
