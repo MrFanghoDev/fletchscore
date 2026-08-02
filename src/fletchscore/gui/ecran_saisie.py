@@ -208,7 +208,7 @@ class EcranSaisie(ctk.CTkFrame):
         self.colonne_saisie = colonne
 
         self.titre_saisie = ctk.CTkLabel(
-            colonne, text="Score final", font=ctk.CTkFont(size=14, weight="bold")
+            colonne, text="Score final épreuve", font=ctk.CTkFont(size=14, weight="bold")
         )
         self.titre_saisie.grid(row=0, column=0, sticky="w", padx=15, pady=(15, 5))
 

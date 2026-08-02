@@ -3,17 +3,22 @@
 ⚠️ Non vérifié dans l'environnement de développement (pas d'affichage
 disponible). Toute la logique d'import vit dans
 ``fletchscore.io.import_csv`` (déjà testée) -- ce module ne fait
-qu'ouvrir un sélecteur de fichier et afficher le rapport retourné.
+qu'ouvrir une fenêtre de saisie de chemin et afficher le rapport
+retourné.
+
+N'utilise pas ``tkinter.filedialog`` (voir gui/dialogue_fichier.py) --
+contourne un bug observé sur Pydroid/Android où le sélecteur natif
+bloque l'application dès sa deuxième invocation.
 """
 
 from __future__ import annotations
 
 import sqlite3
-import tkinter.filedialog as filedialog
 
 import customtkinter as ctk
 
 from fletchscore import services
+from fletchscore.gui.dialogue_fichier import demander_chemin
 from fletchscore.io.import_csv import (
     exporter_clubs_csv,
     exporter_competiteurs_csv,
@@ -79,9 +84,9 @@ class EcranCompetiteurs(ctk.CTkFrame):
         self.zone_rapport.configure(state="disabled")
 
     def _importer_clubs(self) -> None:
-        chemin = filedialog.askopenfilename(title="Choisir clubs.csv", filetypes=[("CSV", "*.csv")])
+        chemin = demander_chemin(self, "Chemin de clubs.csv à importer", "clubs.csv")
         if not chemin:
-            return  # dialogue annulé par l'organisateur -- pas une erreur
+            return  # annulé par l'organisateur -- pas une erreur
 
         rapport = import_clubs(self.conn, chemin)
         self._afficher_rapport(formater_rapport(rapport))
@@ -89,9 +94,7 @@ class EcranCompetiteurs(ctk.CTkFrame):
         self._rafraichir_selection_club()
 
     def _importer_competiteurs(self) -> None:
-        chemin = filedialog.askopenfilename(
-            title="Choisir competiteurs.csv", filetypes=[("CSV", "*.csv")]
-        )
+        chemin = demander_chemin(self, "Chemin de competiteurs.csv à importer", "competiteurs.csv")
         if not chemin:
             return
 
@@ -100,25 +103,15 @@ class EcranCompetiteurs(ctk.CTkFrame):
         self._rafraichir_liste()
 
     def _exporter_clubs(self) -> None:
-        chemin = filedialog.asksaveasfilename(
-            title="Exporter clubs.csv",
-            defaultextension=".csv",
-            initialfile="clubs.csv",
-            filetypes=[("CSV", "*.csv")],
-        )
+        chemin = demander_chemin(self, "Chemin où exporter clubs.csv", "clubs.csv")
         if not chemin:
-            return  # dialogue annulé -- pas une erreur
+            return  # annulé -- pas une erreur
 
         exporter_clubs_csv(db.list_clubs(self.conn), chemin)
         self._afficher_rapport(f"Clubs exportés vers {chemin}")
 
     def _exporter_competiteurs(self) -> None:
-        chemin = filedialog.asksaveasfilename(
-            title="Exporter competiteurs.csv",
-            defaultextension=".csv",
-            initialfile="competiteurs.csv",
-            filetypes=[("CSV", "*.csv")],
-        )
+        chemin = demander_chemin(self, "Chemin où exporter competiteurs.csv", "competiteurs.csv")
         if not chemin:
             return
 

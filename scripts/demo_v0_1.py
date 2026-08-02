@@ -40,12 +40,13 @@ def main() -> None:
 
     # 2) Import clubs.csv -------------------------------------------------
     clubs_csv = io.StringIO(
-        "code_club,nom,ville\n"
-        "77123,Archers Libres de Fontaine le Port,Fontaine-le-Port\n"
+        "code_club,nom,ville\n" "77123,Archers Libres de Fontaine le Port,Fontaine-le-Port\n"
     )
     rapport_clubs = import_clubs(conn, clubs_csv)
-    print(f"Import clubs : {rapport_clubs.importees} importé(s), "
-          f"{len(rapport_clubs.erreurs)} erreur(s)\n")
+    print(
+        f"Import clubs : {rapport_clubs.importees} importé(s), "
+        f"{len(rapport_clubs.erreurs)} erreur(s)\n"
+    )
 
     # 3) Import competiteurs.csv ------------------------------------------
     competiteurs_csv = io.StringIO(
@@ -56,8 +57,10 @@ def main() -> None:
         "FR-3,Petit,Alex,CLUB-INCONNU,M,2000-01-01,BB-R,\n"  # volontairement invalide
     )
     rapport_competiteurs = import_competiteurs(conn, competiteurs_csv)
-    print(f"Import compétiteurs : {rapport_competiteurs.importees} importé(s), "
-          f"{len(rapport_competiteurs.erreurs)} erreur(s)")
+    print(
+        f"Import compétiteurs : {rapport_competiteurs.importees} importé(s), "
+        f"{len(rapport_competiteurs.erreurs)} erreur(s)"
+    )
     for erreur in rapport_competiteurs.erreurs:
         print(f"  - ligne {erreur.numero_ligne} : {erreur.message}")
     print()
@@ -93,14 +96,26 @@ def main() -> None:
     print("Inscriptions créées pour FR-1 et FR-2.\n")
 
     # 6) Saisie du score final (IFAA Indoor : score_max=300) --------------
-    db.upsert_score(conn, Score(
-        id="s1", inscription_id="insc-FR-1",
-        total=270, nombre_x=12, statut=StatutScore.VALIDE,
-    ))
-    db.upsert_score(conn, Score(
-        id="s2", inscription_id="insc-FR-2",
-        total=255, nombre_x=8, statut=StatutScore.VALIDE,
-    ))
+    db.upsert_score(
+        conn,
+        Score(
+            id="s1",
+            inscription_id="insc-FR-1",
+            total=270,
+            nombre_x=12,
+            statut=StatutScore.VALIDE,
+        ),
+    )
+    db.upsert_score(
+        conn,
+        Score(
+            id="s2",
+            inscription_id="insc-FR-2",
+            total=255,
+            nombre_x=8,
+            statut=StatutScore.VALIDE,
+        ),
+    )
     print("Scores finaux saisis pour FR-1 et FR-2.\n")
 
     # 7) Classement ----------------------------------------------------------

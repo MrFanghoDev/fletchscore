@@ -424,3 +424,19 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   un panneau de liste séparé, pour rester compact. Manque signalé par
   l'utilisateur après un test réel -- pas anticipé dans le cahier des
   charges initial.
+
+- **`gui/dialogue_fichier.py` : `filedialog` natif remplacé par une
+  fenêtre de saisie maison.** Bug signalé par l'utilisateur : sur
+  Pydroid/Android, `tkinter.filedialog.askopenfilename`/
+  `asksaveasfilename` bloque l'application dès sa deuxième invocation
+  dans la session, même sur le même bouton -- pas reproductible ici
+  (pas d'affichage), mais le symptôme (blocage identique quel que soit
+  le bouton, dès le 2e appel) pointe vers le sélecteur natif lui-même,
+  pas vers la logique d'import/export. `demander_chemin()` n'utilise que
+  des widgets customtkinter classiques (`CTkToplevel` + `CTkEntry`),
+  aucun appel au sélecteur natif de l'OS -- contourne le chemin de code
+  suspect entièrement plutôt que d'essayer de le réparer à l'aveugle.
+  Contrepartie assumée : l'utilisateur tape/colle le chemin au lieu de
+  le sélectionner visuellement. **Correctif spéculatif, à confirmer** --
+  je n'ai aucun moyen de reproduire le bug d'origine ici pour vérifier
+  que ça le résout vraiment.
