@@ -305,7 +305,6 @@ class EcranSaisie(ctk.CTkFrame):
 
         self.score_actuel.configure(
             text=(
-                f"Score actuel : {score.total} pts, {score.nombre_x} X "
-                f"({score.statut.value})"
+                f"Score actuel : {score.total} pts, {score.nombre_x} X " f"({score.statut.value})"
             )
         )
