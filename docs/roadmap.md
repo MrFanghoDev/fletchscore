@@ -1,6 +1,6 @@
 # Roadmap FletchScore
 
-**État actuel : v0.1 complète -- 194 tests, tous verts, confirmés par la
+**État actuel : v0.1 complète -- 219 tests, tous verts, confirmés par la
 CI sans aucun `skipped`** (y compris les 3 tests fpdf2, jamais exécutables
 dans l'environnement de dev utilisé ici). `models/`, `storage/`,
 `referentiels/`, `io/import_csv.py`, `scoring/`, `gui/` et `io/export/`
@@ -8,7 +8,9 @@ sont tous codés. Extension modèles d'épreuve réutilisables (besoin 2)
 également complète, backend et GUI. Version affichée automatiquement
 dans le titre GUI et la doc Sphinx (voir `docs/architecture.md`). Logo
 FletchScore intégré (`branding/`) : README, doc Sphinx, icône de
-l'exécutable Windows/Linux.
+l'exécutable Windows/Linux. Modification de compétitions/épreuves
+existantes possible (backend + GUI). 6 barèmes préconfigurés : Flint
+Indoor, IFAA Indoor, Field, Hunter, International, Expert Field.
 
 Découpage par jalons livrables, dans l'ordre des dépendances réelles :
 impossible de tester le scoring sans modèle de données, impossible de
@@ -145,6 +147,29 @@ Avancement :
 - [ ] Besoin 1 -- sauvegarde/restauration d'une compétition complète
 - [ ] Besoin 3 -- export fédération tout-en-un
 
+## Extension -- Modification de compétitions/épreuves existantes
+
+Manque signalé par l'utilisateur en cours de test réel : seules la
+création et la liste existaient, aucun moyen de corriger une erreur de
+saisie sans passer par un script Python à la main.
+
+- [x] `services.modifier_competition()` -- mêmes règles que
+      `creer_competition()`, plus une vérification propre à la
+      modification : rétrécir les dates ne doit pas laisser une épreuve
+      existante hors des nouvelles bornes. Le statut n'est pas
+      modifiable ici (clôturer une compétition est une action distincte).
+- [x] `services.modifier_epreuve()` -- mêmes règles que
+      `creer_epreuve()`, plus une protection : le barème ne peut plus
+      être changé une fois qu'une volée a été saisie pour cette épreuve
+      (`storage.epreuve_a_des_scores()`) -- les numéros de série/volée
+      déjà enregistrés ne correspondraient plus forcément au nouveau
+      barème. 16 tests au total pour les deux fonctions.
+- [x] GUI (`ecran_competitions.py`) : bouton "Modifier" sur chaque
+      compétition/épreuve listée, formulaire préreempli, bouton
+      "Annuler" pour sortir du mode édition sans enregistrer. ⚠️
+      **rendu non vérifié** -- comme toute la GUI, pas d'affichage
+      disponible ici.
+
 ## v0.5 -- Finition
 
 - [ ] Format d'export fédération figé (dépend du modèle Excel imposé ou
@@ -159,3 +184,17 @@ détail : style de tir (extension FFTL ?), format d'export fédération,
 bibliothèque PDF à choisir (voir `pyproject.toml`). Vétérans/Seniors est
 tranché (`Competition.categories_veteran_actives`), voir "Points
 tranchés" dans le cahier des charges.
+
+- [x] **Barèmes Field/Hunter/International/Expert Field** ajoutés
+      (confirmés dans le règlement IFAA) -- voir
+      `docs/cahier-des-charges/regles-metier.rst`. Réserve à noter :
+      pas de confirmation qu'un round complet = 1 ou 2 "unités
+      standard" pour ces quatre-là (contrairement à Flint/IFAA Indoor,
+      explicites) -- `nb_series=1` retenu par prudence, à corriger si
+      l'usage du club en dit autrement.
+- [ ] **Animal Round et rounds 3-D** -- hors périmètre, système de
+      score fondamentalement différent (zones kill/wound, arrêt au
+      premier impact, nombre de flèches variable par cible). Demande un
+      moteur de score distinct de `scoring/volee.py`, pas seulement un
+      nouveau `Bareme` -- gros chantier séparé, pas commencé.
+

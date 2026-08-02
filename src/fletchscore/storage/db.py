@@ -354,6 +354,25 @@ def list_competitions(conn: sqlite3.Connection) -> list[Competition]:
     return [_row_to_competition(r) for r in rows]
 
 
+def update_competition(conn: sqlite3.Connection, competition: Competition) -> None:
+    conn.execute(
+        """UPDATE competitions SET
+               nom = ?, date_debut = ?, date_fin = ?, lieu = ?,
+               statut = ?, categories_veteran_actives = ?
+           WHERE id = ?""",
+        (
+            competition.nom,
+            competition.date_debut.isoformat(),
+            competition.date_fin.isoformat(),
+            competition.lieu,
+            competition.statut.value,
+            int(competition.categories_veteran_actives),
+            competition.id,
+        ),
+    )
+    conn.commit()
+
+
 # ------------------------------------------------------------- Épreuve --
 
 
@@ -400,6 +419,30 @@ def list_epreuves_by_competition(conn: sqlite3.Connection, competition_id: str) 
         )
         for r in rows
     ]
+
+
+def update_epreuve(conn: sqlite3.Connection, epreuve: Epreuve) -> None:
+    conn.execute(
+        "UPDATE epreuves SET nom = ?, date = ?, bareme_id = ? WHERE id = ?",
+        (epreuve.nom, epreuve.date.isoformat(), epreuve.bareme_id, epreuve.id),
+    )
+    conn.commit()
+
+
+def epreuve_a_des_scores(conn: sqlite3.Connection, epreuve_id: str) -> bool:
+    """True si au moins une volée a été saisie pour une inscription de
+    cette épreuve -- utilisé pour interdire un changement de barème une
+    fois la saisie commencée (les numéros de série/volée d'un score ne
+    correspondraient plus forcément au nouveau barème)."""
+    row = conn.execute(
+        """SELECT 1 FROM scores
+           WHERE inscription_id IN (
+               SELECT id FROM inscriptions WHERE epreuve_id = ?
+           )
+           LIMIT 1""",
+        (epreuve_id,),
+    ).fetchone()
+    return row is not None
 
 
 # ------------------------------------------------------ EpreuveTemplate --

@@ -2,7 +2,12 @@ import unittest
 from datetime import date
 
 from fletchscore.models import (
+    BAREME_EXPERT_FIELD,
+    BAREME_FIELD,
+    BAREME_HUNTER,
     BAREME_IFAA_INDOOR,
+    BAREME_INTERNATIONAL,
+    BAREMES_PRECONFIGURES,
     Bareme,
     Competiteur,
     DivisionAge,
@@ -116,6 +121,40 @@ class TestBareme(unittest.TestCase):
                 fleches_par_volee=1,
                 valeurs_zones=[],
             )
+
+
+class TestNouveauxBaremes(unittest.TestCase):
+    """Field, Hunter, International, Expert Field -- confirmés dans le
+    règlement IFAA (voir models/bareme.py pour les réserves sur le
+    nombre d'unités). Animal Round et 3-D restent hors périmètre : leur
+    système de score (kill/wound, arrêt au premier impact) ne rentre pas
+    dans ce modèle."""
+
+    def test_field_14_cibles_4_fleches(self):
+        self.assertEqual(BAREME_FIELD.total_flèches, 14 * 4)
+        self.assertEqual(BAREME_FIELD.valeurs_zones, [5, 4, 3])
+        self.assertFalse(BAREME_FIELD.departage_par_x)
+
+    def test_hunter_meme_structure_que_field(self):
+        self.assertEqual(BAREME_HUNTER.total_flèches, 14 * 4)
+        self.assertEqual(BAREME_HUNTER.valeurs_zones, [5, 4, 3])
+
+    def test_international_20_cibles_3_fleches(self):
+        # 2 séries de 10 cibles, 3 flèches par cible = 60 flèches.
+        self.assertEqual(BAREME_INTERNATIONAL.total_flèches, 60)
+        self.assertEqual(BAREME_INTERNATIONAL.valeurs_zones, [5, 4, 3])
+
+    def test_expert_field_zones_et_departage_x(self):
+        # Mêmes distances que Field Round, mais zones subdivisées en 5
+        # avec X de départage (comme IFAA Indoor).
+        self.assertEqual(BAREME_EXPERT_FIELD.total_flèches, 14 * 4)
+        self.assertEqual(BAREME_EXPERT_FIELD.valeurs_zones, [5, 4, 3, 2, 1])
+        self.assertTrue(BAREME_EXPERT_FIELD.departage_par_x)
+
+    def test_six_baremes_preconfigures_avec_ids_uniques(self):
+        ids = [b.id for b in BAREMES_PRECONFIGURES]
+        self.assertEqual(len(ids), 6)
+        self.assertEqual(len(set(ids)), 6)  # aucun doublon d'id
 
 
 class TestScore(unittest.TestCase):

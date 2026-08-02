@@ -2,7 +2,7 @@ import unittest
 from datetime import date
 
 from fletchscore import services
-from fletchscore.models import Club, Competiteur, Sexe, StatutCompetition, StatutScore
+from fletchscore.models import Club, Competiteur, Competition, Sexe, StatutCompetition, StatutScore
 from fletchscore.services import (
     ErreurMetier,
     libelle_competiteur,
@@ -103,6 +103,228 @@ class TestCreerEpreuve(ServiceTestCase):
         with self.assertRaises(ErreurMetier) as contexte:
             self._epreuve(competition, date_epreuve=date(2026, 4, 1))
         self.assertIn("en dehors des dates", str(contexte.exception))
+
+
+class TestModifierCompetition(ServiceTestCase):
+    def test_modification_valide(self):
+        competition = self._competition()
+        modifiee = services.modifier_competition(
+            self.conn,
+            competition.id,
+            nom="Nom corrigé",
+            date_debut=date(2026, 3, 14),
+            date_fin=date(2026, 3, 15),
+            lieu="Nouvelle ville",
+            categories_veteran_actives=True,
+        )
+        self.assertEqual(modifiee.nom, "Nom corrigé")
+        self.assertEqual(modifiee.lieu, "Nouvelle ville")
+        self.assertTrue(modifiee.categories_veteran_actives)
+        self.assertEqual(db.get_competition(self.conn, competition.id), modifiee)
+
+    def test_competition_inconnue_refusee(self):
+        with self.assertRaises(ErreurMetier):
+            services.modifier_competition(
+                self.conn,
+                "inconnue",
+                nom="X",
+                date_debut=date(2026, 1, 1),
+                date_fin=date(2026, 1, 2),
+            )
+
+    def test_nom_vide_refuse(self):
+        competition = self._competition()
+        with self.assertRaises(ErreurMetier):
+            services.modifier_competition(
+                self.conn,
+                competition.id,
+                nom="   ",
+                date_debut=competition.date_debut,
+                date_fin=competition.date_fin,
+            )
+
+    def test_date_fin_avant_debut_refusee(self):
+        competition = self._competition()
+        with self.assertRaises(ErreurMetier):
+            services.modifier_competition(
+                self.conn,
+                competition.id,
+                nom="X",
+                date_debut=date(2026, 3, 15),
+                date_fin=date(2026, 3, 14),
+            )
+
+    def test_retrecir_les_dates_sous_une_epreuve_existante_refuse(self):
+        competition = self._competition()  # 2026-03-14 -- 2026-03-15
+        self._epreuve(competition, date_epreuve=date(2026, 3, 15))
+
+        with self.assertRaises(ErreurMetier) as contexte:
+            services.modifier_competition(
+                self.conn,
+                competition.id,
+                nom=competition.nom,
+                date_debut=date(2026, 3, 14),
+                date_fin=date(2026, 3, 14),  # exclut l'épreuve du 15
+            )
+        self.assertIn("hors des nouvelles dates", str(contexte.exception))
+
+    def test_elargir_les_dates_reste_possible(self):
+        competition = self._competition()
+        modifiee = services.modifier_competition(
+            self.conn,
+            competition.id,
+            nom=competition.nom,
+            date_debut=date(2026, 3, 10),
+            date_fin=date(2026, 3, 20),
+        )
+        self.assertEqual(modifiee.date_debut, date(2026, 3, 10))
+
+    def test_statut_non_modifie_par_cette_fonction(self):
+        competition = self._competition()
+        modifiee = services.modifier_competition(
+            self.conn,
+            competition.id,
+            nom="X",
+            date_debut=competition.date_debut,
+            date_fin=competition.date_fin,
+        )
+        self.assertEqual(modifiee.statut, StatutCompetition.OUVERTE)
+
+
+class TestModifierEpreuve(ServiceTestCase):
+    def test_modification_valide(self):
+        competition = self._competition()
+        epreuve = self._epreuve(competition)
+        modifiee = services.modifier_epreuve(
+            self.conn,
+            epreuve.id,
+            nom="Nom corrigé",
+            date_epreuve=date(2026, 3, 15),
+            bareme_id="flint-indoor",
+        )
+        self.assertEqual(modifiee.nom, "Nom corrigé")
+        self.assertEqual(modifiee.bareme_id, "flint-indoor")
+        self.assertEqual(db.get_epreuve(self.conn, epreuve.id), modifiee)
+
+    def test_epreuve_inconnue_refusee(self):
+        with self.assertRaises(ErreurMetier):
+            services.modifier_epreuve(
+                self.conn,
+                "inconnue",
+                nom="X",
+                date_epreuve=date(2026, 1, 1),
+                bareme_id="ifaa-indoor",
+            )
+
+    def test_nom_vide_refuse(self):
+        epreuve = self._epreuve(self._competition())
+        with self.assertRaises(ErreurMetier):
+            services.modifier_epreuve(
+                self.conn,
+                epreuve.id,
+                nom="  ",
+                date_epreuve=epreuve.date,
+                bareme_id=epreuve.bareme_id,
+            )
+
+    def test_bareme_inconnu_refuse(self):
+        epreuve = self._epreuve(self._competition())
+        with self.assertRaises(ErreurMetier):
+            services.modifier_epreuve(
+                self.conn,
+                epreuve.id,
+                nom="X",
+                date_epreuve=epreuve.date,
+                bareme_id="bareme-fantome",
+            )
+
+    def test_date_hors_competition_refusee(self):
+        epreuve = self._epreuve(self._competition())  # compétition 2026-03-14 -- 15
+        with self.assertRaises(ErreurMetier):
+            services.modifier_epreuve(
+                self.conn,
+                epreuve.id,
+                nom="X",
+                date_epreuve=date(2026, 4, 1),
+                bareme_id=epreuve.bareme_id,
+            )
+
+    def test_changer_le_bareme_sans_score_reste_possible(self):
+        epreuve = self._epreuve(self._competition(), bareme_id="ifaa-indoor")
+        modifiee = services.modifier_epreuve(
+            self.conn,
+            epreuve.id,
+            nom=epreuve.nom,
+            date_epreuve=epreuve.date,
+            bareme_id="flint-indoor",
+        )
+        self.assertEqual(modifiee.bareme_id, "flint-indoor")
+
+    def test_changer_le_bareme_apres_saisie_refuse(self):
+        competition = self._competition()
+        epreuve = self._epreuve(competition, bareme_id="ifaa-indoor")
+        inscription = services.inscrire(self.conn, "FR-1", epreuve.id)
+        services.saisir_volee(self.conn, inscription.id, 1, 1, [5, 5, 4, 3, 2])
+
+        with self.assertRaises(ErreurMetier) as contexte:
+            services.modifier_epreuve(
+                self.conn,
+                epreuve.id,
+                nom=epreuve.nom,
+                date_epreuve=epreuve.date,
+                bareme_id="flint-indoor",
+            )
+        self.assertIn("scores ont déjà été", str(contexte.exception))
+
+    def test_garder_le_meme_bareme_apres_saisie_reste_possible(self):
+        # Changer le nom ou la date après saisie ne doit pas être bloqué --
+        # seul un changement de barème l'est.
+        competition = self._competition()
+        epreuve = self._epreuve(competition, bareme_id="ifaa-indoor")
+        inscription = services.inscrire(self.conn, "FR-1", epreuve.id)
+        services.saisir_volee(self.conn, inscription.id, 1, 1, [5, 5, 4, 3, 2])
+
+        modifiee = services.modifier_epreuve(
+            self.conn,
+            epreuve.id,
+            nom="Nom corrigé après saisie",
+            date_epreuve=epreuve.date,
+            bareme_id="ifaa-indoor",
+        )
+        self.assertEqual(modifiee.nom, "Nom corrigé après saisie")
+
+    def test_competition_cloturee_refuse_la_modification(self):
+        competition = self._competition()
+        epreuve = self._epreuve(competition)
+        competition_cloturee = services.modifier_competition(
+            self.conn,
+            competition.id,
+            nom=competition.nom,
+            date_debut=competition.date_debut,
+            date_fin=competition.date_fin,
+        )
+        # modifier_competition ne change pas le statut -- on le force
+        # directement en base pour simuler une compétition déjà clôturée.
+        db.update_competition(
+            self.conn,
+            Competition(
+                id=competition.id,
+                nom=competition_cloturee.nom,
+                date_debut=competition_cloturee.date_debut,
+                date_fin=competition_cloturee.date_fin,
+                lieu=competition_cloturee.lieu,
+                statut=StatutCompetition.CLOTUREE,
+                categories_veteran_actives=competition_cloturee.categories_veteran_actives,
+            ),
+        )
+        with self.assertRaises(ErreurMetier):
+            services.modifier_epreuve(
+                self.conn,
+                epreuve.id,
+                nom="X",
+                date_epreuve=epreuve.date,
+                bareme_id=epreuve.bareme_id,
+            )
 
 
 class TestInscrire(ServiceTestCase):

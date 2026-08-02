@@ -44,7 +44,10 @@ class TestListBaremes(unittest.TestCase):
 
     def test_contient_les_baremes_preconfigures(self):
         baremes = db.list_baremes(self.conn)
-        self.assertEqual({b.id for b in baremes}, {"flint-indoor", "ifaa-indoor"})
+        self.assertEqual(
+            {b.id for b in baremes},
+            {"flint-indoor", "ifaa-indoor", "field", "hunter", "international", "expert-field"},
+        )
 
     def test_liste_vide_si_rien_seede(self):
         conn = db.connect(":memory:")

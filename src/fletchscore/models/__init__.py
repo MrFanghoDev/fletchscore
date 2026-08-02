@@ -1,6 +1,10 @@
 from fletchscore.models.bareme import (
+    BAREME_EXPERT_FIELD,
+    BAREME_FIELD,
     BAREME_FLINT_INDOOR,
+    BAREME_HUNTER,
     BAREME_IFAA_INDOOR,
+    BAREME_INTERNATIONAL,
     BAREMES_PRECONFIGURES,
     Bareme,
 )
@@ -24,8 +28,12 @@ from fletchscore.models.style import STYLES_IFAA, Style
 from fletchscore.models.token import Token
 
 __all__ = [
+    "BAREME_EXPERT_FIELD",
+    "BAREME_FIELD",
     "BAREME_FLINT_INDOOR",
+    "BAREME_HUNTER",
     "BAREME_IFAA_INDOOR",
+    "BAREME_INTERNATIONAL",
     "BAREMES_PRECONFIGURES",
     "Bareme",
     "Club",

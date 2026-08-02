@@ -39,6 +39,53 @@ Barèmes des rounds Indoor de référence
    de zones, et un indicateur de zone de départage (X) séparé du score
    brut. Voir :doc:`modele-donnees`.
 
+Barèmes des rounds outdoor à distances marquées
+===================================================
+
+.. tab-set::
+
+   .. tab-item:: Field Round
+
+      - Unité standard de 14 cibles marquées, 4 flèches par cible = 56
+        flèches.
+      - Cibles 20/35/50/65 cm selon la distance (4/5/6/7 selon la
+        catégorie).
+      - Score : **5** (spot), **4** (anneau intérieur), **3** (anneau
+        extérieur) — même barème que le Flint Indoor.
+
+   .. tab-item:: Hunter Round
+
+      - Même structure que le Field Round (14 cibles, 4 flèches, score
+        5/4/3) -- seules les cibles diffèrent (tout noir avec un spot
+        blanc, plutôt que spot blanc + anneau noir + anneau blanc).
+
+   .. tab-item:: International Round
+
+      - 2 séries de 10 cibles, 3 flèches par cible = 60 flèches.
+      - Cibles conformes au Hunter Round (20/35/50/65 cm).
+      - Score 5/4/3, mêmes règles que le Field Round pour le reste.
+
+   .. tab-item:: Expert Field Round
+
+      - Mêmes distances que le Field Round (14 cibles, 4 flèches = 56
+        flèches).
+      - Chaque zone du Field Round (5/4/3) est subdivisée en deux,
+        donnant un score **5/4/3/2/1**.
+      - X-ring interne au 5, départage uniquement (comme l'IFAA Indoor).
+
+.. warning:: Hors périmètre : Animal Round et rounds 3-D
+
+   Le règlement définit aussi l'**Animal Round** (marqué et non marqué)
+   et les rounds **3-D** (Hunting à 1 flèche, Standard à 2 flèches). Leur
+   système de score est fondamentalement différent de ce que
+   :doc:`modele-donnees` couvre : zones "kill"/"wound" à valeur
+   décroissante selon le numéro de la flèche (20/18/16/14/12/10 points),
+   arrêt du tir dès le premier impact (jusqu'à 3 flèches tentées par
+   cible, pas un nombre fixe). Ça demanderait un moteur de score
+   distinct de ``scoring/volee.py``, pas seulement un nouveau
+   ``Bareme`` -- non couvert par FletchScore pour l'instant, voir
+   :doc:`roadmap`.
+
 Catégories de compétiteurs (nomenclature officielle)
 ========================================================
 

@@ -317,3 +317,31 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   installé ici. Pas d'icône de fenêtre GUI pour l'instant (empaqueter
   `branding/` dans l'exécutable et gérer sa résolution de chemin en mode
   PyInstaller n'en valait pas la complexité pour un gain cosmétique).
+
+- **`modifier_competition()`/`modifier_epreuve()` : mêmes règles que la
+  création, plus une protection propre à la modification.** Rétrécir
+  les dates d'une compétition sous une épreuve existante est refusé
+  (message nommant l'épreuve en cause) ; changer le barème d'une
+  épreuve après saisie d'une volée est refusé
+  (`storage.epreuve_a_des_scores()`) -- les numéros de série/volée déjà
+  enregistrés ne correspondraient plus forcément au nouveau barème.
+  `modifier_competition()` ne touche jamais au statut : clôturer une
+  compétition reste une action distincte, pas un champ à corriger dans
+  ce formulaire. Manque signalé par l'utilisateur en cours de test réel
+  (bloqué avec une épreuve mal saisie et aucun moyen de la corriger) --
+  pas anticipé dans le cahier des charges initial.
+
+- **4 nouveaux barèmes (Field, Hunter, International, Expert Field)
+  ajoutés après relecture du règlement, Animal/3-D volontairement
+  exclus.** Les quatre premiers s'intègrent tels quels au modèle
+  `Bareme` existant (nombre de flèches fixe par cible, score constant).
+  Animal Round et les rounds 3-D ont un système de score incompatible
+  avec ce modèle (zones "kill"/"wound" à valeur décroissante selon le
+  numéro de la flèche, arrêt du tir dès le premier impact, jusqu'à 3
+  flèches tentées par cible) -- ça demanderait un moteur de score
+  distinct de `scoring/volee.py`, pas seulement un nouveau `Bareme`.
+  Réserve notée sur `nb_series=1` pour Field/Hunter/Expert Field : le
+  règlement ne précise nulle part si un round complet représente 1 ou 2
+  "unités standard" pour ces rounds-là (contrairement à Flint/IFAA
+  Indoor, explicites sur ce point) -- valeur retenue par prudence, pas
+  une certitude.

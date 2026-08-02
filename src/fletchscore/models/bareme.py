@@ -62,4 +62,66 @@ BAREME_IFAA_INDOOR = Bareme(
     departage_par_x=True,
 )
 
-BAREMES_PRECONFIGURES: list[Bareme] = [BAREME_FLINT_INDOOR, BAREME_IFAA_INDOOR]
+# Field, Hunter, International et Expert Field -- confirmés dans le
+# règlement IFAA (14 ou 20 cibles marquées, nombre de flèches fixe par
+# cible, score constant quelle que soit la distance) : s'intègrent au
+# modèle Bareme tel quel. nb_series=1 pour Field/Hunter/Expert Field :
+# le règlement ne précise nulle part si un round complet représente 1
+# ou 2 "unités standard" (contrairement à Flint/IFAA Indoor qui le disent
+# explicitement) -- valeur la plus prudente en l'absence de confirmation,
+# à corriger si l'usage du club en dit autrement.
+#
+# Volontairement HORS PÉRIMÈTRE : Animal Round (marqué et non marqué) et
+# les rounds 3-D. Leur système de score est fondamentalement différent
+# (zones "kill"/"wound", arrêt dès le premier impact, jusqu'à 3 flèches
+# par cible à valeur décroissante selon le numéro de la flèche) -- ça
+# demanderait un moteur de score distinct, pas seulement un nouveau
+# Bareme. Voir docs/roadmap.md.
+BAREME_FIELD = Bareme(
+    id="field",
+    nom="Field Round",
+    nb_series=1,
+    volees_par_serie=14,
+    fleches_par_volee=4,
+    valeurs_zones=[5, 4, 3],
+    departage_par_x=False,
+)
+
+BAREME_HUNTER = Bareme(
+    id="hunter",
+    nom="Hunter Round",
+    nb_series=1,
+    volees_par_serie=14,
+    fleches_par_volee=4,
+    valeurs_zones=[5, 4, 3],
+    departage_par_x=False,
+)
+
+BAREME_INTERNATIONAL = Bareme(
+    id="international",
+    nom="International Round",
+    nb_series=2,
+    volees_par_serie=10,
+    fleches_par_volee=3,
+    valeurs_zones=[5, 4, 3],
+    departage_par_x=False,
+)
+
+BAREME_EXPERT_FIELD = Bareme(
+    id="expert-field",
+    nom="Expert Field Round",
+    nb_series=1,
+    volees_par_serie=14,
+    fleches_par_volee=4,
+    valeurs_zones=[5, 4, 3, 2, 1],
+    departage_par_x=True,
+)
+
+BAREMES_PRECONFIGURES: list[Bareme] = [
+    BAREME_FLINT_INDOOR,
+    BAREME_IFAA_INDOOR,
+    BAREME_FIELD,
+    BAREME_HUNTER,
+    BAREME_INTERNATIONAL,
+    BAREME_EXPERT_FIELD,
+]

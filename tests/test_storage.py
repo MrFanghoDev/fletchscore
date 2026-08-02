@@ -174,6 +174,42 @@ class TestCompetitionEpreuveInscriptionScore(StorageTestCase):
         recupere = db.get_competition(self.conn, "comp-1")
         self.assertEqual(recupere, self.competition)
 
+    def test_update_competition_modifie_les_champs(self):
+        modifiee = Competition(
+            id="comp-1",
+            nom="Nouveau nom",
+            date_debut=date(2026, 3, 15),
+            date_fin=date(2026, 3, 16),
+            lieu="Nouvelle ville",
+            statut=self.competition.statut,
+            categories_veteran_actives=True,
+        )
+        db.update_competition(self.conn, modifiee)
+        recuperee = db.get_competition(self.conn, "comp-1")
+        self.assertEqual(recuperee, modifiee)
+
+    def test_update_epreuve_modifie_les_champs(self):
+        modifiee = Epreuve(
+            id="epr-1",
+            competition_id="comp-1",
+            nom="Nouveau nom épreuve",
+            date=date(2026, 3, 15),
+            bareme_id="flint-indoor",
+        )
+        db.update_epreuve(self.conn, modifiee)
+        recuperee = db.get_epreuve(self.conn, "epr-1")
+        self.assertEqual(recuperee, modifiee)
+
+    def test_epreuve_a_des_scores_faux_sans_score(self):
+        self.assertFalse(db.epreuve_a_des_scores(self.conn, "epr-1"))
+
+    def test_epreuve_a_des_scores_vrai_apres_saisie(self):
+        db.upsert_score(
+            self.conn,
+            Score(id="s1", inscription_id="insc-1", numero_serie=1, numero_volee=1, valeurs=[5]),
+        )
+        self.assertTrue(db.epreuve_a_des_scores(self.conn, "epr-1"))
+
     def test_epreuve_appartient_bien_a_sa_competition(self):
         epreuves = db.list_epreuves_by_competition(self.conn, "comp-1")
         self.assertEqual([e.id for e in epreuves], ["epr-1"])

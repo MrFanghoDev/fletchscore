@@ -197,6 +197,51 @@ def creer_competition(
     return competition
 
 
+def modifier_competition(
+    conn: sqlite3.Connection,
+    competition_id: str,
+    nom: str,
+    date_debut: date,
+    date_fin: date,
+    *,
+    lieu: str = "",
+    categories_veteran_actives: bool = False,
+) -> Competition:
+    """Corrige une compétition existante -- mêmes règles que
+    ``creer_competition()``, plus une vérification propre à la
+    modification : si la compétition a déjà des épreuves, retrécir les
+    dates ne doit pas en laisser une hors des nouvelles bornes (le statut
+    n'est volontairement pas modifiable ici -- clôturer une compétition
+    est une action distincte, pas un simple champ à corriger)."""
+    existante = db.get_competition(conn, competition_id)
+    if existante is None:
+        raise ErreurMetier("Compétition introuvable.")
+    if not nom.strip():
+        raise ErreurMetier("Le nom de la compétition ne peut pas être vide.")
+    if date_fin < date_debut:
+        raise ErreurMetier("La date de fin ne peut pas précéder la date de début.")
+
+    for epreuve in db.list_epreuves_by_competition(conn, competition_id):
+        if not (date_debut <= epreuve.date <= date_fin):
+            raise ErreurMetier(
+                f"Impossible : l'épreuve « {epreuve.nom} » du {epreuve.date} "
+                "se retrouverait hors des nouvelles dates de la compétition "
+                "-- corrige ou supprime d'abord cette épreuve."
+            )
+
+    modifiee = Competition(
+        id=competition_id,
+        nom=nom.strip(),
+        date_debut=date_debut,
+        date_fin=date_fin,
+        lieu=lieu.strip(),
+        statut=existante.statut,
+        categories_veteran_actives=categories_veteran_actives,
+    )
+    db.update_competition(conn, modifiee)
+    return modifiee
+
+
 # ----------------------------------------------------------- Épreuve --
 
 
@@ -231,6 +276,55 @@ def creer_epreuve(
     )
     db.insert_epreuve(conn, epreuve)
     return epreuve
+
+
+def modifier_epreuve(
+    conn: sqlite3.Connection,
+    epreuve_id: str,
+    nom: str,
+    date_epreuve: date,
+    bareme_id: str,
+) -> Epreuve:
+    """Corrige une épreuve existante -- mêmes règles que
+    ``creer_epreuve()``. Le barème ne peut plus être changé une fois une
+    volée saisie (voir ``storage.epreuve_a_des_scores``) : les numéros de
+    série/volée déjà enregistrés ne correspondraient plus forcément au
+    nouveau barème (nombre de séries, de volées, de flèches différent)."""
+    existante = db.get_epreuve(conn, epreuve_id)
+    if existante is None:
+        raise ErreurMetier("Épreuve introuvable.")
+
+    competition = db.get_competition(conn, existante.competition_id)
+    if competition is None:
+        raise ErreurMetier("Compétition introuvable.")
+    if competition.statut == StatutCompetition.CLOTUREE:
+        raise ErreurMetier(
+            "Cette compétition est clôturée -- impossible d'en modifier une épreuve."
+        )
+    if not nom.strip():
+        raise ErreurMetier("Le nom de l'épreuve ne peut pas être vide.")
+    if db.get_bareme(conn, bareme_id) is None:
+        raise ErreurMetier(f"Barème inconnu : {bareme_id}")
+    if not competition.couvre(date_epreuve):
+        raise ErreurMetier(
+            "La date de l'épreuve est en dehors des dates de la compétition "
+            f"({competition.date_debut} -- {competition.date_fin})."
+        )
+    if bareme_id != existante.bareme_id and db.epreuve_a_des_scores(conn, epreuve_id):
+        raise ErreurMetier(
+            "Impossible de changer le barème : des scores ont déjà été "
+            "saisis pour cette épreuve."
+        )
+
+    modifiee = Epreuve(
+        id=epreuve_id,
+        competition_id=existante.competition_id,
+        nom=nom.strip(),
+        date=date_epreuve,
+        bareme_id=bareme_id,
+    )
+    db.update_epreuve(conn, modifiee)
+    return modifiee
 
 
 def lister_epreuves_toutes(conn: sqlite3.Connection) -> list[tuple[Competition, Epreuve]]:
