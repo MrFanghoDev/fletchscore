@@ -273,9 +273,13 @@ une colonne total.
       d'une poignée d'épreuves, ça se resserre plutôt que de planter
       (testé explicitement avec 10 épreuves). 4 tests, en attente comme
       le reste des tests PDF (`fpdf2` non installable ici)
-- [ ] Bouton GUI pour le classement global (CSV, Excel et PDF) -- pas
-      encore fait, seul le classement par épreuve est branché dans
-      `ecran_classement.py`
+- [x] Bouton GUI pour le classement global (CSV, Excel et PDF) --
+      nouvelle section dans `ecran_classement.py` (sélecteur de
+      compétition dérivé de `lister_epreuves_toutes()`, dédupliqué --
+      vérifié réellement) avec ses propres boutons et son propre label
+      d'erreur, distincts de la section export par épreuve. ⚠️ **rendu
+      non vérifié** -- signalé par l'utilisateur ("sur quel bouton
+      appuyer ?") qui a eu raison de demander, il n'existait pas encore
 
 ## v0.5 -- Finition
 

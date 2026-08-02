@@ -484,3 +484,18 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   d'épreuves, l'export CSV/Excel reste plus lisible que le PDF). Bouton
   GUI toujours pas fait pour le classement global (CSV, Excel, PDF) --
   seul le classement par épreuve est branché dans `ecran_classement.py`.
+
+- **Bouton GUI de l'export global, ajouté après coup.** Signalé par
+  l'utilisateur ("sur quel bouton appuyer ?") -- il avait raison, aucun
+  n'existait. Nouvelle section dans `ecran_classement.py` avec son
+  propre sélecteur de **compétition** (pas d'épreuve -- concept
+  différent du reste de l'écran) et ses 3 boutons, un label d'erreur
+  distinct de celui de l'export par épreuve pour ne pas mélanger les
+  deux retours. La liste des compétitions vient de
+  `services.lister_epreuves_toutes()` dédupliquée par `competition.id`
+  plutôt qu'une nouvelle fonction `lister_competitions()` dédiée -- une
+  compétition sans aucune épreuve n'a de toute façon rien à exporter
+  globalement (`classement_global_competition()` retourne un classement
+  vide), donc la filtrer avant même l'affichage est le bon comportement,
+  pas un raccourci. Déduplication vérifiée réellement (2 épreuves d'une
+  même compétition -> 1 seule entrée dans le sélecteur).

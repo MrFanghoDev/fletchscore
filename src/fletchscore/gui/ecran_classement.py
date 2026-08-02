@@ -14,8 +14,11 @@ import customtkinter as ctk
 
 from fletchscore import services
 from fletchscore.gui.dialogue_fichier import demander_chemin
-from fletchscore.io.export.csv import exporter_classement_csv
-from fletchscore.io.export.excel import exporter_classement_excel
+from fletchscore.io.export.csv import exporter_classement_csv, exporter_classement_global_csv
+from fletchscore.io.export.excel import (
+    exporter_classement_excel,
+    exporter_classement_global_excel,
+)
 from fletchscore.scoring import podium_par_categorie
 from fletchscore.services import ErreurMetier, libelle_epreuve
 
@@ -25,14 +28,17 @@ class EcranClassement(ctk.CTkFrame):
         super().__init__(parent, fg_color="transparent")
         self.conn = conn
         self._epreuves_par_libelle: dict = {}
+        self._competitions_par_libelle: dict = {}
 
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(2, weight=1)
+        self.grid_rowconfigure(3, weight=1)
 
         self._construire_selecteur_epreuve()
         self._construire_controles_export()
+        self._construire_controles_export_global()
         self._construire_zone_classement()
         self._rafraichir_epreuves()
+        self._rafraichir_competitions_globales()
 
     # -- Sélecteur d'épreuve -----------------------------------------------
 
@@ -84,7 +90,9 @@ class EcranClassement(ctk.CTkFrame):
         ctk.CTkButton(cadre, text="Exporter Excel", command=self._exporter_excel).grid(
             row=0, column=2, padx=(0, 10)
         )
-        ctk.CTkButton(cadre, text="Exporter PDF", command=self._exporter_pdf).grid(row=0, column=3)
+        ctk.CTkButton(cadre, text="Exporter PDF", command=self._exporter_pdf).grid(
+            row=0, column=3
+        )
 
         self.erreur_export = ctk.CTkLabel(cadre, text="", text_color="red", wraplength=500)
         self.erreur_export.grid(row=1, column=0, columnspan=4, sticky="w", pady=(5, 0))
@@ -166,11 +174,146 @@ class EcranClassement(ctk.CTkFrame):
         exporter_classement_pdf(classement, chemin, titre=epreuve.nom)
         self._afficher_info_export(f"Classement exporté vers {chemin}")
 
+    # -- Export global (toutes les épreuves d'une compétition) ----------
+
+    def _construire_controles_export_global(self) -> None:
+        cadre = ctk.CTkFrame(self)
+        cadre.grid(row=2, column=0, sticky="ew", pady=(0, 10))
+        cadre.grid_columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(
+            cadre, text="Export global (toute la compétition)", font=ctk.CTkFont(weight="bold")
+        ).grid(row=0, column=0, columnspan=5, sticky="w", padx=10, pady=(10, 5))
+
+        ctk.CTkLabel(cadre, text="Compétition :").grid(row=1, column=0, padx=(10, 5))
+        self.menu_competition_globale = ctk.CTkOptionMenu(
+            cadre, values=["(aucune compétition)"]
+        )
+        self.menu_competition_globale.grid(row=1, column=1, sticky="ew", padx=(0, 10))
+
+        ctk.CTkButton(cadre, text="Exporter CSV", command=self._exporter_global_csv).grid(
+            row=1, column=2, padx=(0, 10)
+        )
+        ctk.CTkButton(cadre, text="Exporter Excel", command=self._exporter_global_excel).grid(
+            row=1, column=3, padx=(0, 10)
+        )
+        ctk.CTkButton(cadre, text="Exporter PDF", command=self._exporter_global_pdf).grid(
+            row=1, column=4, padx=(0, 10)
+        )
+
+        self.erreur_export_global = ctk.CTkLabel(
+            cadre, text="", text_color="red", wraplength=500
+        )
+        self.erreur_export_global.grid(
+            row=2, column=0, columnspan=5, sticky="w", padx=10, pady=(5, 10)
+        )
+
+    def _afficher_erreur_export_global(self, message: str) -> None:
+        self.erreur_export_global.configure(text=message, text_color="red")
+
+    def _afficher_info_export_global(self, message: str) -> None:
+        self.erreur_export_global.configure(text=message, text_color="green")
+
+    def _rafraichir_competitions_globales(self) -> None:
+        competitions = services.lister_epreuves_toutes(self.conn)
+        # lister_epreuves_toutes donne des paires (competition, epreuve) --
+        # on ne veut que les compétitions, sans doublon, dans le même ordre.
+        vues: dict[str, object] = {}
+        for competition, _epreuve in competitions:
+            vues.setdefault(competition.id, competition)
+
+        if not vues:
+            self.menu_competition_globale.configure(values=["(aucune compétition)"])
+            self.menu_competition_globale.set("(aucune compétition)")
+            self._competitions_par_libelle = {}
+            return
+
+        self._competitions_par_libelle = {
+            f"{competition.nom} ({competition.date_debut} -- {competition.date_fin})": competition
+            for competition in vues.values()
+        }
+        libelles = list(self._competitions_par_libelle.keys())
+        self.menu_competition_globale.configure(values=libelles)
+        self.menu_competition_globale.set(libelles[0])
+
+    def _obtenir_classement_global_pour_export(self):
+        competition = self._competitions_par_libelle.get(self.menu_competition_globale.get())
+        if competition is None:
+            return None, None, None
+
+        try:
+            epreuves, classement = services.classement_global_competition(
+                self.conn, competition.id
+            )
+        except ErreurMetier as erreur:
+            self._afficher_erreur_export_global(str(erreur))
+            return None, None, None
+
+        return competition, epreuves, classement
+
+    def _exporter_global_csv(self) -> None:
+        self._afficher_erreur_export_global("")
+        competition, epreuves, classement = self._obtenir_classement_global_pour_export()
+        if competition is None:
+            self._afficher_erreur_export_global("Choisis d'abord une compétition.")
+            return
+
+        chemin = demander_chemin(
+            self, "Chemin où exporter le classement global (CSV)", f"{competition.nom}.csv"
+        )
+        if not chemin:
+            return
+
+        exporter_classement_global_csv(epreuves, classement, chemin)
+        self._afficher_info_export_global(f"Classement global exporté vers {chemin}")
+
+    def _exporter_global_excel(self) -> None:
+        self._afficher_erreur_export_global("")
+        competition, epreuves, classement = self._obtenir_classement_global_pour_export()
+        if competition is None:
+            self._afficher_erreur_export_global("Choisis d'abord une compétition.")
+            return
+
+        chemin = demander_chemin(
+            self, "Chemin où exporter le classement global (Excel)", f"{competition.nom}.xlsx"
+        )
+        if not chemin:
+            return
+
+        exporter_classement_global_excel(
+            epreuves, classement, chemin, titre_feuille=competition.nom
+        )
+        self._afficher_info_export_global(f"Classement global exporté vers {chemin}")
+
+    def _exporter_global_pdf(self) -> None:
+        self._afficher_erreur_export_global("")
+        competition, epreuves, classement = self._obtenir_classement_global_pour_export()
+        if competition is None:
+            self._afficher_erreur_export_global("Choisis d'abord une compétition.")
+            return
+
+        try:
+            from fletchscore.io.export.pdf import exporter_classement_global_pdf
+        except ImportError:
+            self._afficher_erreur_export_global(
+                "Export PDF indisponible -- la bibliothèque fpdf2 n'est pas installée."
+            )
+            return
+
+        chemin = demander_chemin(
+            self, "Chemin où exporter le classement global (PDF)", f"{competition.nom}.pdf"
+        )
+        if not chemin:
+            return
+
+        exporter_classement_global_pdf(epreuves, classement, chemin, titre=competition.nom)
+        self._afficher_info_export_global(f"Classement global exporté vers {chemin}")
+
     # -- Classement ----------------------------------------------------------
 
     def _construire_zone_classement(self) -> None:
         self.zone_classement = ctk.CTkScrollableFrame(self, fg_color="transparent")
-        self.zone_classement.grid(row=2, column=0, sticky="nsew")
+        self.zone_classement.grid(row=3, column=0, sticky="nsew")
         self.zone_classement.grid_columnconfigure(0, weight=1)
 
     def _rafraichir_classement(self) -> None:
