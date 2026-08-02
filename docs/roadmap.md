@@ -89,6 +89,12 @@ en compétition live avant d'aller plus loin).
         fpdf2) -- **confirmé exécuté et vert par la CI** après correction
         du job `test.yml` (voir plus bas), les 3 tests tournent
         réellement, plus aucun `skipped`
+  - [x] Branchement dans `gui/ecran_classement.py` -- boutons "Exporter
+        CSV/Excel/PDF" + case "Podium seulement". Oublié dans le
+        premier jet (les fonctions existaient mais n'étaient appelées
+        nulle part dans la GUI) -- signalé par l'utilisateur. Chaîne
+        classement → podium → export CSV/Excel vérifiée réellement de
+        bout en bout hors GUI (PDF non exécutable ici comme toujours)
 
 **Jalon utilisable seul** : ce point donne un FletchScore fonctionnel en
 club, sans la partie web/compétiteur. Bon moment pour un premier vrai

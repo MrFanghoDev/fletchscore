@@ -440,3 +440,17 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   le sélectionner visuellement. **Correctif spéculatif, à confirmer** --
   je n'ai aucun moyen de reproduire le bug d'origine ici pour vérifier
   que ça le résout vraiment.
+
+- **`ecran_classement.py` : export CSV/Excel/PDF + podium, oublié dans
+  le premier jet.** Les fonctions d'export (`io/export/`) existaient
+  depuis la v0.1 mais n'étaient jamais appelées depuis la GUI --
+  repéré par l'utilisateur. Ajouté avec une case "Podium seulement" qui
+  passe par `podium_par_categorie()` avant l'export (le filtrage se
+  décide côté GUI, les fonctions d'export elles-mêmes ne savent
+  toujours rien du concept de podium). Import de `exporter_classement_pdf`
+  différé à l'intérieur de la méthode plutôt qu'en tête de fichier : si
+  fpdf2 n'est pas installé, seul le bouton PDF échoue avec un message
+  clair, pas tout l'écran au chargement. **Bug de grille repéré et
+  corrigé avant livraison** : le label d'erreur d'export et le cadre des
+  3 boutons visaient tous les deux la ligne 1 de l'écran -- déplacé le
+  label à l'intérieur du cadre plutôt qu'à côté.

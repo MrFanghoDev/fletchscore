@@ -13,6 +13,10 @@ import sqlite3
 import customtkinter as ctk
 
 from fletchscore import services
+from fletchscore.gui.dialogue_fichier import demander_chemin
+from fletchscore.io.export.csv import exporter_classement_csv
+from fletchscore.io.export.excel import exporter_classement_excel
+from fletchscore.scoring import podium_par_categorie
 from fletchscore.services import ErreurMetier, libelle_epreuve
 
 
@@ -23,9 +27,10 @@ class EcranClassement(ctk.CTkFrame):
         self._epreuves_par_libelle: dict = {}
 
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(2, weight=1)
 
         self._construire_selecteur_epreuve()
+        self._construire_controles_export()
         self._construire_zone_classement()
         self._rafraichir_epreuves()
 
@@ -64,11 +69,110 @@ class EcranClassement(ctk.CTkFrame):
         self.menu_epreuve.set(libelles[0])
         self._rafraichir_classement()
 
+    # -- Export ----------------------------------------------------------
+
+    def _construire_controles_export(self) -> None:
+        cadre = ctk.CTkFrame(self, fg_color="transparent")
+        cadre.grid(row=1, column=0, sticky="ew", pady=(0, 10))
+
+        self.case_podium_seulement = ctk.CTkCheckBox(cadre, text="Podium seulement (top 3)")
+        self.case_podium_seulement.grid(row=0, column=0, padx=(0, 15), sticky="w")
+
+        ctk.CTkButton(cadre, text="Exporter CSV", command=self._exporter_csv).grid(
+            row=0, column=1, padx=(0, 10)
+        )
+        ctk.CTkButton(cadre, text="Exporter Excel", command=self._exporter_excel).grid(
+            row=0, column=2, padx=(0, 10)
+        )
+        ctk.CTkButton(cadre, text="Exporter PDF", command=self._exporter_pdf).grid(
+            row=0, column=3
+        )
+
+        self.erreur_export = ctk.CTkLabel(cadre, text="", text_color="red", wraplength=500)
+        self.erreur_export.grid(row=1, column=0, columnspan=4, sticky="w", pady=(5, 0))
+
+    def _afficher_erreur_export(self, message: str) -> None:
+        self.erreur_export.configure(text=message, text_color="red")
+
+    def _afficher_info_export(self, message: str) -> None:
+        self.erreur_export.configure(text=message, text_color="green")
+
+    def _obtenir_classement_pour_export(self):
+        epreuve = self._epreuves_par_libelle.get(self.menu_epreuve.get())
+        if epreuve is None:
+            return None, None
+
+        try:
+            classement = services.classement_epreuve(self.conn, epreuve.id)
+        except ErreurMetier as erreur:
+            self._afficher_erreur_export(str(erreur))
+            return None, None
+
+        if self.case_podium_seulement.get():
+            classement = podium_par_categorie(classement)
+        return epreuve, classement
+
+    def _exporter_csv(self) -> None:
+        self._afficher_erreur_export("")
+        epreuve, classement = self._obtenir_classement_pour_export()
+        if epreuve is None:
+            self._afficher_erreur_export("Choisis d'abord une épreuve.")
+            return
+
+        chemin = demander_chemin(
+            self, "Chemin où exporter le classement (CSV)", f"{epreuve.nom}.csv"
+        )
+        if not chemin:
+            return
+
+        exporter_classement_csv(classement, chemin)
+        self._afficher_info_export(f"Classement exporté vers {chemin}")
+
+    def _exporter_excel(self) -> None:
+        self._afficher_erreur_export("")
+        epreuve, classement = self._obtenir_classement_pour_export()
+        if epreuve is None:
+            self._afficher_erreur_export("Choisis d'abord une épreuve.")
+            return
+
+        chemin = demander_chemin(
+            self, "Chemin où exporter le classement (Excel)", f"{epreuve.nom}.xlsx"
+        )
+        if not chemin:
+            return
+
+        exporter_classement_excel(classement, chemin, titre_feuille=epreuve.nom)
+        self._afficher_info_export(f"Classement exporté vers {chemin}")
+
+    def _exporter_pdf(self) -> None:
+        self._afficher_erreur_export("")
+        epreuve, classement = self._obtenir_classement_pour_export()
+        if epreuve is None:
+            self._afficher_erreur_export("Choisis d'abord une épreuve.")
+            return
+
+        try:
+            from fletchscore.io.export.pdf import exporter_classement_pdf
+        except ImportError:
+            self._afficher_erreur_export(
+                "Export PDF indisponible -- la bibliothèque fpdf2 n'est pas installée."
+            )
+            return
+
+        chemin = demander_chemin(
+            self, "Chemin où exporter le classement (PDF)", f"{epreuve.nom}.pdf"
+        )
+        if not chemin:
+            return
+
+        exporter_classement_pdf(classement, chemin, titre=epreuve.nom)
+        self._afficher_info_export(f"Classement exporté vers {chemin}")
+
     # -- Classement ----------------------------------------------------------
 
     def _construire_zone_classement(self) -> None:
         self.zone_classement = ctk.CTkScrollableFrame(self, fg_color="transparent")
-        self.zone_classement.grid(row=1, column=0, sticky="nsew")
+        self.zone_classement.grid(row=2, column=0, sticky="nsew")
         self.zone_classement.grid_columnconfigure(0, weight=1)
 
     def _rafraichir_classement(self) -> None:
