@@ -20,13 +20,11 @@ def _competiteur(id_federal: str, sexe: Sexe) -> Competiteur:
     )
 
 
-def _score(inscription_id: str, valeurs: list[int]) -> Score:
+def _score(inscription_id: str, total: int) -> Score:
     return Score(
         id=f"s-{inscription_id}",
         inscription_id=inscription_id,
-        numero_serie=1,
-        numero_volee=1,
-        valeurs=valeurs,
+        total=total,
         statut=StatutScore.VALIDE,
     )
 
@@ -34,8 +32,8 @@ def _score(inscription_id: str, valeurs: list[int]) -> Score:
 class TestExporterClassementCsv(unittest.TestCase):
     def setUp(self):
         entrees = [
-            (_competiteur("FR-1", Sexe.M), [_score("i1", [5, 5, 5, 5])]),
-            (_competiteur("FR-2", Sexe.F), [_score("i2", [5, 5, 5, 4])]),
+            (_competiteur("FR-1", Sexe.M), _score("i1", 20)),
+            (_competiteur("FR-2", Sexe.F), _score("i2", 19)),
         ]
         self.classement = classement_par_categorie(BAREME_FLINT_INDOOR, date(2026, 1, 1), entrees)
 

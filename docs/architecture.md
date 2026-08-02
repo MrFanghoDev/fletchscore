@@ -19,15 +19,17 @@ directement sur le code.
 - **Import CSV** : implémenté (`io/import_csv.py`) -- clubs et
   compétiteurs, avec rapport d'erreurs par ligne.
 - **Couche `services.py`** : implémenté -- cas d'usage organisateur
-  (créer compétition/épreuve, inscrire, saisir une volée, classement
+  (créer compétition/épreuve, inscrire, saisir un score final, classement
   live), validations métier, `ErreurMetier` avec messages lisibles.
-- **Deux vues, un seul outil** *(widgets pas encore codés)* : GUI
-  organisateur (customtkinter, appellera `services.py`) + page web
-  compétiteur servie localement (`http.server`).
-- **Couche `scoring/`** : implémenté (`scoring/volee.py`,
-  `scoring/classement.py`) -- normalisation de volée (cas particuliers du
-  règlement), classement par catégorie, départage au X, rangs avec
-  égalités. Isolée de la GUI et du stockage, testable unitairement.
+- **Deux vues, un seul outil** : GUI organisateur (customtkinter)
+  codée (`gui/`, 6 écrans) ; page web compétiteur servie localement
+  (`http.server`) *(pas encore codée, v0.2)*.
+- **Couche `scoring/`** : implémenté (`scoring/classement.py`) --
+  classement par catégorie, départage au X, rangs avec égalités, podium.
+  Isolée de la GUI et du stockage, testable unitairement.
+  `scoring/volee.py` (normalisation flèche par flèche) a existé un temps
+  puis a été supprimé -- voir plus bas, "Révision majeure : saisie au
+  score final".
 - **Sécurité** *(prévue, pas encore codée)* : voir `SECURITY.md` --
   authentification par token côté compétiteur, mot de passe/session
   locale côté organisateur, HTTPS local.
@@ -179,11 +181,15 @@ directement sur le code.
   7). Aucun des deux n'aurait été détecté sans relecture attentive --
   toujours pas de substitut à un vrai lancement.
 
+  *(Révisé depuis : ce formulaire volée par volée et
+  `parser_valeurs_fleches()` ont été remplacés par une saisie au score
+  final -- voir "Révision majeure : saisie au score final" plus bas.)*
+
 - **`libelle_epreuve()`/`libelle_competiteur()` déplacées dans
   `services.py`.** D'abord écrites en double dans `gui/ecran_saisie.py`
   en le codant ; extraites avant d'écrire `gui/ecran_classement.py`
   plutôt que de les dupliquer une 3e fois -- même raisonnement que
-  `parser_date`/`parser_valeurs_fleches`.
+  `parser_date` (toujours en usage).
 
 - **`gui/ecran_classement.py` : dernier écran de `gui/`.** Sélecteur
   d'épreuve (même liste que la saisie), classement affiché par
@@ -340,6 +346,9 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   numéro de la flèche, arrêt du tir dès le premier impact, jusqu'à 3
   flèches tentées par cible) -- ça demanderait un moteur de score
   distinct de `scoring/volee.py`, pas seulement un nouveau `Bareme`.
+  *(Révisé depuis : `scoring/volee.py` a été supprimé, et ce blocage
+  avec lui -- voir "Révision majeure : saisie au score final" plus bas.
+  Ajouter Animal/3-D ne demande plus qu'un `score_max` correct.)*
   Réserve notée sur `nb_series=1` pour Field/Hunter/Expert Field : le
   règlement ne précise nulle part si un round complet représente 1 ou 2
   "unités standard" pour ces rounds-là (contrairement à Flint/IFAA
@@ -363,3 +372,28 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   texte d'aide dans la GUI reste un résumé volontairement court (une
   phrase par section) ; le détail complet renvoie vers la doc Sphinx en
   ligne plutôt que d'être dupliqué dans le code.
+
+- **Révision majeure : saisie au score final, pas volée par volée.**
+  Proposée par l'utilisateur après un premier jalon de saisie détaillée
+  (série + volée + valeur par flèche) -- jugée trop lourde face à
+  l'usage réel : les scores sont déjà totalisés à la main sur la feuille
+  de match pendant le tir, le rôle de FletchScore est d'enregistrer ce
+  résultat et de classer, pas de rejouer le calcul flèche par flèche.
+  `models/score.py` simplifié à `total` + `nombre_x` (une ligne par
+  Inscription, contrainte UNIQUE) ; `scoring/volee.py` et
+  `normaliser_volee()` supprimés ; `services.saisir_score_final()`
+  remplace `saisir_volee()`, borné par `bareme.score_max` et
+  `bareme.total_flèches` plutôt que de valider chaque flèche
+  individuellement. `gui/ecran_saisie.py` réécrit : deux champs (total,
+  X) au lieu du formulaire volée par volée avec sélecteurs série/volée.
+  **Effet de bord positif** : ça lève le blocage sur l'Animal Round et
+  les rounds 3-D (voir docs/cahier-des-charges/regles-metier.rst) --
+  leur système de score complexe (kill/wound, arrêt au premier impact)
+  ne pose plus problème puisque FletchScore n'a plus besoin de le
+  modéliser en détail, juste de connaître le score maximum possible pour
+  borner la saisie. Choix délibéré de garder `Score` comme entité
+  séparée (une ligne par Inscription) plutôt que de replier `total`/
+  `nombre_x`/`statut` directement sur `Inscription` -- même résultat,
+  empreinte de modification bien plus petite (une seule table/classe à
+  toucher en profondeur au lieu de reporter le changement partout où
+  `Inscription` est utilisée).

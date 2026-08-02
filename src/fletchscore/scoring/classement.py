@@ -13,15 +13,14 @@ from datetime import date
 from fletchscore.models import Bareme, Competiteur, Score, StatutScore
 
 
-def total_scores(scores: list[Score]) -> tuple[int, int]:
-    """Total de points et nombre de X, en ne comptant QUE les scores
-    validés -- une proposition en attente ne doit jamais influencer un
-    classement officiel (voir
-    docs/cahier-des-charges/securite.rst §7.2)."""
-    valides = [s for s in scores if s.statut == StatutScore.VALIDE]
-    total = sum(s.total for s in valides)
-    nombre_x = sum(s.nombre_x for s in valides)
-    return total, nombre_x
+def total_scores(score: Score | None) -> tuple[int, int]:
+    """Total de points et nombre de X, en ne comptant QUE si le score est
+    validé -- une proposition en attente ne doit jamais influencer un
+    classement officiel (voir docs/cahier-des-charges/securite.rst §7.2).
+    Un compétiteur sans score saisi (``None``) compte pour 0."""
+    if score is None or score.statut != StatutScore.VALIDE:
+        return 0, 0
+    return score.total, score.nombre_x
 
 
 @dataclass(slots=True)
@@ -44,18 +43,23 @@ class LigneClassement:
 def classement_par_categorie(
     bareme: Bareme,
     date_reference: date,
-    entrees: list[tuple[Competiteur, list[Score]]],
+    entrees: list[tuple[Competiteur, Score | None]],
     *,
     categories_veteran_actives: bool = False,
 ) -> dict[str, list[LigneClassement]]:
     """Construit le classement, groupé par code de catégorie combiné
     (ex. ``AMBB-R``), trié par total décroissant puis, si le barème
     utilise un départage au X (``bareme.departage_par_x``), par nombre de
-    X décroissant."""
+    X décroissant.
+
+    ``entrees`` associe chaque compétiteur à son score final (au plus un
+    par inscription -- voir models/score.py) ou ``None`` s'il n'a pas
+    encore été saisi.
+    """
     par_categorie: dict[str, list[LigneClassement]] = {}
 
-    for competiteur, scores in entrees:
-        total, nombre_x = total_scores(scores)
+    for competiteur, score in entrees:
+        total, nombre_x = total_scores(score)
         code_categorie = competiteur.code_categorie(
             date_reference, categories_veteran_actives=categories_veteran_actives
         )

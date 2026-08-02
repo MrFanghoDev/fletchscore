@@ -37,7 +37,10 @@ Barèmes des rounds Indoor de référence
    Un barème doit définir : le nombre de séries, le nombre de volées par
    série, le nombre de flèches par volée, la liste ordonnée des valeurs
    de zones, et un indicateur de zone de départage (X) séparé du score
-   brut. Voir :doc:`modele-donnees`.
+   brut. Voir :doc:`modele-donnees`. Ces champs servent aujourd'hui à
+   calculer les bornes du score final saisi (``score_max``, plafond du
+   nombre de X) -- FletchScore ne valide plus flèche par flèche, voir
+   :doc:`roadmap`.
 
 Barèmes des rounds outdoor à distances marquées
 ===================================================
@@ -73,18 +76,21 @@ Barèmes des rounds outdoor à distances marquées
         donnant un score **5/4/3/2/1**.
       - X-ring interne au 5, départage uniquement (comme l'IFAA Indoor).
 
-.. warning:: Hors périmètre : Animal Round et rounds 3-D
+.. note:: Animal Round et rounds 3-D -- pas encore ajoutés, mais plus bloqués
 
    Le règlement définit aussi l'**Animal Round** (marqué et non marqué)
    et les rounds **3-D** (Hunting à 1 flèche, Standard à 2 flèches). Leur
-   système de score est fondamentalement différent de ce que
-   :doc:`modele-donnees` couvre : zones "kill"/"wound" à valeur
+   système de score est complexe : zones "kill"/"wound" à valeur
    décroissante selon le numéro de la flèche (20/18/16/14/12/10 points),
    arrêt du tir dès le premier impact (jusqu'à 3 flèches tentées par
-   cible, pas un nombre fixe). Ça demanderait un moteur de score
-   distinct de ``scoring/volee.py``, pas seulement un nouveau
-   ``Bareme`` -- non couvert par FletchScore pour l'instant, voir
-   :doc:`roadmap`.
+   cible, pas un nombre fixe).
+
+   FletchScore n'a plus besoin de modéliser ces règles en détail : la
+   saisie se fait au score final, pas flèche par flèche (voir
+   :doc:`roadmap`, "Saisie du score final, pas volée par volée"). Ajouter
+   ces rounds ne demande donc plus qu'un ``Bareme`` avec le bon
+   ``score_max`` (à confirmer précisément dans le règlement) -- pas
+   encore fait, mais ce n'est plus un chantier de moteur de score séparé.
 
 Catégories de compétiteurs (nomenclature officielle)
 ========================================================
@@ -175,8 +181,14 @@ base au référentiel *styles* et aux catégories de classement.
 
       Traditional Recurve
 
-Cas particuliers de score à gérer
-=====================================
+Cas particuliers de score (gérés sur la feuille de match)
+==============================================================
+
+Ces règles s'appliquent au moment du tir, sous la responsabilité du juge
+sur le pas de tir -- FletchScore reçoit directement le score final déjà
+corrigé de ces cas, il ne les rejoue pas (voir :doc:`roadmap`, "Saisie
+du score final, pas volée par volée"). Seul le départage au classement
+(en bas) est effectivement géré par FletchScore, dans ``scoring/``.
 
 .. mermaid::
 

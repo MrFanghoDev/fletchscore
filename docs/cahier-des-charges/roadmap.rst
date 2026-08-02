@@ -87,8 +87,28 @@ Points tranchés
    **Résolu** : confirmé -- une Épreuve comporte une ou plusieurs séries,
    chaque série une ou plusieurs volées. Le Flint Indoor a 2 séries de 7
    volées, avec 6 distances différentes sur les 6 premières volées et la
-   7e volée tirée sur 4 distances différentes (le détail précis des
-   distances par volée est une information d'affichage pour la GUI, pas
-   une règle de score -- pas encore modélisé, voir ``gui/`` dans
-   ``docs/roadmap.md``). ``Score`` porte maintenant ``numero_serie`` en
-   plus de ``numero_volee`` pour lever l'ambiguïté entre séries.
+   7e volée tirée sur 4 distances différentes.
+
+   **Révisé depuis** : cette hiérarchie décrit toujours le règlement,
+   mais FletchScore n'enregistre plus les scores volée par volée --
+   seulement le score final par épreuve (voir "Saisie du score final,
+   pas volée par volée" ci-dessous). ``Score.numero_serie`` et
+   ``numero_volee``, ajoutés à ce moment-là pour lever une ambiguïté
+   entre séries, ont depuis été retirés avec le reste de la saisie
+   détaillée.
+
+.. dropdown:: Saisie du score final, pas volée par volée
+   :color: success
+   :icon: check-circle
+
+   **Résolu** (révision d'un choix initial) : décidé après un premier
+   jalon de saisie flèche par flèche, jugée trop lourde face à l'usage
+   réel -- les scores sont déjà totalisés à la main sur la feuille de
+   match pendant le tir, le rôle de FletchScore est d'enregistrer ce
+   résultat et de classer, pas de rejouer le calcul flèche par flèche.
+   ``Score`` simplifié à ``total`` + ``nombre_x`` (une ligne par
+   Inscription, contrainte UNIQUE). Bénéfice supplémentaire : supprime
+   le besoin de modéliser les règles de score internes de chaque type
+   d'épreuve pour la saisie -- ouvre la voie à l'Animal Round et aux
+   rounds 3-D (voir :doc:`regles-metier`), qui restaient hors périmètre
+   uniquement à cause de leur système de score complexe.

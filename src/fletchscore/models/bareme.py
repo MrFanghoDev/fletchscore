@@ -32,11 +32,6 @@ class Bareme:
     def score_max(self) -> int:
         return self.total_flèches * self.valeurs_zones[0]
 
-    def valeur_valide(self, valeur: int) -> bool:
-        """0 est toujours une valeur valide (flèche manquée, flèche
-        manquante comptée à 0, mauvaise cible -- voir règles métier)."""
-        return valeur == 0 or valeur in self.valeurs_zones
-
 
 # Templates préconfigurés, directement dérivés du règlement IFAA/FFTL --
 # voir docs/cahier-des-charges/regles-metier.rst §4.1. Les `id` sont

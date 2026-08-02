@@ -94,12 +94,6 @@ class TestBareme(unittest.TestCase):
     def test_ifaa_indoor_score_max(self):
         self.assertEqual(BAREME_IFAA_INDOOR.score_max, 60 * 5)
 
-    def test_valeur_zero_toujours_valide(self):
-        self.assertTrue(BAREME_IFAA_INDOOR.valeur_valide(0))
-
-    def test_valeur_hors_zones_invalide(self):
-        self.assertFalse(BAREME_IFAA_INDOOR.valeur_valide(6))
-
     def test_valeurs_zones_non_triees_leve(self):
         with self.assertRaises(ValueError):
             Bareme(
@@ -158,20 +152,15 @@ class TestNouveauxBaremes(unittest.TestCase):
 
 
 class TestScore(unittest.TestCase):
-    def test_total_somme_les_valeurs(self):
-        score = Score(
-            id="s1",
-            inscription_id="i1",
-            numero_serie=1,
-            numero_volee=1,
-            valeurs=[5, 5, 4, 3, 0],
-            statut=StatutScore.PROPOSE,
-        )
-        self.assertEqual(score.total, 17)
+    def test_champs_par_defaut(self):
+        score = Score(id="s1", inscription_id="i1", total=270)
+        self.assertEqual(score.nombre_x, 0)
+        self.assertEqual(score.statut, StatutScore.PROPOSE)
 
-    def test_total_volee_vide(self):
-        score = Score(id="s1", inscription_id="i1", numero_serie=1, numero_volee=1)
-        self.assertEqual(score.total, 0)
+    def test_total_explicite(self):
+        score = Score(id="s1", inscription_id="i1", total=280, nombre_x=15)
+        self.assertEqual(score.total, 280)
+        self.assertEqual(score.nombre_x, 15)
 
 
 if __name__ == "__main__":

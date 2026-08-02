@@ -2,9 +2,15 @@
 
 ⚠️ Non vérifié dans l'environnement de développement (pas d'affichage
 disponible). Toute la validation vit dans ``fletchscore.services``
-(déjà testée) -- ce module ne fait qu'agencer des widgets, dont le
-nombre de champs de flèches, régénéré selon le barème de l'épreuve
-sélectionnée.
+(déjà testée) -- ce module ne fait qu'agencer des widgets.
+
+Saisie simplifiée au score final (+ nombre de X) plutôt que volée par
+volée : les scores sont déjà totalisés à la main sur la feuille de match
+pendant le tir, FletchScore enregistre ce résultat et classe, il ne
+rejoue pas le calcul flèche par flèche. Voir docs/architecture.md. Ce
+choix a aussi l'avantage de rendre n'importe quel type d'épreuve
+saisissable (Animal Round, 3-D...) sans avoir à modéliser leurs règles
+de score internes.
 """
 
 from __future__ import annotations
@@ -30,7 +36,6 @@ class EcranSaisie(ctk.CTkFrame):
         self.inscription_selectionnee: Inscription | None = None
         self._epreuves_par_libelle: dict[str, tuple[Competition, Epreuve]] = {}
         self._non_inscrits_par_libelle: dict[str, Competiteur] = {}
-        self.champs_fleches: list[ctk.CTkEntry] = []
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
@@ -81,10 +86,10 @@ class EcranSaisie(ctk.CTkFrame):
             self.bareme_courant = db.get_bareme(self.conn, self.epreuve_courante.bareme_id)
 
         self.inscription_selectionnee = None
-        self._construire_champs_fleches()
+        self._mettre_a_jour_bornes_saisie()
         self._rafraichir_inscription_disponibles()
         self._rafraichir_inscrits()
-        self._rafraichir_volees_saisies()
+        self._rafraichir_score_actuel()
 
     # -- Colonne de gauche : inscription + liste des inscrits ------------
 
@@ -173,6 +178,9 @@ class EcranSaisie(ctk.CTkFrame):
         for index, inscription in enumerate(inscriptions):
             competiteur = db.get_competiteur(self.conn, inscription.id_federal)
             texte = libelle_competiteur(competiteur) if competiteur else inscription.id_federal
+            score = db.get_score_by_inscription(self.conn, inscription.id)
+            if score is not None:
+                texte += f" -- {score.total} pts"
             selectionne = (
                 self.inscription_selectionnee is not None
                 and self.inscription_selectionnee.id == inscription.id
@@ -189,136 +197,115 @@ class EcranSaisie(ctk.CTkFrame):
     def _selectionner_inscription(self, inscription: Inscription) -> None:
         self.inscription_selectionnee = inscription
         self._rafraichir_inscrits()
-        self._rafraichir_volees_saisies()
+        self._rafraichir_score_actuel()
 
-    # -- Colonne de droite : formulaire de saisie ------------------------
+    # -- Colonne de droite : saisie du score final -----------------------
 
     def _construire_colonne_saisie(self) -> None:
         colonne = ctk.CTkFrame(self)
         colonne.grid(row=1, column=1, sticky="nsew")
         colonne.grid_columnconfigure(0, weight=1)
-        colonne.grid_rowconfigure(7, weight=1)
         self.colonne_saisie = colonne
 
-        ctk.CTkLabel(
-            colonne, text="Saisie de la volée", font=ctk.CTkFont(size=14, weight="bold")
-        ).grid(row=0, column=0, sticky="w", padx=15, pady=(15, 5))
+        self.titre_saisie = ctk.CTkLabel(
+            colonne, text="Score final", font=ctk.CTkFont(size=14, weight="bold")
+        )
+        self.titre_saisie.grid(row=0, column=0, sticky="w", padx=15, pady=(15, 5))
 
-        cadre_numeros = ctk.CTkFrame(colonne, fg_color="transparent")
-        cadre_numeros.grid(row=1, column=0, sticky="ew", padx=15)
-        ctk.CTkLabel(cadre_numeros, text="Série").grid(row=0, column=0, padx=(0, 5))
-        self.menu_serie = ctk.CTkOptionMenu(cadre_numeros, values=["1"])
-        self.menu_serie.grid(row=0, column=1, padx=(0, 15))
-        ctk.CTkLabel(cadre_numeros, text="Volée").grid(row=0, column=2, padx=(0, 5))
-        self.menu_volee = ctk.CTkOptionMenu(cadre_numeros, values=["1"])
-        self.menu_volee.grid(row=0, column=3)
+        cadre_champs = ctk.CTkFrame(colonne, fg_color="transparent")
+        cadre_champs.grid(row=1, column=0, sticky="ew", padx=15, pady=10)
 
-        self.cadre_fleches = ctk.CTkFrame(colonne, fg_color="transparent")
-        self.cadre_fleches.grid(row=2, column=0, sticky="ew", padx=15, pady=10)
+        ctk.CTkLabel(cadre_champs, text="Score total").grid(row=0, column=0, padx=(0, 5))
+        self.champ_total = ctk.CTkEntry(cadre_champs, width=80, placeholder_text="-")
+        self.champ_total.grid(row=0, column=1, padx=(0, 20))
 
-        cadre_x = ctk.CTkFrame(colonne, fg_color="transparent")
-        cadre_x.grid(row=3, column=0, sticky="ew", padx=15)
-        ctk.CTkLabel(cadre_x, text="Nombre de X").grid(row=0, column=0, padx=(0, 5))
-        self.champ_nombre_x = ctk.CTkEntry(cadre_x, width=60)
-        self.champ_nombre_x.grid(row=0, column=1)
+        ctk.CTkLabel(cadre_champs, text="Nombre de X").grid(row=0, column=2, padx=(0, 5))
+        self.champ_nombre_x = ctk.CTkEntry(cadre_champs, width=60, placeholder_text="0")
+        self.champ_nombre_x.grid(row=0, column=3)
+
+        self.aide_bareme = ctk.CTkLabel(colonne, text="", text_color="gray60")
+        self.aide_bareme.grid(row=2, column=0, sticky="w", padx=15)
 
         self.erreur_saisie = ctk.CTkLabel(colonne, text="", text_color="red", wraplength=280)
-        self.erreur_saisie.grid(row=4, column=0, sticky="nw", padx=15)
+        self.erreur_saisie.grid(row=3, column=0, sticky="nw", padx=15, pady=(5, 0))
 
-        ctk.CTkButton(colonne, text="Enregistrer", command=self._enregistrer_volee).grid(
-            row=5, column=0, sticky="ew", padx=15, pady=15
+        ctk.CTkButton(colonne, text="Enregistrer", command=self._enregistrer_score).grid(
+            row=4, column=0, sticky="ew", padx=15, pady=15
         )
 
-        ctk.CTkLabel(colonne, text="Volées déjà saisies", font=ctk.CTkFont(weight="bold")).grid(
-            row=6, column=0, sticky="w", padx=15
-        )
-        self.liste_volees = ctk.CTkScrollableFrame(colonne, fg_color="transparent", height=150)
-        self.liste_volees.grid(row=7, column=0, sticky="nsew", padx=15, pady=(5, 15))
-        self.liste_volees.grid_columnconfigure(0, weight=1)
+        self.score_actuel = ctk.CTkLabel(colonne, text="", text_color="gray60", wraplength=280)
+        self.score_actuel.grid(row=5, column=0, sticky="w", padx=15, pady=(0, 15))
 
-    def _construire_champs_fleches(self) -> None:
-        for widget in self.cadre_fleches.winfo_children():
-            widget.destroy()
-        self.champs_fleches = []
+        self._activer_colonne_saisie(False)
 
+    def _activer_colonne_saisie(self, actif: bool) -> None:
+        etat = "normal" if actif else "disabled"
+        self.champ_total.configure(state=etat)
+        self.champ_nombre_x.configure(state=etat)
+
+    def _mettre_a_jour_bornes_saisie(self) -> None:
         if self.bareme_courant is None:
-            self.menu_serie.configure(values=["1"])
-            self.menu_volee.configure(values=["1"])
-            self.champ_nombre_x.configure(state="disabled")
+            self.aide_bareme.configure(text="")
+            self._activer_colonne_saisie(False)
             return
 
-        self.menu_serie.configure(
-            values=[str(n) for n in range(1, self.bareme_courant.nb_series + 1)]
-        )
-        self.menu_serie.set("1")
-        self.menu_volee.configure(
-            values=[str(n) for n in range(1, self.bareme_courant.volees_par_serie + 1)]
-        )
-        self.menu_volee.set("1")
+        texte = f"Score maximum possible : {self.bareme_courant.score_max}"
+        if self.bareme_courant.departage_par_x:
+            texte += f" -- jusqu'à {self.bareme_courant.total_flèches} X"
+        self.aide_bareme.configure(text=texte)
+        self._activer_colonne_saisie(True)
 
-        for index in range(self.bareme_courant.fleches_par_volee):
-            champ = ctk.CTkEntry(self.cadre_fleches, width=50, placeholder_text="-")
-            champ.grid(row=0, column=index, padx=3)
-            self.champs_fleches.append(champ)
-
-        self.champ_nombre_x.configure(
-            state="normal" if self.bareme_courant.departage_par_x else "disabled"
-        )
-
-    def _enregistrer_volee(self) -> None:
+    def _enregistrer_score(self) -> None:
         self.erreur_saisie.configure(text="")
         if self.inscription_selectionnee is None:
             self.erreur_saisie.configure(text="Sélectionne d'abord un·e inscrit·e.")
             return
 
-        textes_fleches = [champ.get() for champ in self.champs_fleches]
+        texte_total = self.champ_total.get().strip()
         texte_x = self.champ_nombre_x.get().strip()
 
         try:
-            valeurs = services.parser_valeurs_fleches(textes_fleches)
-            nombre_x = int(texte_x) if texte_x else 0
-            services.saisir_volee(
-                self.conn,
-                self.inscription_selectionnee.id,
-                int(self.menu_serie.get()),
-                int(self.menu_volee.get()),
-                valeurs,
-                nombre_x=nombre_x,
+            total = int(texte_total)
+        except ValueError:
+            self.erreur_saisie.configure(
+                text="Score total invalide -- un nombre entier est attendu."
             )
+            return
+
+        try:
+            nombre_x = int(texte_x) if texte_x else 0
         except ValueError:
             self.erreur_saisie.configure(
                 text="Nombre de X invalide -- un nombre entier est attendu."
             )
             return
+
+        try:
+            services.saisir_score_final(
+                self.conn, self.inscription_selectionnee.id, total, nombre_x=nombre_x
+            )
         except ErreurMetier as erreur:
             self.erreur_saisie.configure(text=str(erreur))
             return
 
-        for champ in self.champs_fleches:
-            champ.delete(0, "end")
+        self.champ_total.delete(0, "end")
         self.champ_nombre_x.delete(0, "end")
-        self._rafraichir_volees_saisies()
+        self._rafraichir_score_actuel()
+        self._rafraichir_inscrits()
 
-    def _rafraichir_volees_saisies(self) -> None:
-        for widget in self.liste_volees.winfo_children():
-            widget.destroy()
-
+    def _rafraichir_score_actuel(self) -> None:
         if self.inscription_selectionnee is None:
+            self.score_actuel.configure(text="")
             return
 
-        scores = db.list_scores_by_inscription(self.conn, self.inscription_selectionnee.id)
-        if not scores:
-            ctk.CTkLabel(self.liste_volees, text="Aucune volée saisie pour l'instant.").grid(
-                row=0, column=0, sticky="w", pady=10
-            )
+        score = db.get_score_by_inscription(self.conn, self.inscription_selectionnee.id)
+        if score is None:
+            self.score_actuel.configure(text="Aucun score saisi pour l'instant.")
             return
 
-        for index, score in enumerate(scores):
-            texte = (
-                f"Série {score.numero_serie}, volée {score.numero_volee} : "
-                f"{score.valeurs} -- {score.total} pts, {score.nombre_x} X "
+        self.score_actuel.configure(
+            text=(
+                f"Score actuel : {score.total} pts, {score.nombre_x} X "
                 f"({score.statut.value})"
             )
-            ctk.CTkLabel(self.liste_volees, text=texte, anchor="w").grid(
-                row=index, column=0, sticky="ew", pady=2
-            )
+        )

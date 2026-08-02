@@ -26,36 +26,34 @@ def _competiteur(id_federal: str, sexe: Sexe, code_style: str, annee_naissance: 
 
 def _score(
     inscription_id: str,
-    numero_volee: int,
-    valeurs: list[int],
+    total: int,
     nombre_x: int = 0,
     statut: StatutScore = StatutScore.VALIDE,
 ) -> Score:
     return Score(
-        id=f"{inscription_id}-{numero_volee}",
+        id=f"score-{inscription_id}",
         inscription_id=inscription_id,
-        numero_serie=1,  # le classement agrège toutes les séries, non testé ici
-        numero_volee=numero_volee,
-        valeurs=valeurs,
+        total=total,
         nombre_x=nombre_x,
         statut=statut,
     )
 
 
 class TestTotalScores(unittest.TestCase):
-    def test_ne_compte_que_les_scores_valides(self):
-        scores = [
-            _score("i1", 1, [5, 5, 4, 3, 2], nombre_x=1, statut=StatutScore.VALIDE),
-            _score("i1", 2, [5, 5, 5, 5, 5], nombre_x=5, statut=StatutScore.PROPOSE),
-            _score("i1", 3, [1, 1, 1, 1, 1], nombre_x=0, statut=StatutScore.REJETE),
-        ]
-        total, nombre_x = total_scores(scores)
-        self.assertEqual(total, 19)  # seule la volée validée compte
-        self.assertEqual(nombre_x, 1)
+    def test_score_valide_compte(self):
+        score = _score("i1", 270, nombre_x=12, statut=StatutScore.VALIDE)
+        self.assertEqual(total_scores(score), (270, 12))
 
-    def test_aucun_score_valide_donne_zero(self):
-        scores = [_score("i1", 1, [5, 5, 5, 5, 5], statut=StatutScore.PROPOSE)]
-        self.assertEqual(total_scores(scores), (0, 0))
+    def test_score_propose_ne_compte_pas(self):
+        score = _score("i1", 270, statut=StatutScore.PROPOSE)
+        self.assertEqual(total_scores(score), (0, 0))
+
+    def test_score_rejete_ne_compte_pas(self):
+        score = _score("i1", 270, statut=StatutScore.REJETE)
+        self.assertEqual(total_scores(score), (0, 0))
+
+    def test_aucun_score_donne_zero(self):
+        self.assertEqual(total_scores(None), (0, 0))
 
 
 class TestClassementParCategorie(unittest.TestCase):
@@ -63,8 +61,8 @@ class TestClassementParCategorie(unittest.TestCase):
         homme = _competiteur("FR-1", Sexe.M, "BB-R", 1995)
         femme = _competiteur("FR-2", Sexe.F, "BB-R", 1995)
         entrees = [
-            (homme, [_score("i1", 1, [5, 5, 4, 3, 2], nombre_x=1)]),
-            (femme, [_score("i2", 1, [5, 5, 4, 3, 2], nombre_x=1)]),
+            (homme, _score("i1", 260, nombre_x=1)),
+            (femme, _score("i2", 260, nombre_x=1)),
         ]
         classement = classement_par_categorie(BAREME_IFAA_INDOOR, date(2026, 1, 1), entrees)
         self.assertEqual(set(classement.keys()), {"AMBB-R", "AFBB-R"})
@@ -73,21 +71,30 @@ class TestClassementParCategorie(unittest.TestCase):
         c1 = _competiteur("FR-1", Sexe.M, "BB-R", 1995)
         c2 = _competiteur("FR-2", Sexe.M, "BB-R", 1995)
         entrees = [
-            (c1, [_score("i1", 1, [1, 1, 1, 1, 1])]),  # total 5
-            (c2, [_score("i2", 1, [5, 5, 5, 5, 5])]),  # total 25
+            (c1, _score("i1", 200)),
+            (c2, _score("i2", 280)),
         ]
         classement = classement_par_categorie(BAREME_IFAA_INDOOR, date(2026, 1, 1), entrees)
         lignes = classement["AMBB-R"]
         self.assertEqual([ligne.competiteur.id_federal for ligne in lignes], ["FR-2", "FR-1"])
         self.assertEqual([ligne.rang for ligne in lignes], [1, 2])
 
+    def test_competiteur_sans_score_compte_pour_zero(self):
+        c1 = _competiteur("FR-1", Sexe.M, "BB-R", 1995)
+        c2 = _competiteur("FR-2", Sexe.M, "BB-R", 1995)
+        entrees = [(c1, _score("i1", 200)), (c2, None)]
+        classement = classement_par_categorie(BAREME_IFAA_INDOOR, date(2026, 1, 1), entrees)
+        lignes = classement["AMBB-R"]
+        self.assertEqual([ligne.competiteur.id_federal for ligne in lignes], ["FR-1", "FR-2"])
+        self.assertEqual(lignes[1].total, 0)
+
     def test_departage_par_x_si_bareme_le_prevoit(self):
         # IFAA Indoor : departage_par_x=True -- même total, X différent.
         c1 = _competiteur("FR-1", Sexe.M, "BB-R", 1995)
         c2 = _competiteur("FR-2", Sexe.M, "BB-R", 1995)
         entrees = [
-            (c1, [_score("i1", 1, [5, 5, 4, 3, 2], nombre_x=1)]),  # total 19, 1 X
-            (c2, [_score("i2", 1, [5, 5, 4, 3, 2], nombre_x=2)]),  # total 19, 2 X
+            (c1, _score("i1", 260, nombre_x=1)),
+            (c2, _score("i2", 260, nombre_x=2)),
         ]
         classement = classement_par_categorie(BAREME_IFAA_INDOOR, date(2026, 1, 1), entrees)
         lignes = classement["AMBB-R"]
@@ -100,8 +107,8 @@ class TestClassementParCategorie(unittest.TestCase):
         c1 = _competiteur("FR-1", Sexe.M, "BB-R", 1995)
         c2 = _competiteur("FR-2", Sexe.M, "BB-R", 1995)
         entrees = [
-            (c1, [_score("i1", 1, [5, 5, 5, 5], nombre_x=0)]),
-            (c2, [_score("i2", 1, [5, 5, 5, 5], nombre_x=4)]),
+            (c1, _score("i1", 260, nombre_x=0)),
+            (c2, _score("i2", 260, nombre_x=4)),
         ]
         classement = classement_par_categorie(BAREME_FLINT_INDOOR, date(2026, 1, 1), entrees)
         lignes = classement["AMBB-R"]
@@ -115,9 +122,9 @@ class TestClassementParCategorie(unittest.TestCase):
         c2 = _competiteur("FR-2", Sexe.M, "BB-R", 1995)
         c3 = _competiteur("FR-3", Sexe.M, "BB-R", 1995)
         entrees = [
-            (c1, [_score("i1", 1, [5, 5, 5, 5], nombre_x=0)]),
-            (c2, [_score("i2", 1, [5, 5, 5, 5], nombre_x=0)]),
-            (c3, [_score("i3", 1, [4, 4, 4, 4], nombre_x=0)]),
+            (c1, _score("i1", 260)),
+            (c2, _score("i2", 260)),
+            (c3, _score("i3", 220)),
         ]
         classement = classement_par_categorie(BAREME_FLINT_INDOOR, date(2026, 1, 1), entrees)
         lignes = classement["AMBB-R"]
@@ -130,7 +137,7 @@ class TestClassementParCategorie(unittest.TestCase):
         # Né en 1965 -> 61 ans au 2026-01-01 -> Veteran (55-64) si actif,
         # Adult sinon (voir modèle).
         veteran = _competiteur("FR-1", Sexe.M, "BB-R", 1965)
-        entrees = [(veteran, [_score("i1", 1, [5, 5, 5, 5], nombre_x=0)])]
+        entrees = [(veteran, _score("i1", 260))]
 
         sans_veteran = classement_par_categorie(
             BAREME_FLINT_INDOOR,
@@ -155,10 +162,10 @@ class TestPodiumParCategorie(unittest.TestCase):
         c3 = _competiteur("FR-3", Sexe.M, "BB-R", 1995)
         c4 = _competiteur("FR-4", Sexe.M, "BB-R", 1995)
         entrees = [
-            (c1, [_score("i1", 1, [5, 5, 5, 5])]),
-            (c2, [_score("i2", 1, [5, 5, 5, 4])]),
-            (c3, [_score("i3", 1, [5, 5, 4, 4])]),
-            (c4, [_score("i4", 1, [4, 4, 4, 4])]),
+            (c1, _score("i1", 260)),
+            (c2, _score("i2", 255)),
+            (c3, _score("i3", 250)),
+            (c4, _score("i4", 220)),
         ]
         classement = classement_par_categorie(BAREME_FLINT_INDOOR, date(2026, 1, 1), entrees)
         podium = podium_par_categorie(classement)
@@ -173,9 +180,9 @@ class TestPodiumParCategorie(unittest.TestCase):
         c2 = _competiteur("FR-2", Sexe.M, "BB-R", 1995)
         c3 = _competiteur("FR-3", Sexe.M, "BB-R", 1995)
         entrees = [
-            (c1, [_score("i1", 1, [5, 5, 5, 5])]),
-            (c2, [_score("i2", 1, [5, 5, 5, 5])]),  # ex-aequo rang 1
-            (c3, [_score("i3", 1, [4, 4, 4, 4])]),  # rang 3 (2 sauté)
+            (c1, _score("i1", 260)),
+            (c2, _score("i2", 260)),  # ex-aequo rang 1
+            (c3, _score("i3", 220)),  # rang 3 (2 sauté)
         ]
         classement = classement_par_categorie(BAREME_FLINT_INDOOR, date(2026, 1, 1), entrees)
         podium = podium_par_categorie(classement)
@@ -185,7 +192,7 @@ class TestPodiumParCategorie(unittest.TestCase):
 
     def test_categorie_avec_moins_de_trois_retourne_tout_le_monde(self):
         c1 = _competiteur("FR-1", Sexe.M, "BB-R", 1995)
-        entrees = [(c1, [_score("i1", 1, [5, 5, 5, 5])])]
+        entrees = [(c1, _score("i1", 260))]
         classement = classement_par_categorie(BAREME_FLINT_INDOOR, date(2026, 1, 1), entrees)
         podium = podium_par_categorie(classement)
         self.assertEqual(len(podium["AMBB-R"]), 1)
@@ -194,8 +201,8 @@ class TestPodiumParCategorie(unittest.TestCase):
         c1 = _competiteur("FR-1", Sexe.M, "BB-R", 1995)
         c2 = _competiteur("FR-2", Sexe.M, "BB-R", 1995)
         entrees = [
-            (c1, [_score("i1", 1, [5, 5, 5, 5])]),
-            (c2, [_score("i2", 1, [4, 4, 4, 4])]),
+            (c1, _score("i1", 260)),
+            (c2, _score("i2", 220)),
         ]
         classement = classement_par_categorie(BAREME_FLINT_INDOOR, date(2026, 1, 1), entrees)
         podium = podium_par_categorie(classement, taille=1)

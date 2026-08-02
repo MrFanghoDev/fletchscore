@@ -264,7 +264,7 @@ class TestModifierEpreuve(ServiceTestCase):
         competition = self._competition()
         epreuve = self._epreuve(competition, bareme_id="ifaa-indoor")
         inscription = services.inscrire(self.conn, "FR-1", epreuve.id)
-        services.saisir_volee(self.conn, inscription.id, 1, 1, [5, 5, 4, 3, 2])
+        services.saisir_score_final(self.conn, inscription.id, 260)
 
         with self.assertRaises(ErreurMetier) as contexte:
             services.modifier_epreuve(
@@ -282,7 +282,7 @@ class TestModifierEpreuve(ServiceTestCase):
         competition = self._competition()
         epreuve = self._epreuve(competition, bareme_id="ifaa-indoor")
         inscription = services.inscrire(self.conn, "FR-1", epreuve.id)
-        services.saisir_volee(self.conn, inscription.id, 1, 1, [5, 5, 4, 3, 2])
+        services.saisir_score_final(self.conn, inscription.id, 260)
 
         modifiee = services.modifier_epreuve(
             self.conn,
@@ -346,66 +346,57 @@ class TestInscrire(ServiceTestCase):
         self.assertIn("déjà inscrit", str(contexte.exception))
 
 
-class TestSaisirVolee(ServiceTestCase):
+class TestSaisirScoreFinal(ServiceTestCase):
     def setUp(self):
         super().setUp()
         self.competition = self._competition()
-        self.epreuve = self._epreuve(self.competition)
+        self.epreuve = self._epreuve(self.competition)  # ifaa-indoor : score_max=300
         self.inscription = services.inscrire(self.conn, "FR-1", self.epreuve.id)
 
     def test_saisie_valide_est_validee_par_defaut(self):
-        score = services.saisir_volee(
-            self.conn, self.inscription.id, 1, 1, [5, 5, 4, 3, 2], nombre_x=1
-        )
+        score = services.saisir_score_final(self.conn, self.inscription.id, 260, nombre_x=10)
         self.assertEqual(score.statut, StatutScore.VALIDE)
-        self.assertEqual(score.total, 19)
+        self.assertEqual(score.total, 260)
+        self.assertEqual(score.nombre_x, 10)
 
-    def test_fleches_manquantes_completees_a_zero(self):
-        score = services.saisir_volee(self.conn, self.inscription.id, 1, 1, [5, 4])
-        self.assertEqual(len(score.valeurs), 5)
-        self.assertEqual(score.total, 9)
-
-    def test_trop_de_fleches_garde_les_plus_faibles(self):
-        score = services.saisir_volee(self.conn, self.inscription.id, 1, 1, [5, 5, 5, 5, 5, 1])
-        self.assertEqual(len(score.valeurs), 5)
-        self.assertEqual(score.total, 21)  # 1 + 5*4, le 5 en trop est écarté
-
-    def test_valeur_hors_zones_refusee(self):
+    def test_total_negatif_refuse(self):
         with self.assertRaises(ErreurMetier):
-            services.saisir_volee(self.conn, self.inscription.id, 1, 1, [5, 5, 4, 3, 9])
+            services.saisir_score_final(self.conn, self.inscription.id, -1)
 
-    def test_numero_serie_hors_bornes_refuse(self):
+    def test_total_superieur_au_score_max_refuse(self):
         with self.assertRaises(ErreurMetier) as contexte:
-            services.saisir_volee(self.conn, self.inscription.id, 3, 1, [5])
-        self.assertIn("série invalide", str(contexte.exception))
+            services.saisir_score_final(self.conn, self.inscription.id, 301)
+        self.assertIn("score maximum", str(contexte.exception))
 
-    def test_numero_volee_hors_bornes_refuse(self):
-        with self.assertRaises(ErreurMetier) as contexte:
-            services.saisir_volee(self.conn, self.inscription.id, 1, 99, [5])
-        self.assertIn("volée invalide", str(contexte.exception))
+    def test_total_egal_au_score_max_accepte(self):
+        score = services.saisir_score_final(self.conn, self.inscription.id, 300)
+        self.assertEqual(score.total, 300)
+
+    def test_nombre_x_negatif_refuse(self):
+        with self.assertRaises(ErreurMetier):
+            services.saisir_score_final(self.conn, self.inscription.id, 260, nombre_x=-1)
 
     def test_nombre_x_superieur_au_nombre_de_fleches_refuse(self):
         with self.assertRaises(ErreurMetier):
-            services.saisir_volee(self.conn, self.inscription.id, 1, 1, [5, 5, 5, 5, 5], nombre_x=6)
+            services.saisir_score_final(self.conn, self.inscription.id, 260, nombre_x=61)
 
     def test_x_refuse_si_le_bareme_nen_utilise_pas(self):
         # Flint Indoor : departage_par_x=False.
         epreuve_flint = self._epreuve(self.competition, bareme_id="flint-indoor", nom="Flint")
         inscription = services.inscrire(self.conn, "FR-1", epreuve_flint.id)
         with self.assertRaises(ErreurMetier) as contexte:
-            services.saisir_volee(self.conn, inscription.id, 1, 1, [5, 4, 3, 3], nombre_x=1)
+            services.saisir_score_final(self.conn, inscription.id, 200, nombre_x=1)
         self.assertIn("n'utilise pas de zone X", str(contexte.exception))
 
-    def test_correction_dune_volee_ne_cree_pas_de_doublon(self):
-        services.saisir_volee(self.conn, self.inscription.id, 1, 1, [5, 5, 4, 3, 2])
-        services.saisir_volee(self.conn, self.inscription.id, 1, 1, [5, 5, 5, 3, 2])
-        scores = db.list_scores_by_inscription(self.conn, self.inscription.id)
-        self.assertEqual(len(scores), 1)
-        self.assertEqual(scores[0].total, 20)
+    def test_correction_ecrase_le_score_precedent_sans_doublon(self):
+        services.saisir_score_final(self.conn, self.inscription.id, 200)
+        services.saisir_score_final(self.conn, self.inscription.id, 260)
+        score = db.get_score_by_inscription(self.conn, self.inscription.id)
+        self.assertEqual(score.total, 260)
 
     def test_inscription_inconnue_refusee(self):
         with self.assertRaises(ErreurMetier):
-            services.saisir_volee(self.conn, "inscription-fantome", 1, 1, [5])
+            services.saisir_score_final(self.conn, "inscription-fantome", 200)
 
 
 class TestClassementEpreuve(ServiceTestCase):
@@ -426,7 +417,7 @@ class TestClassementEpreuve(ServiceTestCase):
         competition = self._competition(categories_veteran_actives=True)
         epreuve = self._epreuve(competition)
         inscription = services.inscrire(self.conn, "FR-VET", epreuve.id)
-        services.saisir_volee(self.conn, inscription.id, 1, 1, [5, 5, 5, 5, 5])
+        services.saisir_score_final(self.conn, inscription.id, 260)
 
         classement = services.classement_epreuve(self.conn, epreuve.id)
         self.assertIn("VMBB-R", classement)
@@ -521,22 +512,6 @@ class TestParserDate(ServiceTestCase):
     def test_chaine_vide_leve_erreur_metier(self):
         with self.assertRaises(ErreurMetier):
             parser_date("", "Date")
-
-
-class TestParserValeursFleches(unittest.TestCase):
-    def test_valeurs_simples(self):
-        self.assertEqual(services.parser_valeurs_fleches(["5", "4", "3"]), [5, 4, 3])
-
-    def test_champs_vides_ignores_pas_convertis_en_zero(self):
-        self.assertEqual(services.parser_valeurs_fleches(["5", "", "  ", "3"]), [5, 3])
-
-    def test_valeur_non_numerique_leve_erreur_metier(self):
-        with self.assertRaises(ErreurMetier) as contexte:
-            services.parser_valeurs_fleches(["5", "abc"])
-        self.assertIn("abc", str(contexte.exception))
-
-    def test_toutes_vides_donne_liste_vide(self):
-        self.assertEqual(services.parser_valeurs_fleches(["", "", ""]), [])
 
 
 class TestListerEpreuvesToutes(ServiceTestCase):

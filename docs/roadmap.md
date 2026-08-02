@@ -1,6 +1,6 @@
 # Roadmap FletchScore
 
-**État actuel : v0.1 complète -- 222 tests, tous verts, confirmés par la
+**État actuel : v0.1 complète -- 209 tests, tous verts, confirmés par la
 CI sans aucun `skipped`** (y compris les 3 tests fpdf2, jamais exécutables
 dans l'environnement de dev utilisé ici). `models/`, `storage/`,
 `referentiels/`, `io/import_csv.py`, `scoring/`, `gui/` et `io/export/`
@@ -12,7 +12,10 @@ l'exécutable Windows/Linux. Modification de compétitions/épreuves
 existantes possible (backend + GUI). 6 barèmes préconfigurés : Flint
 Indoor, IFAA Indoor, Field, Hunter, International, Expert Field. Écrans
 Accueil (résumé rapide + raccourcis) et Aide (mode d'emploi + lien doc)
-ajoutés.
+ajoutés. **Saisie révisée au score final** (total + nombre de X par
+épreuve) plutôt que volée par volée -- voir "Extension -- Saisie du
+score final" plus bas ; lève au passage le blocage sur l'Animal Round et
+les rounds 3-D.
 
 Découpage par jalons livrables, dans l'ordre des dépendances réelles :
 impossible de tester le scoring sans modèle de données, impossible de
@@ -35,9 +38,11 @@ en compétition live avant d'aller plus loin).
       départage au X. Isolé et testé unitairement en premier, sans GUI ni
       DB réelle. 80 tests, tous verts.
 - [x] `gui/` -- créer une compétition/épreuve avec un barème, inscrire des
-      compétiteurs, saisir les scores volée par volée, classement live
+      compétiteurs, saisir le score final, classement live
+      (⚠️ décrit à l'origine comme "volée par volée" -- révisé depuis,
+      voir "Extension -- Saisie du score final" plus bas)
   - [x] `services.py` -- couche de cas d'usage appelée par la GUI
-        (créer compétition/épreuve, inscrire, saisir une volée,
+        (créer compétition/épreuve, inscrire, saisir un score,
         classement live), avec validations métier et messages destinés à
         l'organisateur
   - [x] `gui/config.py` -- préférences d'affichage (thème) persistées
@@ -191,6 +196,39 @@ accessible depuis l'appli.
       Contenu statique, rien à tester au-delà de la syntaxe.
 - Les deux : ⚠️ **rendu non vérifié** -- comme toute la GUI, pas
   d'affichage disponible ici.
+
+## Extension -- Saisie du score final, pas volée par volée
+
+Révision d'un choix initial, proposée par l'utilisateur : la saisie
+flèche par flèche/volée par volée s'est avérée trop lourde face à
+l'usage réel -- les scores sont déjà totalisés à la main sur la feuille
+de match pendant le tir, le rôle de FletchScore est d'enregistrer ce
+résultat et de classer, pas de rejouer le calcul flèche par flèche.
+
+- [x] `models/score.py` -- simplifié à `total` + `nombre_x` (une ligne
+      par Inscription, contrainte UNIQUE en base -- plus de
+      `numero_serie`/`numero_volee`/`valeurs`).
+- [x] `scoring/volee.py` -- **supprimé** (`normaliser_volee` et la
+      validation flèche par flèche n'ont plus de raison d'être).
+- [x] `services.saisir_score_final()` remplace `saisir_volee()` -- borne
+      le total à `bareme.score_max`, le nombre de X à
+      `bareme.total_flèches`, refuse un X non nul si le barème n'en
+      utilise pas.
+- [x] `gui/ecran_saisie.py` -- réécrit : deux champs (score total,
+      nombre de X) au lieu du formulaire volée par volée avec sélecteurs
+      série/volée et champs par flèche.
+- [x] Tous les tests concernés mis à jour (`test_storage.py`,
+      `test_models.py`, `test_scoring_classement.py`, `test_services.py`,
+      les 3 fichiers `test_export_*.py`, `scripts/demo_v0_1.py`).
+
+**Bénéfice inattendu** : ça lève le blocage sur l'Animal Round et les
+rounds 3-D (voir cahier des charges, section rounds) -- leur système de
+score complexe (kill/wound, arrêt au premier impact) ne pose plus
+problème puisque FletchScore n'a plus besoin de le modéliser en détail,
+juste de connaître le `score_max` possible pour borner la saisie.
+
+⚠️ **GUI non vérifiée** -- comme toujours, à confirmer par un vrai
+lancement.
 
 ## v0.5 -- Finition
 

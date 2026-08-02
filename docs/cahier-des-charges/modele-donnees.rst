@@ -9,11 +9,15 @@ Hiérarchie générale
 
 Une **Compétition** regroupe une ou plusieurs **Épreuves** (ex. Indoor et
 Flint le même week-end). Un **Compétiteur** peut être inscrit à plusieurs
-Épreuves d'une même Compétition. Chaque Épreuve se tire en une ou
-plusieurs **séries** (ex. 2 séries pour le Flint Indoor), chaque série
-comportant elle-même une ou plusieurs **volées** (le petit groupe de
-flèches tirées d'affilée avant d'aller les relever) -- voir
-:doc:`roadmap`, section "Points tranchés".
+Épreuves d'une même Compétition. Le règlement organise chaque Épreuve en
+une ou plusieurs **séries**, chaque série en plusieurs **volées** (le
+petit groupe de flèches tirées d'affilée avant d'aller les relever) --
+mais FletchScore n'enregistre que le **score final** de chaque
+compétiteur par épreuve, pas volée par volée : les scores sont déjà
+totalisés à la main sur la feuille de match pendant le tir, le rôle de
+FletchScore est d'enregistrer ce résultat et de classer, pas de rejouer
+le calcul flèche par flèche (voir :doc:`roadmap`, section "Points
+tranchés").
 
 .. mermaid::
 
@@ -22,9 +26,9 @@ flèches tirées d'affilée avant d'aller les relever) -- voir
        Comp --> Epr2[Épreuve]
        Epr1 --> Insc1[Inscription]
        Epr2 --> Insc2[Inscription]
-       Insc1 --> Sc1["Score\n(série + volée)"]
-       Insc2 --> Sc2["Score\n(série + volée)"]
-       Epr1 -.utilise.-> Bar["Barème\n(nb_series x volees_par_serie)"]
+       Insc1 --> Sc1["Score\n(total final + X)"]
+       Insc2 --> Sc2["Score\n(total final + X)"]
+       Epr1 -.utilise.-> Bar["Barème\n(score_max)"]
        Epr2 -.utilise.-> Bar
 
 Diagramme des entités
@@ -82,9 +86,7 @@ Diagramme des entités
        class Score {
            +uuid id
            +uuid inscription_id
-           +int numero_serie
-           +int numero_volee
-           +list valeurs
+           +int total
            +int nombre_x
            +enum statut
        }
@@ -192,11 +194,12 @@ Détail des champs
 .. dropdown:: Inscription / Score
 
    - **Inscription** : lien Compétiteur ↔ Épreuve.
-   - **Score** : une entrée par volée, identifiée par (série, volée) au
-     sein d'une Inscription -- le numéro de volée seul ne suffit pas,
-     puisqu'une même Épreuve peut comporter plusieurs séries (ex. Flint
-     Indoor : 2 séries de 7 volées, "volée 1" existe deux fois). Statut :
-     ``proposé`` / ``validé`` / ``rejeté``.
+   - **Score** : au plus une entrée par Inscription (contrainte UNIQUE en
+     base) -- le score final tel que totalisé sur la feuille de match,
+     pas une saisie volée par volée. Champs : ``total``, ``nombre_x``
+     (départage uniquement, jamais ajouté au total), statut
+     (``proposé`` / ``validé`` / ``rejeté``). Une correction remplace le
+     score existant plutôt que d'en ajouter un nouveau.
 
 .. dropdown:: Token / DemandeRattachement
 

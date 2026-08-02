@@ -1,12 +1,17 @@
-"""Entité Score -- une volée tirée, rattachée à une Inscription.
+"""Entité Score -- le score final d'une Inscription à son épreuve.
 
-L'application des cas particuliers du règlement (flèches en trop/
-manquantes, mauvaise cible...) est de la responsabilité de la couche
-scoring/ (voir fletchscore.scoring) -- ce modèle se contente de stocker
-fidèlement ce qui a été saisi/proposé.
+Simplifié à un total + un compteur de X (pas une saisie flèche par
+flèche ni volée par volée) : décision prise après un premier jalon de
+saisie détaillée, jugée trop lourde face à l'usage réel -- les scores
+sont déjà totalisés à la main sur la feuille de match pendant le tir, le
+rôle de FletchScore est d'enregistrer ce résultat et de classer, pas de
+rejouer le calcul flèche par flèche. Voir docs/architecture.md.
+
+Une seule ligne par Inscription (contrainte UNIQUE en base, voir
+storage/db.py) -- pas une liste de volées.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from fletchscore.models.enums import StatutScore
 
@@ -15,21 +20,10 @@ from fletchscore.models.enums import StatutScore
 class Score:
     id: str
     inscription_id: str
-    numero_serie: int
-    """Numéro de la série (1 à Bareme.nb_series) -- une volée seule ne
-    suffit pas à identifier une saisie sans ambiguïté : le Flint Indoor a
-    2 séries de 7 volées chacune, donc "volée 1" existe deux fois par
-    inscription sans ce champ."""
-    numero_volee: int
-    """Numéro de la volée au sein de sa série (1 à
-    Bareme.volees_par_serie)."""
-    valeurs: list[int] = field(default_factory=list)
-    """Valeur de chaque flèche de la volée, dans l'ordre de tir."""
+    total: int
+    """Score final tel que totalisé sur la feuille de match."""
     nombre_x: int = 0
-    """Nombre de flèches en zone X dans cette volée -- critère de
-    départage uniquement, jamais ajouté au total (voir Bareme.departage_par_x)."""
+    """Nombre de flèches en zone X sur l'ensemble de l'épreuve --
+    critère de départage uniquement, jamais ajouté au total (voir
+    Bareme.departage_par_x)."""
     statut: StatutScore = StatutScore.PROPOSE
-
-    @property
-    def total(self) -> int:
-        return sum(self.valeurs)

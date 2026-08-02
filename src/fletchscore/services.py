@@ -29,7 +29,7 @@ from fletchscore.models import (
     StatutCompetition,
     StatutScore,
 )
-from fletchscore.scoring import classement_par_categorie, normaliser_volee
+from fletchscore.scoring import classement_par_categorie
 from fletchscore.scoring.classement import LigneClassement
 from fletchscore.storage import db
 
@@ -60,30 +60,6 @@ def parser_date(texte: str, nom_champ: str) -> date:
         raise ErreurMetier(
             f"{nom_champ} invalide : « {texte} » -- format attendu AAAA-MM-JJ"
         ) from erreur
-
-
-def parser_valeurs_fleches(textes: list[str]) -> list[int]:
-    """Convertit les champs de saisie d'une volée (un texte par flèche)
-    en liste d'entiers.
-
-    Les champs vides sont ignorés plutôt que convertis en 0 : une volée
-    incomplète doit passer par ``normaliser_volee`` (via
-    ``saisir_volee``), qui applique la bonne règle du barème (compléter
-    à 0), plutôt que d'imposer 0 ici pour un champ simplement pas encore
-    rempli par l'organisateur.
-    """
-    valeurs: list[int] = []
-    for texte in textes:
-        texte = texte.strip()
-        if not texte:
-            continue
-        try:
-            valeurs.append(int(texte))
-        except ValueError as erreur:
-            raise ErreurMetier(
-                f"Valeur de flèche invalide : « {texte} » -- un nombre entier est attendu"
-            ) from erreur
-    return valeurs
 
 
 def libelle_epreuve(competition: Competition, epreuve: Epreuve) -> str:
@@ -440,22 +416,24 @@ def lister_competiteurs_non_inscrits(
 # ------------------------------------------------------------- Score --
 
 
-def saisir_volee(
+# ------------------------------------------------------------- Score --
+
+
+def saisir_score_final(
     conn: sqlite3.Connection,
     inscription_id: str,
-    numero_serie: int,
-    numero_volee: int,
-    valeurs: list[int],
+    total: int,
     *,
     nombre_x: int = 0,
     statut: StatutScore = StatutScore.VALIDE,
 ) -> Score:
-    """Enregistre (ou corrige) une volée saisie par l'organisateur.
+    """Enregistre (ou corrige) le score final d'une inscription, tel que
+    totalisé sur la feuille de match -- pas une saisie flèche par flèche
+    ni volée par volée (voir models/score.py pour le pourquoi).
 
-    Les valeurs passent par ``normaliser_volee`` : flèches en trop
-    ramenées aux N plus faibles, flèches manquantes complétées à 0. Une
-    valeur hors zones du barème est refusée (``ErreurMetier``) plutôt que
-    corrigée silencieusement -- c'est un signal de saisie erronée.
+    Le total est borné par ``bareme.score_max`` : au-delà, c'est un
+    signal de saisie erronée (faute de frappe), pas une valeur à corriger
+    silencieusement.
 
     Le statut par défaut est ``VALIDE`` : une saisie faite par
     l'organisateur lui-même n'a pas à repasser par une file de validation
@@ -463,39 +441,29 @@ def saisir_volee(
     """
     epreuve, bareme = _epreuve_et_bareme_de(conn, inscription_id)
 
-    if not 1 <= numero_serie <= bareme.nb_series:
+    if total < 0:
+        raise ErreurMetier("Le score total ne peut pas être négatif.")
+    if total > bareme.score_max:
         raise ErreurMetier(
-            f"Numéro de série invalide : {numero_serie} -- ce barème en "
-            f"compte {bareme.nb_series}."
-        )
-    if not 1 <= numero_volee <= bareme.volees_par_serie:
-        raise ErreurMetier(
-            f"Numéro de volée invalide : {numero_volee} -- ce barème compte "
-            f"{bareme.volees_par_serie} volées par série."
+            f"Score total invalide : {total} -- dépasse le score maximum "
+            f"possible pour ce barème ({bareme.score_max})."
         )
     if nombre_x < 0:
         raise ErreurMetier("Le nombre de X ne peut pas être négatif.")
-    if nombre_x > bareme.fleches_par_volee:
+    if nombre_x > bareme.total_flèches:
         raise ErreurMetier(
-            f"Le nombre de X ({nombre_x}) dépasse le nombre de flèches de la "
-            f"volée ({bareme.fleches_par_volee})."
+            f"Le nombre de X ({nombre_x}) dépasse le nombre de flèches de "
+            f"l'épreuve ({bareme.total_flèches})."
         )
     if nombre_x > 0 and not bareme.departage_par_x:
         raise ErreurMetier(
-            f"Le barème « {bareme.nom} » n'utilise pas de zone X -- laisse ce " "compteur à 0."
+            f"Le barème « {bareme.nom} » n'utilise pas de zone X -- laisse ce compteur à 0."
         )
-
-    try:
-        valeurs_normalisees = normaliser_volee(bareme, valeurs)
-    except ValueError as erreur:
-        raise ErreurMetier(str(erreur)) from erreur
 
     score = Score(
         id=_nouvel_id(),
         inscription_id=inscription_id,
-        numero_serie=numero_serie,
-        numero_volee=numero_volee,
-        valeurs=valeurs_normalisees,
+        total=total,
         nombre_x=nombre_x,
         statut=statut,
     )
@@ -551,13 +519,13 @@ def classement_epreuve(
     if competition is None:
         raise ErreurMetier("Compétition introuvable.")
 
-    entrees: list[tuple[Competiteur, list[Score]]] = []
+    entrees: list[tuple[Competiteur, Score | None]] = []
     for inscription in db.list_inscriptions_by_epreuve(conn, epreuve_id):
         competiteur = db.get_competiteur(conn, inscription.id_federal)
         if competiteur is None:
             continue
-        scores = db.list_scores_by_inscription(conn, inscription.id)
-        entrees.append((competiteur, scores))
+        score = db.get_score_by_inscription(conn, inscription.id)
+        entrees.append((competiteur, score))
 
     return classement_par_categorie(
         bareme,

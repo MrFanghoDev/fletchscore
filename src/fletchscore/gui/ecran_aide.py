@@ -29,9 +29,9 @@ _SECTIONS_AIDE = (
     (
         "Saisie des scores",
         "Choisis une épreuve, inscris les compétiteurs présents, puis "
-        "saisis chaque volée (série + numéro de volée + valeur de "
-        "chaque flèche). Une volée déjà saisie peut être corrigée en la "
-        "ressaisissant.",
+        "saisis le score final de chacun (total + nombre de X si le "
+        "barème l'utilise) tel que totalisé sur la feuille de match. Un "
+        "score déjà saisi peut être corrigé en le ressaisissant.",
     ),
     (
         "Classement",

@@ -85,32 +85,34 @@ def main() -> None:
     # 5) Inscriptions -------------------------------------------------------
     inscriptions = {}
     for id_federal in ("FR-1", "FR-2"):
-        insc = Inscription(id=f"insc-{id_federal}", id_federal=id_federal, epreuve_id="epreuve-demo")
+        insc = Inscription(
+            id=f"insc-{id_federal}", id_federal=id_federal, epreuve_id="epreuve-demo"
+        )
         db.insert_inscription(conn, insc)
         inscriptions[id_federal] = insc
     print("Inscriptions créées pour FR-1 et FR-2.\n")
 
-    # 6) Saisie de scores (quelques volées, IFAA Indoor : 5 flèches) -------
+    # 6) Saisie du score final (IFAA Indoor : score_max=300) --------------
     db.upsert_score(conn, Score(
-        id="s1", inscription_id="insc-FR-1", numero_serie=1, numero_volee=1,
-        valeurs=[5, 5, 5, 4, 3], nombre_x=2, statut=StatutScore.VALIDE,
+        id="s1", inscription_id="insc-FR-1",
+        total=270, nombre_x=12, statut=StatutScore.VALIDE,
     ))
     db.upsert_score(conn, Score(
-        id="s2", inscription_id="insc-FR-2", numero_serie=1, numero_volee=1,
-        valeurs=[5, 5, 4, 4, 3], nombre_x=1, statut=StatutScore.VALIDE,
+        id="s2", inscription_id="insc-FR-2",
+        total=255, nombre_x=8, statut=StatutScore.VALIDE,
     ))
-    print("Scores saisis pour la volée 1 de FR-1 et FR-2.\n")
+    print("Scores finaux saisis pour FR-1 et FR-2.\n")
 
     # 7) Classement ----------------------------------------------------------
     competiteur_fr1 = db.get_competiteur(conn, "FR-1")
     competiteur_fr2 = db.get_competiteur(conn, "FR-2")
-    scores_fr1 = db.list_scores_by_inscription(conn, "insc-FR-1")
-    scores_fr2 = db.list_scores_by_inscription(conn, "insc-FR-2")
+    score_fr1 = db.get_score_by_inscription(conn, "insc-FR-1")
+    score_fr2 = db.get_score_by_inscription(conn, "insc-FR-2")
 
     classement = classement_par_categorie(
         BAREME_IFAA_INDOOR,
         date_reference=date(2026, 3, 14),
-        entrees=[(competiteur_fr1, scores_fr1), (competiteur_fr2, scores_fr2)],
+        entrees=[(competiteur_fr1, score_fr1), (competiteur_fr2, score_fr2)],
     )
 
     print("=== Classement ===")

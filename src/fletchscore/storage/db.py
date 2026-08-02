@@ -101,13 +101,10 @@ CREATE TABLE IF NOT EXISTS inscriptions (
 
 CREATE TABLE IF NOT EXISTS scores (
     id TEXT PRIMARY KEY,
-    inscription_id TEXT NOT NULL REFERENCES inscriptions(id),
-    numero_serie INTEGER NOT NULL,
-    numero_volee INTEGER NOT NULL,
-    valeurs TEXT NOT NULL,
+    inscription_id TEXT NOT NULL UNIQUE REFERENCES inscriptions(id),
+    total INTEGER NOT NULL,
     nombre_x INTEGER NOT NULL DEFAULT 0,
-    statut TEXT NOT NULL DEFAULT 'propose',
-    UNIQUE (inscription_id, numero_serie, numero_volee)
+    statut TEXT NOT NULL DEFAULT 'propose'
 );
 
 CREATE TABLE IF NOT EXISTS tokens (
@@ -430,10 +427,11 @@ def update_epreuve(conn: sqlite3.Connection, epreuve: Epreuve) -> None:
 
 
 def epreuve_a_des_scores(conn: sqlite3.Connection, epreuve_id: str) -> bool:
-    """True si au moins une volée a été saisie pour une inscription de
+    """True si au moins un score a été saisi pour une inscription de
     cette épreuve -- utilisé pour interdire un changement de barème une
-    fois la saisie commencée (les numéros de série/volée d'un score ne
-    correspondraient plus forcément au nouveau barème)."""
+    fois la saisie commencée (le score déjà entré a été validé contre
+    le score_max de l'ancien barème, pas forcément cohérent avec un
+    nouveau)."""
     row = conn.execute(
         """SELECT 1 FROM scores
            WHERE inscription_id IN (
@@ -488,26 +486,17 @@ def list_inscriptions_by_epreuve(conn: sqlite3.Connection, epreuve_id: str) -> l
 
 
 def upsert_score(conn: sqlite3.Connection, score: Score) -> None:
-    """Insère ou remplace la volée (inscription_id, numero_serie,
-    numero_volee) -- l'organisateur corrige une volée déjà saisie plutôt
-    que d'en créer une nouvelle en doublon."""
+    """Insère ou remplace le score de cette inscription -- l'organisateur
+    corrige un score déjà saisi plutôt que d'en créer un nouveau en
+    doublon (au plus un Score par Inscription, contrainte UNIQUE)."""
     conn.execute(
-        """INSERT INTO scores (id, inscription_id, numero_serie, numero_volee,
-                                valeurs, nombre_x, statut)
-           VALUES (?, ?, ?, ?, ?, ?, ?)
-           ON CONFLICT (inscription_id, numero_serie, numero_volee) DO UPDATE SET
-               valeurs = excluded.valeurs,
+        """INSERT INTO scores (id, inscription_id, total, nombre_x, statut)
+           VALUES (?, ?, ?, ?, ?)
+           ON CONFLICT (inscription_id) DO UPDATE SET
+               total = excluded.total,
                nombre_x = excluded.nombre_x,
                statut = excluded.statut""",
-        (
-            score.id,
-            score.inscription_id,
-            score.numero_serie,
-            score.numero_volee,
-            json.dumps(score.valeurs),
-            score.nombre_x,
-            score.statut.value,
-        ),
+        (score.id, score.inscription_id, score.total, score.nombre_x, score.statut.value),
     )
     conn.commit()
 
@@ -516,20 +505,17 @@ def _row_to_score(row: sqlite3.Row) -> Score:
     return Score(
         id=row["id"],
         inscription_id=row["inscription_id"],
-        numero_serie=row["numero_serie"],
-        numero_volee=row["numero_volee"],
-        valeurs=json.loads(row["valeurs"]),
+        total=row["total"],
         nombre_x=row["nombre_x"],
         statut=StatutScore(row["statut"]),
     )
 
 
-def list_scores_by_inscription(conn: sqlite3.Connection, inscription_id: str) -> list[Score]:
-    rows = conn.execute(
-        "SELECT * FROM scores WHERE inscription_id = ? ORDER BY numero_serie, numero_volee",
-        (inscription_id,),
-    ).fetchall()
-    return [_row_to_score(r) for r in rows]
+def get_score_by_inscription(conn: sqlite3.Connection, inscription_id: str) -> Score | None:
+    row = conn.execute(
+        "SELECT * FROM scores WHERE inscription_id = ?", (inscription_id,)
+    ).fetchone()
+    return _row_to_score(row) if row else None
 
 
 # --------------------------------------------------------------- Token --
