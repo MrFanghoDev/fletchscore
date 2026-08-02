@@ -109,3 +109,80 @@ def _attribuer_rangs(lignes: list[LigneClassement], *, depart_par_x: bool) -> No
             rang_courant = position
             precedent = cle
         ligne.rang = rang_courant
+
+
+@dataclass(slots=True)
+class LigneClassementGlobal:
+    competiteur: Competiteur
+    code_categorie: str
+    totaux_par_epreuve: dict[str, int]
+    """Total de chaque épreuve, indexé par ``epreuve_id`` -- 0 si le
+    compétiteur n'y était pas inscrit ou n'y a pas de score validé."""
+    total_global: int
+    nombre_x_global: int
+    rang: int = 0
+    """Rang au sein de sa catégorie, sur le total global uniquement --
+    voir :func:`classement_global`."""
+
+
+def classement_global(
+    date_reference: date,
+    epreuve_ids: list[str],
+    entrees: list[tuple[Competiteur, dict[str, Score | None]]],
+    *,
+    categories_veteran_actives: bool = False,
+) -> dict[str, list[LigneClassementGlobal]]:
+    """Classement cumulé sur plusieurs épreuves d'une même compétition --
+    un total par épreuve, plus un total global qui sert seul de critère
+    de tri.
+
+    Volontairement pas de départage au X ici : les épreuves d'une même
+    compétition peuvent utiliser des barèmes différents (certains avec
+    zone X, d'autres non), un critère uniforme n'aurait pas de sens
+    garanti -- contrairement à :func:`classement_par_categorie`, qui
+    connaît le barème d'une seule épreuve et peut s'y fier.
+
+    ``entrees`` associe chaque compétiteur à un dict {epreuve_id: Score
+    ou None} -- une entrée manquante pour une épreuve compte pour 0,
+    pas une erreur (un compétiteur peut ne pas être inscrit à toutes les
+    épreuves de la compétition).
+    """
+    par_categorie: dict[str, list[LigneClassementGlobal]] = {}
+
+    for competiteur, scores_par_epreuve in entrees:
+        totaux: dict[str, int] = {}
+        total_global = 0
+        nombre_x_global = 0
+        for epreuve_id in epreuve_ids:
+            total, nombre_x = total_scores(scores_par_epreuve.get(epreuve_id))
+            totaux[epreuve_id] = total
+            total_global += total
+            nombre_x_global += nombre_x
+
+        code_categorie = competiteur.code_categorie(
+            date_reference, categories_veteran_actives=categories_veteran_actives
+        )
+        ligne = LigneClassementGlobal(
+            competiteur=competiteur,
+            code_categorie=code_categorie,
+            totaux_par_epreuve=totaux,
+            total_global=total_global,
+            nombre_x_global=nombre_x_global,
+        )
+        par_categorie.setdefault(code_categorie, []).append(ligne)
+
+    for lignes in par_categorie.values():
+        lignes.sort(key=lambda ligne: -ligne.total_global)
+        _attribuer_rangs_global(lignes)
+
+    return par_categorie
+
+
+def _attribuer_rangs_global(lignes: list[LigneClassementGlobal]) -> None:
+    rang_courant = 0
+    precedent: int | None = None
+    for position, ligne in enumerate(lignes, start=1):
+        if ligne.total_global != precedent:
+            rang_courant = position
+            precedent = ligne.total_global
+        ligne.rang = rang_courant

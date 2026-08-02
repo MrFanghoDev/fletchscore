@@ -1,6 +1,6 @@
 # Roadmap FletchScore
 
-**État actuel : v0.1 complète -- 230 tests, tous verts, confirmés par la
+**État actuel : v0.1 complète -- 253 tests, tous verts, confirmés par la
 CI sans aucun `skipped`** (y compris les 3 tests fpdf2, jamais exécutables
 dans l'environnement de dev utilisé ici). `models/`, `storage/`,
 `referentiels/`, `io/import_csv.py` (import + export CSV clubs/
@@ -244,6 +244,38 @@ juste de connaître le `score_max` possible pour borner la saisie.
 
 ⚠️ **GUI non vérifiée** -- comme toujours, à confirmer par un vrai
 lancement.
+
+## Extension -- Classement global sur plusieurs épreuves
+
+Demande de l'utilisateur : exporter la totalité d'un concours (toutes
+ses épreuves), avec un classement global -- une colonne par épreuve,
+une colonne total.
+
+- [x] `scoring.classement_global()` -- cumule les totaux d'un
+      compétiteur sur toutes les épreuves d'une compétition, trie sur le
+      total global uniquement (pas de départage au X inventé entre
+      épreuves à barèmes potentiellement différents). 8 tests.
+- [x] `services.classement_global_competition()` -- rassemble les
+      compétiteurs inscrits à au moins une épreuve, complète à 0 les
+      épreuves où ils ne sont pas inscrits/n'ont pas de score validé.
+      5 tests.
+- [x] `io/export/csv.py` et `io/export/excel.py` --
+      `exporter_classement_global_csv()`/`_excel()`, colonnes par
+      épreuve identifiées par nom + date (évite une collision si deux
+      épreuves portent le même nom). 9 tests au total. **Vérifié
+      réellement de bout en bout** (pas seulement les tests unitaires) :
+      compétition à 2 épreuves, un compétiteur inscrit aux deux, un
+      inscrit à une seule -- export CSV et Excel produits et relus.
+- [x] `io/export/pdf.py` -- `exporter_classement_global_pdf()`, page en
+      **paysage** (pas portrait comme l'export par épreuve) : le nombre
+      de colonnes dépend du nombre d'épreuves, ça laisse plus de place.
+      Largeur de colonne par épreuve avec un plancher à 20mm -- au-delà
+      d'une poignée d'épreuves, ça se resserre plutôt que de planter
+      (testé explicitement avec 10 épreuves). 4 tests, en attente comme
+      le reste des tests PDF (`fpdf2` non installable ici)
+- [ ] Bouton GUI pour le classement global (CSV, Excel et PDF) -- pas
+      encore fait, seul le classement par épreuve est branché dans
+      `ecran_classement.py`
 
 ## v0.5 -- Finition
 

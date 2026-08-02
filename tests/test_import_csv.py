@@ -228,9 +228,7 @@ class TestFormaterRapport(unittest.TestCase):
 class TestExporterClubsCsv(unittest.TestCase):
     def test_entete_correcte(self):
         destination = io.StringIO()
-        exporter_clubs_csv(
-            [Club("77123", "Archers Libres de FLP", "Fontaine-le-Port")], destination
-        )
+        exporter_clubs_csv([Club("77123", "Archers Libres de FLP", "Fontaine-le-Port")], destination)
         lignes = destination.getvalue().splitlines()
         self.assertEqual(lignes[0], "code_club,nom,ville")
 

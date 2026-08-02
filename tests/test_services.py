@@ -431,6 +431,68 @@ class TestClassementEpreuve(ServiceTestCase):
             services.classement_epreuve(self.conn, "epreuve-fantome")
 
 
+class TestClassementGlobalCompetition(ServiceTestCase):
+    def test_somme_sur_deux_epreuves(self):
+        competition = self._competition()
+        epreuve1 = self._epreuve(competition, nom="Épreuve 1", date_epreuve=date(2026, 3, 14))
+        epreuve2 = self._epreuve(competition, nom="Épreuve 2", date_epreuve=date(2026, 3, 15))
+        inscription1 = services.inscrire(self.conn, "FR-1", epreuve1.id)
+        inscription2 = services.inscrire(self.conn, "FR-1", epreuve2.id)
+        services.saisir_score_final(self.conn, inscription1.id, 260)
+        services.saisir_score_final(self.conn, inscription2.id, 270)
+
+        epreuves, classement = services.classement_global_competition(self.conn, competition.id)
+
+        self.assertEqual([e.id for e in epreuves], [epreuve1.id, epreuve2.id])
+        ligne = classement["AFBB-R"][0]
+        self.assertEqual(ligne.total_global, 530)
+        self.assertEqual(ligne.totaux_par_epreuve, {epreuve1.id: 260, epreuve2.id: 270})
+
+    def test_inscrit_a_une_seule_epreuve_compte_zero_pour_lautre(self):
+        competition = self._competition()
+        epreuve1 = self._epreuve(competition, nom="Épreuve 1", date_epreuve=date(2026, 3, 14))
+        epreuve2 = self._epreuve(competition, nom="Épreuve 2", date_epreuve=date(2026, 3, 15))
+        inscription1 = services.inscrire(self.conn, "FR-1", epreuve1.id)
+        services.saisir_score_final(self.conn, inscription1.id, 260)
+
+        _, classement = services.classement_global_competition(self.conn, competition.id)
+
+        ligne = classement["AFBB-R"][0]
+        self.assertEqual(ligne.total_global, 260)
+        self.assertEqual(ligne.totaux_par_epreuve[epreuve2.id], 0)
+
+    def test_competition_sans_epreuve_donne_classement_vide(self):
+        competition = self._competition()
+        epreuves, classement = services.classement_global_competition(self.conn, competition.id)
+        self.assertEqual(epreuves, [])
+        self.assertEqual(classement, {})
+
+    def test_competition_inconnue_refusee(self):
+        with self.assertRaises(ErreurMetier):
+            services.classement_global_competition(self.conn, "competition-fantome")
+
+    def test_utilise_le_reglage_veteran_de_la_competition(self):
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-VET",
+                nom="Ancien",
+                prenom="Jean",
+                code_club="77123",
+                sexe=Sexe.M,
+                date_naissance=date(1965, 1, 1),
+                code_style="BB-R",
+            ),
+        )
+        competition = self._competition(categories_veteran_actives=True)
+        epreuve = self._epreuve(competition)
+        inscription = services.inscrire(self.conn, "FR-VET", epreuve.id)
+        services.saisir_score_final(self.conn, inscription.id, 260)
+
+        _, classement = services.classement_global_competition(self.conn, competition.id)
+        self.assertIn("VMBB-R", classement)
+
+
 class TestCreerClub(ServiceTestCase):
     def test_creation_valide(self):
         club = services.creer_club(self.conn, "75001", "Club de Paris", "Paris")

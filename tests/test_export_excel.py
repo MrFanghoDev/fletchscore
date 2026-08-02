@@ -6,9 +6,9 @@ from pathlib import Path
 
 from openpyxl import load_workbook
 
-from fletchscore.io.export.excel import exporter_classement_excel
-from fletchscore.models import BAREME_FLINT_INDOOR, Competiteur, Score, Sexe, StatutScore
-from fletchscore.scoring import classement_par_categorie
+from fletchscore.io.export.excel import exporter_classement_excel, exporter_classement_global_excel
+from fletchscore.models import BAREME_FLINT_INDOOR, Competiteur, Epreuve, Score, Sexe, StatutScore
+from fletchscore.scoring import classement_global, classement_par_categorie
 
 
 def _competiteur(id_federal: str, sexe: Sexe) -> Competiteur:
@@ -109,6 +109,58 @@ class TestExporterClassementExcel(unittest.TestCase):
         destination.seek(0)
         classeur = load_workbook(destination)
         self.assertLessEqual(len(classeur.active.title), 31)
+
+
+class TestExporterClassementGlobalExcel(unittest.TestCase):
+    def setUp(self):
+        self.epreuve1 = Epreuve(
+            id="epr-1", competition_id="comp-1", nom="Indoor", date=date(2026, 3, 14),
+            bareme_id="ifaa-indoor",
+        )
+        self.epreuve2 = Epreuve(
+            id="epr-2", competition_id="comp-1", nom="Flint", date=date(2026, 3, 15),
+            bareme_id="flint-indoor",
+        )
+        competiteur = _competiteur("FR-1", Sexe.M)
+        entrees = [(competiteur, {"epr-1": _score("i1", 260), "epr-2": _score("i2", 220)})]
+        self.classement = classement_global(date(2026, 3, 14), ["epr-1", "epr-2"], entrees)
+
+    def _charger(self, destination) -> list[list]:
+        classeur = load_workbook(destination)
+        feuille = classeur.active
+        return [[cellule.value for cellule in ligne] for ligne in feuille.iter_rows()]
+
+    def test_entete_contient_une_colonne_par_epreuve(self):
+        destination = io.BytesIO()
+        exporter_classement_global_excel(
+            [self.epreuve1, self.epreuve2], self.classement, destination
+        )
+        destination.seek(0)
+        lignes = self._charger(destination)
+        # ligne 0 = titre catégorie, ligne 1 = en-têtes de colonnes
+        self.assertIn("Indoor", lignes[1])
+        self.assertIn("Flint", lignes[1])
+        self.assertIn("Total", lignes[1])
+
+    def test_valeurs_dune_ligne(self):
+        destination = io.BytesIO()
+        exporter_classement_global_excel(
+            [self.epreuve1, self.epreuve2], self.classement, destination
+        )
+        destination.seek(0)
+        lignes = self._charger(destination)
+        ligne_fr1 = next(ligne for ligne in lignes if ligne[1] == "FR-1")
+        # rang, id_federal, nom, prenom, epr1, epr2, total, x
+        self.assertEqual(ligne_fr1[4], 260)
+        self.assertEqual(ligne_fr1[5], 220)
+        self.assertEqual(ligne_fr1[6], 480)
+
+    def test_classement_vide_produit_quand_meme_un_fichier(self):
+        destination = io.BytesIO()
+        exporter_classement_global_excel([self.epreuve1, self.epreuve2], {}, destination)
+        destination.seek(0)
+        lignes = self._charger(destination)
+        self.assertEqual(lignes[0][0], "Aucun compétiteur classé.")
 
 
 if __name__ == "__main__":

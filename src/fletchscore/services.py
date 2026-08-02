@@ -29,8 +29,8 @@ from fletchscore.models import (
     StatutCompetition,
     StatutScore,
 )
-from fletchscore.scoring import classement_par_categorie
-from fletchscore.scoring.classement import LigneClassement
+from fletchscore.scoring import classement_global, classement_par_categorie
+from fletchscore.scoring.classement import LigneClassement, LigneClassementGlobal
 from fletchscore.storage import db
 
 
@@ -593,6 +593,54 @@ def classement_epreuve(
         entrees,
         categories_veteran_actives=competition.categories_veteran_actives,
     )
+
+
+def classement_global_competition(
+    conn: sqlite3.Connection, competition_id: str
+) -> tuple[list[Epreuve], dict[str, list[LigneClassementGlobal]]]:
+    """Classement cumulé sur toutes les épreuves d'une compétition -- un
+    total par épreuve, plus un total global qui sert de critère de tri
+    (voir scoring.classement_global pour le pourquoi de l'absence de
+    départage au X ici).
+
+    Retourne aussi la liste des épreuves (dans l'ordre où
+    ``classement_global`` les a utilisées) -- nécessaire à l'appelant
+    pour savoir quelle colonne correspond à quelle épreuve à l'export.
+    """
+    competition = db.get_competition(conn, competition_id)
+    if competition is None:
+        raise ErreurMetier("Compétition introuvable.")
+
+    epreuves = db.list_epreuves_by_competition(conn, competition_id)
+    if not epreuves:
+        return [], {}
+
+    competiteurs_par_id: dict[str, Competiteur] = {}
+    scores_par_competiteur: dict[str, dict[str, Score | None]] = {}
+
+    for epreuve in epreuves:
+        for inscription in db.list_inscriptions_by_epreuve(conn, epreuve.id):
+            competiteur = db.get_competiteur(conn, inscription.id_federal)
+            if competiteur is None:
+                continue
+            competiteurs_par_id.setdefault(competiteur.id_federal, competiteur)
+            scores_par_competiteur.setdefault(competiteur.id_federal, {})
+            scores_par_competiteur[competiteur.id_federal][epreuve.id] = (
+                db.get_score_by_inscription(conn, inscription.id)
+            )
+
+    entrees = [
+        (competiteurs_par_id[id_federal], scores_par_competiteur[id_federal])
+        for id_federal in competiteurs_par_id
+    ]
+
+    classement = classement_global(
+        competition.date_debut,
+        [epreuve.id for epreuve in epreuves],
+        entrees,
+        categories_veteran_actives=competition.categories_veteran_actives,
+    )
+    return epreuves, classement
 
 
 # ------------------------------------------------------------- Accueil --

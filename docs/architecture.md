@@ -454,3 +454,33 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   corrigé avant livraison** : le label d'erreur d'export et le cadre des
   3 boutons visaient tous les deux la ligne 1 de l'écran -- déplacé le
   label à l'intérieur du cadre plutôt qu'à côté.
+
+- **Classement global sur toute une compétition (plusieurs épreuves).**
+  Demande de l'utilisateur : une colonne par épreuve, une colonne total,
+  classement cumulé. `scoring.classement_global()` reste volontairement
+  sans départage au X -- les épreuves d'une compétition peuvent utiliser
+  des barèmes différents (certains avec zone X, d'autres non), un
+  critère uniforme n'aurait pas de sens garanti, contrairement au
+  classement par épreuve qui connaît un seul barème. Un compétiteur
+  inscrit à une partie seulement des épreuves compte 0 pour les
+  absentes plutôt que d'être exclu ou de lever une erreur -- vérifié
+  avec un vrai scénario (compétiteur inscrit à 1 épreuve sur 2) en plus
+  des tests unitaires. `services.classement_global_competition()`
+  retourne aussi la liste des épreuves utilisées, nécessaire à l'export
+  pour savoir quelle colonne correspond à quelle épreuve (identifiée par
+  nom + date pour éviter une collision si deux épreuves portent le même
+  nom). Export PDF pas encore fait à ce stade -- voir l'entrée suivante.
+
+- **`exporter_classement_global_pdf()` : page en paysage, largeur de
+  colonne avec plancher.** Le nombre de colonnes dépend du nombre
+  d'épreuves de la compétition -- contrairement au classement par
+  épreuve (toujours 4 colonnes fixes), impossible de fixer des largeurs
+  à l'avance. Paysage plutôt que portrait pour donner plus de place ;
+  largeur par épreuve calculée en divisant l'espace restant, avec un
+  plancher de 20mm pour qu'une compétition à beaucoup d'épreuves se
+  resserre plutôt que de planter (testé explicitement avec 10 épreuves,
+  au-delà de ce que la page peut proprement afficher -- pas de gestion
+  de retour à la ligne ni de rotation de texte : au-delà d'une poignée
+  d'épreuves, l'export CSV/Excel reste plus lisible que le PDF). Bouton
+  GUI toujours pas fait pour le classement global (CSV, Excel, PDF) --
+  seul le classement par épreuve est branché dans `ecran_classement.py`.
