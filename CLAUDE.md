@@ -170,6 +170,24 @@ dans cet ordre, avant de livrer quoi que ce soit :
   ".[dev]"` manquant dans un job de test peut donner une fausse
   impression de couverture verte. Bug remonté par l'utilisateur (échec
   de `test_export_excel.py` en CI), pas trouvé par moi.
+- **"Créer une Release sur un tag existant" ne redéclenche pas `push`,
+  seulement `release`.** Un workflow qui n'écoute que `push`/tags pour
+  déployer/archiver rate silencieusement toute Release publiée après
+  coup sur un tag déjà poussé -- cas très plausible (`git push --tags`
+  puis, séparément, créer la Release via l'UI GitHub). `docs.yml`
+  n'écoutait pas `release` du tout ; `build.yml::build-executables`
+  l'excluait même explicitement, en supposant à tort que Release et
+  push de tag arrivent toujours dans la même exécution CI. Résultat :
+  `publish-pypi` (qui écoutait déjà `release`) fonctionnait, donnant une
+  fausse impression que "tout" avait tourné, alors que doc et
+  exécutables manquaient entièrement -- sans erreur visible dans les
+  logs (jobs "skip", pas "fail"). Un job qui dépend d'un autre via
+  `needs:` est lui-même silencieusement skip si ce dernier l'est --
+  vérifier les conditions `if:` de toute la chaîne, pas juste du
+  premier job, quand un workflow censé tourner sur Release ne tourne
+  pas. Bug remonté par l'utilisateur après sa première vraie Release,
+  pas détectable ici (impossible de déclencher une Release GitHub pour
+  tester).
 
 *Voir aussi le `CLAUDE.md` de FletchTime pour les leçons équivalentes sur
 le projet frère (cibles SVG génériques, badge shields.io non vérifié,

@@ -38,10 +38,12 @@ class _FenetreChemin(ctk.CTkToplevel):
 
         cadre_boutons = ctk.CTkFrame(self, fg_color="transparent")
         cadre_boutons.pack(pady=10)
-        ctk.CTkButton(cadre_boutons, text="OK", command=self._valider).pack(side="left", padx=5)
-        ctk.CTkButton(cadre_boutons, text="Annuler", fg_color="gray40", command=self._annuler).pack(
+        ctk.CTkButton(cadre_boutons, text="OK", command=self._valider).pack(
             side="left", padx=5
         )
+        ctk.CTkButton(
+            cadre_boutons, text="Annuler", fg_color="gray40", command=self._annuler
+        ).pack(side="left", padx=5)
 
         self.protocol("WM_DELETE_WINDOW", self._annuler)
         self.champ.bind("<Return>", lambda _evenement: self._valider())
@@ -62,7 +64,9 @@ class _FenetreChemin(ctk.CTkToplevel):
         self.destroy()
 
 
-def demander_chemin(parent: ctk.CTkBaseClass, titre: str, valeur_initiale: str = "") -> str | None:
+def demander_chemin(
+    parent: ctk.CTkBaseClass, titre: str, valeur_initiale: str = ""
+) -> str | None:
     """Demande un chemin de fichier à l'utilisateur, saisi à la main.
 
     Retourne ``None`` si annulé -- même contrat que

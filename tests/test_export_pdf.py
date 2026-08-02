@@ -81,17 +81,11 @@ class TestExporterClassementPdf(unittest.TestCase):
 class TestExporterClassementGlobalPdf(unittest.TestCase):
     def setUp(self):
         self.epreuve1 = Epreuve(
-            id="epr-1",
-            competition_id="comp-1",
-            nom="Indoor",
-            date=date(2026, 3, 14),
+            id="epr-1", competition_id="comp-1", nom="Indoor", date=date(2026, 3, 14),
             bareme_id="ifaa-indoor",
         )
         self.epreuve2 = Epreuve(
-            id="epr-2",
-            competition_id="comp-1",
-            nom="Flint",
-            date=date(2026, 3, 15),
+            id="epr-2", competition_id="comp-1", nom="Flint", date=date(2026, 3, 15),
             bareme_id="flint-indoor",
         )
         competiteur = _competiteur("FR-1", Sexe.M)
@@ -118,11 +112,8 @@ class TestExporterClassementGlobalPdf(unittest.TestCase):
         # dépasse la largeur de la page.
         epreuves = [
             Epreuve(
-                id=f"epr-{i}",
-                competition_id="comp-1",
-                nom=f"Épreuve {i}",
-                date=date(2026, 3, 14),
-                bareme_id="flint-indoor",
+                id=f"epr-{i}", competition_id="comp-1", nom=f"Épreuve {i}",
+                date=date(2026, 3, 14), bareme_id="flint-indoor",
             )
             for i in range(10)
         ]

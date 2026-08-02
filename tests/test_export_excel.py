@@ -114,17 +114,11 @@ class TestExporterClassementExcel(unittest.TestCase):
 class TestExporterClassementGlobalExcel(unittest.TestCase):
     def setUp(self):
         self.epreuve1 = Epreuve(
-            id="epr-1",
-            competition_id="comp-1",
-            nom="Indoor",
-            date=date(2026, 3, 14),
+            id="epr-1", competition_id="comp-1", nom="Indoor", date=date(2026, 3, 14),
             bareme_id="ifaa-indoor",
         )
         self.epreuve2 = Epreuve(
-            id="epr-2",
-            competition_id="comp-1",
-            nom="Flint",
-            date=date(2026, 3, 15),
+            id="epr-2", competition_id="comp-1", nom="Flint", date=date(2026, 3, 15),
             bareme_id="flint-indoor",
         )
         competiteur = _competiteur("FR-1", Sexe.M)

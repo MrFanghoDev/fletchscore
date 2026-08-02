@@ -308,4 +308,17 @@ tranchés" dans le cahier des charges.
       premier impact, nombre de flèches variable par cible). Demande un
       moteur de score distinct de `scoring/volee.py`, pas seulement un
       nouveau `Bareme` -- gros chantier séparé, pas commencé.
+- [ ] **Templates PDF personnalisables (logo de club, en-tête)** --
+      demande de l'utilisateur, notée pour plus tard ("à un moment
+      donné"), pas commencée. La place existe déjà : `web/assets/club/`
+      est gitignoré et réservé depuis le début à ce genre de données
+      propres à un club (voir `.gitignore`), jamais pensé jusqu'ici pour
+      les exports PDF spécifiquement. Ce que ça demanderait le moment
+      venu : charger une image depuis ce dossier et l'insérer via
+      `pdf.image()` (fpdf2 le permet nativement) dans l'en-tête
+      d'`io/export/pdf.py` ; si "template" veut dire plus qu'un logo
+      (mise en page personnalisée, plusieurs modèles au choix), une vraie
+      conception reste à faire avec l'utilisateur avant de coder --
+      terme volontairement resté vague pour l'instant, à préciser quand
+      le besoin deviendra concret.
 

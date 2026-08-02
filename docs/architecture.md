@@ -499,3 +499,31 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   vide), donc la filtrer avant même l'affichage est le bon comportement,
   pas un raccourci. Déduplication vérifiée réellement (2 épreuves d'une
   même compétition -> 1 seule entrée dans le sélecteur).
+
+- **`docs.yml`/`build.yml` : la première vraie Release a révélé un bug
+  de déclencheur.** Publier une Release sur un tag déjà existant (créé
+  via l'UI GitHub après un `git push --tags` séparé) ne déclenche PAS
+  de nouvel événement `push` -- seulement `release`. Deux conséquences
+  distinctes, corrigées ensemble :
+  - `docs.yml` n'écoutait pas du tout l'événement `release` (seulement
+    `push`/`workflow_dispatch`) -- doc jamais construite ni déployée,
+    jamais d'archive jointe à la Release. Ajouté `release: types:
+    [published]` aux déclencheurs, et rendu explicite
+    `github.event_name == 'release'` sur les conditions qui ne
+    comptaient que sur `startsWith(github.ref, 'refs/tags/v')` -- ce
+    dernier *devrait* être vrai aussi pour un événement `release` (son
+    `github.ref` pointe vers le tag), mais explicite plutôt que de
+    compter sur ce comportement sans pouvoir le vérifier ici.
+  - `build.yml::build-executables` excluait explicitement l'événement
+    `release` (`github.event_name != 'release'`) -- supposition fausse
+    que la Release arrive toujours dans la même exécution CI qu'un push
+    de tag. Résultat : aucun exécutable construit sur Release, et
+    `archive-on-release` (qui en dépend via `needs:`) restait skip
+    aussi, silencieusement -- sans erreur visible, donc sans alerte.
+  - Ce qui explique que `build-package`/`publish-pypi` aient bien
+    fonctionné sur cette première Release : ce sont les deux seuls jobs
+    qui écoutaient déjà `release` correctement, d'où l'impression
+    trompeuse que "tout" avait tourné alors que 2 workflows sur 2
+    avaient un trou. Bug trouvé uniquement parce que l'utilisateur a
+    remarqué l'absence concrète des archives, pas détectable depuis ici
+    (impossible de déclencher une vraie Release GitHub pour tester).

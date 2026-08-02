@@ -90,7 +90,9 @@ class EcranClassement(ctk.CTkFrame):
         ctk.CTkButton(cadre, text="Exporter Excel", command=self._exporter_excel).grid(
             row=0, column=2, padx=(0, 10)
         )
-        ctk.CTkButton(cadre, text="Exporter PDF", command=self._exporter_pdf).grid(row=0, column=3)
+        ctk.CTkButton(cadre, text="Exporter PDF", command=self._exporter_pdf).grid(
+            row=0, column=3
+        )
 
         self.erreur_export = ctk.CTkLabel(cadre, text="", text_color="red", wraplength=500)
         self.erreur_export.grid(row=1, column=0, columnspan=4, sticky="w", pady=(5, 0))
@@ -184,7 +186,9 @@ class EcranClassement(ctk.CTkFrame):
         ).grid(row=0, column=0, columnspan=5, sticky="w", padx=10, pady=(10, 5))
 
         ctk.CTkLabel(cadre, text="Compétition :").grid(row=1, column=0, padx=(10, 5))
-        self.menu_competition_globale = ctk.CTkOptionMenu(cadre, values=["(aucune compétition)"])
+        self.menu_competition_globale = ctk.CTkOptionMenu(
+            cadre, values=["(aucune compétition)"]
+        )
         self.menu_competition_globale.grid(row=1, column=1, sticky="ew", padx=(0, 10))
 
         ctk.CTkButton(cadre, text="Exporter CSV", command=self._exporter_global_csv).grid(
@@ -197,7 +201,9 @@ class EcranClassement(ctk.CTkFrame):
             row=1, column=4, padx=(0, 10)
         )
 
-        self.erreur_export_global = ctk.CTkLabel(cadre, text="", text_color="red", wraplength=500)
+        self.erreur_export_global = ctk.CTkLabel(
+            cadre, text="", text_color="red", wraplength=500
+        )
         self.erreur_export_global.grid(
             row=2, column=0, columnspan=5, sticky="w", padx=10, pady=(5, 10)
         )
@@ -236,7 +242,9 @@ class EcranClassement(ctk.CTkFrame):
             return None, None, None
 
         try:
-            epreuves, classement = services.classement_global_competition(self.conn, competition.id)
+            epreuves, classement = services.classement_global_competition(
+                self.conn, competition.id
+            )
         except ErreurMetier as erreur:
             self._afficher_erreur_export_global(str(erreur))
             return None, None, None
