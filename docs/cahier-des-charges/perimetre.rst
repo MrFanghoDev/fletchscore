@@ -17,7 +17,9 @@ Périmètre fonctionnel
         personnalisés).
       - Inscription des compétiteurs à une ou plusieurs épreuves d'une
         même compétition.
-      - Saisie des scores par compétiteur, volée par volée.
+      - Saisie du score final par compétiteur et par épreuve (pas une
+        saisie volée par volée -- révisé après un premier jalon, voir
+        :doc:`roadmap`).
       - Calcul de classement par catégorie (sexe + âge + style) avec
         départage au X.
       - Export des résultats (Excel, PDF, CSV) et génération des podiums.

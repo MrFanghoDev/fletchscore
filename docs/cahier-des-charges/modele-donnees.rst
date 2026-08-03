@@ -70,6 +70,11 @@ Diagramme des entités
            +date date
            +uuid bareme_id
        }
+       class EpreuveTemplate {
+           +uuid id
+           +string nom
+           +uuid bareme_id
+       }
        class Bareme {
            +uuid id
            +int nb_series
@@ -190,6 +195,15 @@ Détail des champs
    - **Épreuve** : nom, date, type de round (référence un Barème).
    - **Barème** : nombre de séries, volées par série, flèches par volée,
      valeurs de zones ordonnées, indicateur de zone de départage (X).
+
+.. dropdown:: EpreuveTemplate (modèle d'épreuve réutilisable)
+
+   Capture uniquement ce qui se répète d'une compétition à l'autre pour
+   un même type d'épreuve (nom, barème) -- jamais la date, propre à
+   chaque épreuve réelle. Un bouton "Enregistrer comme modèle" sur une
+   épreuve existante en crée un ; le sélectionner à la création d'une
+   nouvelle épreuve préremplit nom et barème. Ajouté après la v0.1
+   initiale, en réponse à une demande concrète -- voir :doc:`roadmap`.
 
 .. dropdown:: Inscription / Score
 

@@ -4,6 +4,14 @@
 Sécurité & vue compétiteur
 =================================
 
+.. admonition:: Plan v0.2/v0.3 -- rien de ceci n'est construit
+   :class: warning
+
+   Cette page décrit la conception prévue pour la vue compétiteur et sa
+   sécurité (tokens, QR code). Au moment de la lecture, seule la vue
+   Organisateur (v0.1) existe -- ``api/organisateur.py`` et
+   ``api/competiteur.py`` sont des fichiers vides, voir :doc:`roadmap`.
+
 Principe général
 ====================
 

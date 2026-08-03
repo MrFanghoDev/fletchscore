@@ -15,7 +15,10 @@ Accueil (résumé rapide + raccourcis) et Aide (mode d'emploi + lien doc)
 ajoutés. **Saisie révisée au score final** (total + nombre de X par
 épreuve) plutôt que volée par volée -- voir "Extension -- Saisie du
 score final" plus bas ; lève au passage le blocage sur l'Animal Round et
-les rounds 3-D.
+les rounds 3-D. Classement global sur toute une compétition
+(CSV/Excel/PDF, GUI comprise). Guide utilisateur complet
+(`docs/guide-utilisateur/`) et cahier des charges recalé sur l'état
+réel.
 
 Découpage par jalons livrables, dans l'ordre des dépendances réelles :
 impossible de tester le scoring sans modèle de données, impossible de
@@ -285,7 +288,33 @@ une colonne total.
 
 - [ ] Format d'export fédération figé (dépend du modèle Excel imposé ou
       non -- point ouvert, voir cahier des charges)
-- [ ] Doc "premier club" façon onboarding FletchTime
+- [x] Doc "premier club" façon onboarding FletchTime -- avancée avant
+      l'heure (demande de l'utilisateur, "avant que ça ne dérive")
+      plutôt que d'attendre v0.5. `docs/guide-utilisateur/` : 4 pages
+      (installation, premiers pas, écrans, dépannage), toctree déjà
+      scaffoldé mais 4 fichiers manquaient encore (le build Sphinx
+      aurait échoué avec des liens vers des pages inexistantes). Contenu
+      du dépannage tiré des vrais problèmes rencontrés pendant le
+      développement, pas de cas inventés. Deux liens vers un
+      "guide développeur" (`.../dev-guide/index.html`) trouvés cassés en
+      vérifiant -- cette page n'a jamais existé, référencée à tort dans
+      `CONTRIBUTING.md` depuis longtemps ; corrigés dans mes nouveaux
+      fichiers (pointent vers `CONTRIBUTING.md` sur GitHub à la place),
+      **mais les 4 occurrences dans `CONTRIBUTING.md` lui-même restent à
+      corriger** -- pas fait cette fois, hors du périmètre demandé.
+      **Non vérifié par une vraie construction Sphinx** (toujours pas
+      installable ici, pas de réseau) -- seulement des vérifications
+      statiques (soulignements de titres, références `:doc:` toutes
+      résolues).
+- [x] Cahier des charges revérifié et recalé sur l'état réel --
+      `perimetre.rst` mentionnait encore "volée par volée" (périmé
+      depuis la révision du score final) ; `architecture.rst`
+      entièrement réécrite (décrivait encore `api/` comme fonctionnel
+      et ne mentionnait ni `services.py`, ni les 6 écrans `gui/`, ni
+      `io/export/` -- dérive accumulée au fil de tous les incréments) ;
+      `modele-donnees.rst` complétée avec `EpreuveTemplate` (absente) ;
+      `securite.rst` clarifiée en tête comme un plan v0.2/v0.3, pas
+      l'état actuel.
 - [ ] Durcissement suite aux retours terrain
 
 ## Points ouverts transverses
