@@ -568,3 +568,35 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   hors GUI : démarrage, vraie requête HTTP sur un vrai port, arrêt
   propre -- pas seulement les fonctions de génération de page testées
   isolément.
+
+- **v0.3 -- clé secrète serveur stockée hors de la base SQLite.**
+  `fletchscore/securite.py` génère et persiste une clé HMAC dans
+  `config/cle_secrete.txt`, jamais dans le fichier `.db`. Raisonnement :
+  le fichier `.db` est ce qui circule le plus facilement par accident
+  (sauvegarde égarée, copie du dossier du club) -- si la clé y vivait
+  aussi, la récupérer suffirait à fabriquer de faux tokens valides pour
+  n'importe quel compétiteur. En la stockant ailleurs, une fuite de la
+  seule base ne compromet aucun token.
+- **`_hash_token()` relit `securite.CHEMIN_CLE_PAR_DEFAUT` explicitement
+  plutôt que de laisser `obtenir_cle_secrete()` utiliser son propre
+  défaut.** Piège Python classique découvert en écrivant les tests :
+  un argument par défaut est évalué une seule fois à la définition de
+  la fonction, donc patcher l'attribut du module en test
+  (`mock.patch.object(securite, "CHEMIN_CLE_PAR_DEFAUT", ...)`) ne
+  change rien à ce défaut déjà figé -- **un vrai fichier
+  `config/cle_secrete.txt` a été créé par erreur dans le dépôt** lors
+  du premier passage des tests, repéré et nettoyé avant livraison.
+  Corrigé en passant l'attribut explicitement à chaque appel, pour
+  qu'il soit relu dynamiquement.
+- **Token/rattachement : le token n'est jamais généré à la demande,
+  seulement à la validation.** `demander_rattachement()` ne crée qu'une
+  entrée en file d'attente ; `valider_rattachement()` est la seule
+  fonction qui appelle `generer_token()`, après vérification humaine de
+  l'organisateur -- aucun chemin de code ne permet de contourner cette
+  étape. `verifier_token()` retourne `None` pour les trois cas d'échec
+  (code inconnu, secret incorrect, token expiré/révoqué) sans distinguer
+  lequel, pour ne pas donner à un attaquant un signal exploitable sur ce
+  qui a précisément échoué. Vérifié en conditions réelles (pas
+  seulement en tests unitaires) : flux complet demande → validation →
+  vérification avec un vrai secret, puis un mauvais secret bien
+  rejeté.

@@ -1,12 +1,14 @@
 # Roadmap FletchScore
 
-**État actuel : v0.1 et v0.2 complètes -- 266 tests, tous verts,
+**État actuel : v0.1 et v0.2 complètes -- 294 tests, tous verts,
 confirmés par la CI sans aucun `skipped`** (y compris les 3 tests
 fpdf2, jamais exécutables dans l'environnement de dev utilisé ici).
 `models/`, `storage/`, `referentiels/`, `io/import_csv.py` (import +
 export CSV clubs/compétiteurs), `scoring/`, `gui/`, `io/export/` et
 `api/competiteur.py` (vue compétiteur en lecture seule) sont tous
-codés. Extension modèles d'épreuve réutilisables (besoin 2)
+codés. v0.3 en cours : fondation Token/DemandeRattachement (backend)
+faite ; QR code, GUI, endpoint web et authentification organisateur
+restent à faire. Extension modèles d'épreuve réutilisables (besoin 2)
 également complète, backend et GUI. Version affichée automatiquement
 dans le titre GUI et la doc Sphinx (voir `docs/architecture.md`). Logo
 FletchScore intégré (`branding/`) : README, doc Sphinx, icône de
@@ -139,11 +141,38 @@ Zéro écriture, donc zéro risque de sécurité nouveau -- rapide à sortir et
 
 ## v0.3 -- Token et sécurité
 
-- [ ] `Token` / `DemandeRattachement` -- génération QR code + code court
-- [ ] Flux de rattachement a posteriori (recherche dans la liste des
-      inscrits, validation humaine par l'organisateur)
-- [ ] HTTPS local, authentification organisateur, limitation de débit par
-      token
+Ordre retenu (proposé, confirmé par l'utilisateur) : 1) Token/QR +
+rattachement (fondation) 2) authentification organisateur 3) HTTPS
+local. HTTPS repoussé à la v0.4 (voir "Points tranchés" dans le cahier
+des charges) -- v0.3 n'a encore qu'une écriture à faible enjeu (une
+demande de rattachement, pas un score), pas de raison de durcir avant
+la vraie donnée sensible.
+
+- [x] `Token` / `DemandeRattachement` -- backend complet.
+      `fletchscore/securite.py` (nouveau) : clé secrète serveur générée
+      au premier lancement, stockée dans `config/cle_secrete.txt`
+      (gitignoré, hors de la base SQLite -- récupérer le `.db` seul ne
+      suffit pas à reconstituer un token). `services.generer_token()`
+      (code court 6 caractères sans 0/O/1/I, secret aléatoire, HMAC-
+      SHA256 -- jamais le secret stocké en clair),
+      `verifier_token()` (`hmac.compare_digest`, jamais `==`),
+      `demander_rattachement()`/`lister_demandes_en_attente()`/
+      `valider_rattachement()`/`rejeter_rattachement()`. Le token n'est
+      généré qu'à la validation, jamais à la demande. 20 tests,
+      **vérifiés aussi en conditions réelles** (flux complet
+      demande → validation → vérification avec un vrai secret, un
+      mauvais secret bien rejeté).
+- [ ] Génération de QR code (nouvelle dépendance `qrcode` à ajouter)
+- [ ] GUI organisateur : voir/valider/rejeter les demandes, afficher le
+      code court/QR généré
+- [ ] Endpoint web compétiteur pour soumettre une demande de
+      rattachement (`api/competiteur.py` n'a que des `GET` pour
+      l'instant, voir v0.2)
+- [ ] Authentification organisateur (mot de passe hashé dans
+      `config/auth.toml`, déjà réservé dans `.gitignore` depuis le
+      début -- jamais implémenté jusqu'ici)
+- [ ] HTTPS local, limitation de débit par token -- repoussé après la
+      v0.4 (voir ci-dessus)
 
 Prérequis technique avant d'ouvrir la moindre écriture externe -- pas de
 fonctionnalité visible en soi, mais indispensable avant la v0.4.

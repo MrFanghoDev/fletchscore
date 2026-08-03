@@ -12,22 +12,30 @@ l'appelant : la GUI n'a pas à s'en préoccuper.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
+import secrets
 import sqlite3
 import uuid
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 
+from fletchscore import securite
 from fletchscore.models import (
     Club,
     Competiteur,
     Competition,
+    DemandeRattachement,
     Epreuve,
     EpreuveTemplate,
     Inscription,
     Score,
     Sexe,
     StatutCompetition,
+    StatutDemandeRattachement,
     StatutScore,
+    StatutToken,
+    Token,
 )
 from fletchscore.scoring import classement_global, classement_par_categorie
 from fletchscore.scoring.classement import LigneClassement, LigneClassementGlobal
@@ -670,3 +678,155 @@ def resumer_accueil(conn: sqlite3.Connection) -> ResumeAccueil:
         nb_epreuves=len(toutes_epreuves),
         derniere_epreuve=toutes_epreuves[0] if toutes_epreuves else None,
     )
+
+
+# ---------------------------------------------------- Token / rattachement --
+
+_CARACTERES_CODE_COURT = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
+"""Exclut 0/O et 1/I -- ambigus à la lecture/saisie manuelle en secours
+si le QR code n'est pas scannable (voir models/token.py)."""
+
+
+def _generer_code_court(longueur: int = 6) -> str:
+    return "".join(secrets.choice(_CARACTERES_CODE_COURT) for _ in range(longueur))
+
+
+def _hash_token(secret_token: str) -> str:
+    """HMAC-SHA256 du secret, avec la clé serveur -- jamais le secret
+    stocké tel quel (voir fletchscore/securite.py pour le pourquoi de la
+    clé stockée hors de la base).
+
+    Passe explicitement ``securite.CHEMIN_CLE_PAR_DEFAUT`` plutôt que de
+    laisser ``obtenir_cle_secrete()`` utiliser son propre défaut : un
+    argument par défaut est figé une seule fois à la définition de la
+    fonction -- patcher l'attribut du module en test (voir
+    ``TokenTestCase``) ne le changerait pas si on ne le relit pas ici.
+    """
+    cle = securite.obtenir_cle_secrete(securite.CHEMIN_CLE_PAR_DEFAUT)
+    return hmac.new(cle, secret_token.encode(), hashlib.sha256).hexdigest()
+
+
+def generer_token(
+    conn: sqlite3.Connection,
+    id_federal: str,
+    competition_id: str,
+    *,
+    expire_le: datetime | None = None,
+) -> tuple[Token, str]:
+    """Génère un nouveau token d'accès pour ce compétiteur à cette
+    compétition.
+
+    Retourne le ``Token`` persisté ET le secret en clair -- ce dernier
+    n'est jamais stocké tel quel (seul son HMAC l'est, voir
+    ``_hash_token``), donc c'est la seule fois où l'appelant peut le
+    récupérer pour l'encoder dans un QR code ou l'afficher.
+    """
+    if db.get_competiteur(conn, id_federal) is None:
+        raise ErreurMetier(f"Compétiteur introuvable : {id_federal}")
+    if db.get_competition(conn, competition_id) is None:
+        raise ErreurMetier("Compétition introuvable.")
+
+    secret_token = secrets.token_urlsafe(24)
+    code_court = _generer_code_court()
+    while db.get_token_by_code_court(conn, code_court) is not None:
+        # Collision improbable (32 caractères ^ 6) mais pas impossible --
+        # code_court est UNIQUE en base, mieux vaut réessayer que planter.
+        code_court = _generer_code_court()
+
+    token = Token(
+        id_federal=id_federal,
+        competition_id=competition_id,
+        code_court=code_court,
+        hash_token=_hash_token(secret_token),
+        statut=StatutToken.EMIS,
+        cree_le=datetime.now(),
+        expire_le=expire_le,
+    )
+    db.insert_token(conn, token)
+    return token, secret_token
+
+
+def verifier_token(conn: sqlite3.Connection, code_court: str, secret_token: str) -> Token | None:
+    """Vérifie un token présenté par un compétiteur : recherche par
+    ``code_court`` puis comparaison du HMAC du secret présenté --
+    jamais une comparaison directe (le secret n'est jamais stocké en
+    clair). ``hmac.compare_digest`` plutôt que ``==`` : une comparaison
+    naïve fuiterait un minuscule signal temporel exploitable (attaque par
+    canal auxiliaire), même si le risque réel reste faible sur un wifi de
+    club -- pas de raison de s'en priver, ça ne coûte rien.
+
+    Retourne ``None`` aussi bien si le token n'existe pas, si le secret
+    ne correspond pas, que s'il est expiré/révoqué -- volontairement le
+    même signal dans les trois cas, pour ne pas révéler à un attaquant
+    lequel des trois a échoué.
+    """
+    token = db.get_token_by_code_court(conn, code_court)
+    if token is None:
+        return None
+    if not hmac.compare_digest(token.hash_token, _hash_token(secret_token)):
+        return None
+    if not token.est_valide(datetime.now()):
+        return None
+    return token
+
+
+def demander_rattachement(
+    conn: sqlite3.Connection, id_federal: str, competition_id: str
+) -> DemandeRattachement:
+    """Enregistre une demande de rattachement -- ne génère jamais de
+    token à ce stade, seulement une entrée en file d'attente (voir
+    docs/cahier-des-charges/securite.rst : le token n'est émis qu'après
+    validation humaine de l'organisateur, voir ``valider_rattachement``).
+    """
+    if db.get_competiteur(conn, id_federal) is None:
+        raise ErreurMetier(f"Compétiteur introuvable : {id_federal}")
+    if db.get_competition(conn, competition_id) is None:
+        raise ErreurMetier("Compétition introuvable.")
+
+    demande = DemandeRattachement(
+        id=_nouvel_id(),
+        id_federal=id_federal,
+        competition_id=competition_id,
+        statut=StatutDemandeRattachement.EN_ATTENTE,
+        horodatage=datetime.now(),
+    )
+    db.insert_demande_rattachement(conn, demande)
+    return demande
+
+
+def lister_demandes_en_attente(
+    conn: sqlite3.Connection, competition_id: str
+) -> list[tuple[Competiteur, DemandeRattachement]]:
+    """Associe chaque demande en attente à son compétiteur -- pour
+    affichage direct dans la GUI (nom, prénom), pas juste un id_federal
+    brut à recouper manuellement."""
+    resultat = []
+    for demande in db.list_demandes_en_attente(conn, competition_id):
+        competiteur = db.get_competiteur(conn, demande.id_federal)
+        if competiteur is not None:
+            resultat.append((competiteur, demande))
+    return resultat
+
+
+def _obtenir_demande_en_attente(conn: sqlite3.Connection, demande_id: str) -> DemandeRattachement:
+    demande = db.get_demande_rattachement(conn, demande_id)
+    if demande is None:
+        raise ErreurMetier("Demande de rattachement introuvable.")
+    if demande.statut != StatutDemandeRattachement.EN_ATTENTE:
+        raise ErreurMetier("Cette demande a déjà été traitée.")
+    return demande
+
+
+def valider_rattachement(conn: sqlite3.Connection, demande_id: str) -> tuple[Token, str]:
+    """Valide une demande après vérification visuelle de l'identité par
+    l'organisateur -- génère et attribue le token à ce moment précis,
+    jamais avant (voir docs/cahier-des-charges/securite.rst)."""
+    demande = _obtenir_demande_en_attente(conn, demande_id)
+    token, secret_token = generer_token(conn, demande.id_federal, demande.competition_id)
+    db.update_statut_demande(conn, demande_id, StatutDemandeRattachement.VALIDEE)
+    return token, secret_token
+
+
+def rejeter_rattachement(conn: sqlite3.Connection, demande_id: str) -> None:
+    _obtenir_demande_en_attente(conn, demande_id)  # lève ErreurMetier si invalide
+    db.update_statut_demande(conn, demande_id, StatutDemandeRattachement.REJETEE)

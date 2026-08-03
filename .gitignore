@@ -26,6 +26,11 @@ docs/_build/
 # jamais versionné.
 config/auth.toml
 
+# Clé secrète serveur -- signe les tokens compétiteur (HMAC). Générée
+# automatiquement à la première utilisation, propre à chaque
+# installation -- jamais versionnée (voir fletchscore/securite.py).
+config/cle_secrete.txt
+
 # Préférences de la fenêtre graphique (thème...) -- propres à la machine/
 # personne qui lance la fenêtre, pas un réglage de club à partager.
 config/gui.toml

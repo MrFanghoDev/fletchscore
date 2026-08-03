@@ -397,6 +397,21 @@ class TestTokenEtRattachement(StorageTestCase):
         en_attente_apres = db.list_demandes_en_attente(self.conn, "comp-1")
         self.assertEqual(en_attente_apres, [])
 
+    def test_get_demande_rattachement_roundtrip(self):
+        demande = DemandeRattachement(
+            id="dem-1",
+            id_federal="FR-1",
+            competition_id="comp-1",
+            statut=StatutDemandeRattachement.EN_ATTENTE,
+            horodatage=datetime(2026, 3, 14, 9, 0),
+        )
+        db.insert_demande_rattachement(self.conn, demande)
+        recuperee = db.get_demande_rattachement(self.conn, "dem-1")
+        self.assertEqual(recuperee, demande)
+
+    def test_get_demande_rattachement_inexistante_retourne_none(self):
+        self.assertIsNone(db.get_demande_rattachement(self.conn, "demande-fantome"))
+
 
 if __name__ == "__main__":
     unittest.main()

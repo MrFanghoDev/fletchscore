@@ -112,3 +112,22 @@ Points tranchés
    d'épreuve pour la saisie -- ouvre la voie à l'Animal Round et aux
    rounds 3-D (voir :doc:`regles-metier`), qui restaient hors périmètre
    uniquement à cause de leur système de score complexe.
+
+.. dropdown:: v0.3 -- ordre des 3 morceaux, HTTPS repoussé
+   :color: success
+   :icon: check-circle
+
+   **Résolu**, sur proposition de l'assistant confirmée par
+   l'utilisateur : Token/QR + rattachement d'abord (fondation dont tout
+   le reste dépend), authentification organisateur ensuite, HTTPS local
+   en dernier -- repoussé après la v0.4 plutôt que fait maintenant.
+
+   Raison du report HTTPS : un certificat auto-signé affiche un
+   avertissement "non sécurisé" sur le téléphone d'un compétiteur qui
+   veut juste consulter un classement -- mauvaise première impression
+   pour un outil de club, sans rien débloquer de fonctionnel en retour
+   tant que la v0.3 elle-même n'a qu'une écriture à faible enjeu (une
+   demande de rattachement -- une revendication d'identité validée par
+   un humain avant tout effet, pas un score). La vraie donnée sensible
+   (le score proposé par le compétiteur) arrive en v0.4 -- plus logique
+   de durcir le transport à ce moment-là.

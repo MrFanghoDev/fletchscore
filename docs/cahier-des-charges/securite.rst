@@ -4,14 +4,17 @@
 Sécurité & vue compétiteur
 =================================
 
-.. admonition:: v0.2 lecture seule construite -- tokens et écriture (v0.3) pas encore
+.. admonition:: v0.2 lecture seule + fondation Token/rattachement construites
    :class: warning
 
    La vue compétiteur en **lecture seule** (``api/competiteur.py``,
-   consultation du classement live) est construite -- voir
-   :doc:`roadmap`. Cette page décrit surtout la suite : tokens, QR code,
-   proposition de score par le compétiteur, rien de tout ça n'existe
-   encore. ``api/organisateur.py`` reste un fichier vide.
+   consultation du classement live, v0.2) est construite. Le backend de
+   cette page (génération/vérification de token, demande et validation
+   de rattachement -- ``services.py``) l'est aussi -- voir
+   :doc:`roadmap`. Restent à faire : génération de QR code, écrans GUI
+   organisateur pour valider les demandes, endpoint web pour que le
+   compétiteur soumette sa demande, authentification organisateur,
+   HTTPS local (repoussé après la v0.4, voir :doc:`roadmap`).
 
 Principe général
 ====================

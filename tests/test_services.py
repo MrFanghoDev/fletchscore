@@ -1,8 +1,19 @@
+import tempfile
 import unittest
 from datetime import date
+from pathlib import Path
+from unittest import mock
 
-from fletchscore import services
-from fletchscore.models import Club, Competiteur, Competition, Sexe, StatutCompetition, StatutScore
+from fletchscore import securite, services
+from fletchscore.models import (
+    Club,
+    Competiteur,
+    Competition,
+    Sexe,
+    StatutCompetition,
+    StatutDemandeRattachement,
+    StatutScore,
+)
 from fletchscore.services import (
     ErreurMetier,
     libelle_competiteur,
@@ -826,6 +837,172 @@ class TestResumerAccueil(ServiceTestCase):
         competition_resultat, epreuve_resultat = resume.derniere_epreuve
         self.assertEqual(epreuve_resultat.id, epreuve_recente.id)
         self.assertEqual(competition_resultat.id, c2.id)
+
+
+class TokenTestCase(ServiceTestCase):
+    """Isole la clé secrète serveur dans un fichier temporaire -- sans
+    ça, ``generer_token`` écrirait une vraie clé dans
+    ``config/cle_secrete.txt`` du dépôt à chaque lancement des tests."""
+
+    def setUp(self):
+        super().setUp()
+        self._dossier_cle = tempfile.TemporaryDirectory()
+        self._rustine_cle = mock.patch.object(
+            securite, "CHEMIN_CLE_PAR_DEFAUT", Path(self._dossier_cle.name) / "cle.txt"
+        )
+        self._rustine_cle.start()
+
+    def tearDown(self):
+        self._rustine_cle.stop()
+        self._dossier_cle.cleanup()
+        super().tearDown()
+
+
+class TestGenererToken(TokenTestCase):
+    def test_genere_un_token_valide(self):
+        competition = self._competition()
+        token, secret = services.generer_token(self.conn, "FR-1", competition.id)
+
+        self.assertEqual(token.id_federal, "FR-1")
+        self.assertEqual(token.competition_id, competition.id)
+        self.assertEqual(len(token.code_court), 6)
+        self.assertTrue(secret)
+        self.assertNotEqual(token.hash_token, secret)  # jamais stocké en clair
+
+    def test_competiteur_inconnu_refuse(self):
+        competition = self._competition()
+        with self.assertRaises(ErreurMetier):
+            services.generer_token(self.conn, "FR-FANTOME", competition.id)
+
+    def test_competition_inconnue_refusee(self):
+        with self.assertRaises(ErreurMetier):
+            services.generer_token(self.conn, "FR-1", "competition-fantome")
+
+    def test_token_persiste_et_retrouvable(self):
+        competition = self._competition()
+        token, _ = services.generer_token(self.conn, "FR-1", competition.id)
+        self.assertEqual(db.get_token_by_code_court(self.conn, token.code_court), token)
+
+
+class TestVerifierToken(TokenTestCase):
+    def test_secret_correct_valide(self):
+        competition = self._competition()
+        token, secret = services.generer_token(self.conn, "FR-1", competition.id)
+        verifie = services.verifier_token(self.conn, token.code_court, secret)
+        self.assertEqual(verifie, token)
+
+    def test_secret_incorrect_refuse(self):
+        competition = self._competition()
+        token, _ = services.generer_token(self.conn, "FR-1", competition.id)
+        self.assertIsNone(services.verifier_token(self.conn, token.code_court, "mauvais-secret"))
+
+    def test_code_court_inconnu_refuse(self):
+        self.assertIsNone(services.verifier_token(self.conn, "ZZZZZZ", "peu-importe"))
+
+    def test_token_revoque_refuse_meme_avec_bon_secret(self):
+        competition = self._competition()
+        token, secret = services.generer_token(self.conn, "FR-1", competition.id)
+        db.revoquer_token(self.conn, "FR-1", competition.id)
+        self.assertIsNone(services.verifier_token(self.conn, token.code_court, secret))
+
+
+class TestDemanderRattachement(TokenTestCase):
+    def test_demande_valide(self):
+        competition = self._competition()
+        demande = services.demander_rattachement(self.conn, "FR-1", competition.id)
+        self.assertEqual(demande.statut, StatutDemandeRattachement.EN_ATTENTE)
+
+    def test_ne_genere_aucun_token(self):
+        # Le token n'est émis qu'à la validation, jamais à la demande --
+        # voir docs/cahier-des-charges/securite.rst.
+        competition = self._competition()
+        services.demander_rattachement(self.conn, "FR-1", competition.id)
+        demandes = services.lister_demandes_en_attente(self.conn, competition.id)
+        self.assertEqual(len(demandes), 1)
+
+    def test_competiteur_inconnu_refuse(self):
+        competition = self._competition()
+        with self.assertRaises(ErreurMetier):
+            services.demander_rattachement(self.conn, "FR-FANTOME", competition.id)
+
+
+class TestListerDemandesEnAttente(TokenTestCase):
+    def test_associe_competiteur_et_demande(self):
+        competition = self._competition()
+        services.demander_rattachement(self.conn, "FR-1", competition.id)
+
+        demandes = services.lister_demandes_en_attente(self.conn, competition.id)
+
+        self.assertEqual(len(demandes), 1)
+        competiteur, demande = demandes[0]
+        self.assertEqual(competiteur.id_federal, "FR-1")
+        self.assertEqual(demande.statut, StatutDemandeRattachement.EN_ATTENTE)
+
+    def test_liste_vide_si_aucune_demande(self):
+        competition = self._competition()
+        self.assertEqual(services.lister_demandes_en_attente(self.conn, competition.id), [])
+
+
+class TestValiderRattachement(TokenTestCase):
+    def test_valide_genere_un_token(self):
+        competition = self._competition()
+        demande = services.demander_rattachement(self.conn, "FR-1", competition.id)
+
+        token, secret = services.valider_rattachement(self.conn, demande.id)
+
+        self.assertEqual(token.id_federal, "FR-1")
+        self.assertTrue(secret)
+        verifie = services.verifier_token(self.conn, token.code_court, secret)
+        self.assertEqual(verifie, token)
+
+    def test_marque_la_demande_validee(self):
+        competition = self._competition()
+        demande = services.demander_rattachement(self.conn, "FR-1", competition.id)
+        services.valider_rattachement(self.conn, demande.id)
+
+        # Une demande validée ne doit plus apparaître dans la file d'attente.
+        self.assertEqual(services.lister_demandes_en_attente(self.conn, competition.id), [])
+
+    def test_demande_inexistante_refusee(self):
+        with self.assertRaises(ErreurMetier):
+            services.valider_rattachement(self.conn, "demande-fantome")
+
+    def test_demande_deja_traitee_refusee(self):
+        competition = self._competition()
+        demande = services.demander_rattachement(self.conn, "FR-1", competition.id)
+        services.valider_rattachement(self.conn, demande.id)
+
+        with self.assertRaises(ErreurMetier) as contexte:
+            services.valider_rattachement(self.conn, demande.id)
+        self.assertIn("déjà été traitée", str(contexte.exception))
+
+
+class TestRejeterRattachement(TokenTestCase):
+    def test_rejet_marque_la_demande(self):
+        competition = self._competition()
+        demande = services.demander_rattachement(self.conn, "FR-1", competition.id)
+        services.rejeter_rattachement(self.conn, demande.id)
+
+        self.assertEqual(services.lister_demandes_en_attente(self.conn, competition.id), [])
+
+    def test_rejet_ne_genere_aucun_token(self):
+        competition = self._competition()
+        demande = services.demander_rattachement(self.conn, "FR-1", competition.id)
+        services.rejeter_rattachement(self.conn, demande.id)
+
+        self.assertIsNone(db.get_token_by_code_court(self.conn, "XXXXXX"))
+
+    def test_demande_inexistante_refusee(self):
+        with self.assertRaises(ErreurMetier):
+            services.rejeter_rattachement(self.conn, "demande-fantome")
+
+    def test_demande_deja_rejetee_refusee(self):
+        competition = self._competition()
+        demande = services.demander_rattachement(self.conn, "FR-1", competition.id)
+        services.rejeter_rattachement(self.conn, demande.id)
+
+        with self.assertRaises(ErreurMetier):
+            services.rejeter_rattachement(self.conn, demande.id)
 
 
 if __name__ == "__main__":

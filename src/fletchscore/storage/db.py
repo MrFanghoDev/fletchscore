@@ -624,6 +624,21 @@ def insert_demande_rattachement(conn: sqlite3.Connection, demande: DemandeRattac
     conn.commit()
 
 
+def get_demande_rattachement(
+    conn: sqlite3.Connection, demande_id: str
+) -> DemandeRattachement | None:
+    row = conn.execute("SELECT * FROM demandes_rattachement WHERE id = ?", (demande_id,)).fetchone()
+    if not row:
+        return None
+    return DemandeRattachement(
+        id=row["id"],
+        id_federal=row["id_federal"],
+        competition_id=row["competition_id"],
+        statut=StatutDemandeRattachement(row["statut"]),
+        horodatage=datetime.fromisoformat(row["horodatage"]) if row["horodatage"] else None,
+    )
+
+
 def list_demandes_en_attente(
     conn: sqlite3.Connection, competition_id: str
 ) -> list[DemandeRattachement]:
