@@ -1,14 +1,14 @@
 # Roadmap FletchScore
 
-**État actuel : v0.1 et v0.2 complètes -- 294 tests, tous verts,
+**État actuel : v0.1 et v0.2 complètes -- 304 tests, tous verts,
 confirmés par la CI sans aucun `skipped`** (y compris les 3 tests
 fpdf2, jamais exécutables dans l'environnement de dev utilisé ici).
 `models/`, `storage/`, `referentiels/`, `io/import_csv.py` (import +
 export CSV clubs/compétiteurs), `scoring/`, `gui/`, `io/export/` et
-`api/competiteur.py` (vue compétiteur en lecture seule) sont tous
-codés. v0.3 en cours : fondation Token/DemandeRattachement (backend)
-faite ; QR code, GUI, endpoint web et authentification organisateur
-restent à faire. Extension modèles d'épreuve réutilisables (besoin 2)
+`api/competiteur.py` (vue compétiteur en lecture seule, identité
+visuelle FletchTime, bilingue FR/EN) sont tous codés. v0.3 en cours :
+fondation Token/DemandeRattachement (backend) faite ; QR code, GUI,
+endpoint web et authentification organisateur restent à faire. Extension modèles d'épreuve réutilisables (besoin 2)
 également complète, backend et GUI. Version affichée automatiquement
 dans le titre GUI et la doc Sphinx (voir `docs/architecture.md`). Logo
 FletchScore intégré (`branding/`) : README, doc Sphinx, icône de
@@ -135,6 +135,24 @@ encore été essayés.
       lui-même -- l'écran est recréé à chaque navigation, le serveur
       doit lui survivre. ⚠️ **rendu non vérifié** -- cycle
       démarrer/requête/arrêter vérifié réellement hors GUI.
+- [x] Identité visuelle FletchTime + bilingue FR/EN -- demande de
+      l'utilisateur, `theme.css` (fourni, système de conception partagé
+      FletchTime/FletchScore) copié tel quel dans
+      `src/fletchscore/web/`, jamais dupliqué dans le code Python.
+      `classement.css` ajouté à côté pour les tableaux (absents du
+      fichier source, extrait d'une page de config sans tableau).
+      Préférence langue/thème mémorisée par **cookie**, pas par
+      JavaScript -- cohérent avec le choix "pas de JS" déjà fait, et
+      survit naturellement au rechargement automatique périodique (un
+      état JS en mémoire ne survivrait pas à un rechargement complet).
+      Bascule via de simples liens `<a>` vers un endpoint `/preference`
+      qui pose les cookies et redirige (302) -- aucun JavaScript sur
+      toute la page. 10 nouveaux tests (23 au total sur ce module),
+      **vérifiés réellement** : fichiers statiques servis (contenu
+      relu), cookie de préférence posé et respecté sur la page
+      suivante, aperçu HTML généré et relu ligne par ligne pour
+      confirmer un rendu cohérent (état "actif" des boutons, textes
+      dans la bonne langue, chemins de retour corrects).
 
 Zéro écriture, donc zéro risque de sécurité nouveau -- rapide à sortir et
 à faire tester par de vrais archers en salle.

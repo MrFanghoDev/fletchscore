@@ -1,3 +1,4 @@
+import http.client
 import tempfile
 import threading
 import unittest
@@ -52,6 +53,28 @@ class TestPageAccueil(unittest.TestCase):
         self.assertNotIn("<script>alert(1)</script>", page)
         self.assertIn("&lt;script&gt;", page)
 
+    def test_langue_anglaise(self):
+        page = page_accueil(self.conn, lang="en")
+        self.assertIn("Competitions", page)
+        self.assertIn('<html lang="en"', page)
+
+    def test_langue_par_defaut_francaise(self):
+        page = page_accueil(self.conn)
+        self.assertIn('<html lang="fr"', page)
+
+    def test_theme_sombre_par_defaut(self):
+        page = page_accueil(self.conn)
+        self.assertIn('data-theme="dark"', page)
+
+    def test_theme_clair(self):
+        page = page_accueil(self.conn, theme="light")
+        self.assertIn('data-theme="light"', page)
+
+    def test_reference_les_feuilles_de_style(self):
+        page = page_accueil(self.conn)
+        self.assertIn('href="/theme.css"', page)
+        self.assertIn('href="/classement.css"', page)
+
 
 class TestPageEpreuve(unittest.TestCase):
     def setUp(self):
@@ -85,6 +108,10 @@ class TestPageEpreuve(unittest.TestCase):
     def test_epreuve_introuvable(self):
         page = page_epreuve(self.conn, "epreuve-fantome")
         self.assertIn("introuvable", page.lower())
+
+    def test_epreuve_introuvable_en_anglais(self):
+        page = page_epreuve(self.conn, "epreuve-fantome", lang="en")
+        self.assertIn("not found", page.lower())
 
     def test_classement_vide(self):
         page = page_epreuve(self.conn, self.epreuve.id)
@@ -212,6 +239,42 @@ class TestServeurIntegration(unittest.TestCase):
         with self.assertRaises(urllib.error.HTTPError) as contexte:
             urllib.request.urlopen(self._url("/nimportequoi"), timeout=5)
         self.assertEqual(contexte.exception.code, 404)
+
+    def test_theme_css_servi_reellement(self):
+        with urllib.request.urlopen(self._url("/theme.css"), timeout=5) as reponse:
+            self.assertEqual(reponse.status, 200)
+            self.assertIn("text/css", reponse.headers["Content-Type"])
+            contenu = reponse.read().decode("utf-8")
+        self.assertIn("--gold", contenu)  # variable du thème FletchTime
+
+    def test_classement_css_servi_reellement(self):
+        with urllib.request.urlopen(self._url("/classement.css"), timeout=5) as reponse:
+            self.assertEqual(reponse.status, 200)
+            contenu = reponse.read().decode("utf-8")
+        self.assertIn("table.classement", contenu)
+
+    def test_preference_redirige_et_pose_des_cookies(self):
+        connexion = http.client.HTTPConnection("127.0.0.1", self.serveur.server_port, timeout=5)
+        try:
+            connexion.request("GET", "/preference?lang=en&theme=light&retour=/")
+            reponse = connexion.getresponse()
+            self.assertEqual(reponse.status, 302)
+            self.assertEqual(reponse.getheader("Location"), "/")
+            cookies = reponse.msg.get_all("Set-Cookie") or []
+            reponse.read()
+        finally:
+            connexion.close()
+
+        self.assertTrue(any(c.startswith("lang=en") for c in cookies))
+        self.assertTrue(any(c.startswith("theme=light") for c in cookies))
+
+    def test_preference_respecte_ensuite_le_cookie(self):
+        requete = urllib.request.Request(self._url("/"))
+        requete.add_header("Cookie", "lang=en; theme=light")
+        with urllib.request.urlopen(requete, timeout=5) as reponse:
+            contenu = reponse.read().decode("utf-8")
+        self.assertIn('<html lang="en"', contenu)
+        self.assertIn('data-theme="light"', contenu)
 
 
 if __name__ == "__main__":

@@ -600,3 +600,30 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   seulement en tests unitaires) : flux complet demande → validation →
   vérification avec un vrai secret, puis un mauvais secret bien
   rejeté.
+
+- **Vue compétiteur restylée à l'identité FletchTime, préférences par
+  cookie plutôt que JavaScript.** Demande de l'utilisateur : même style
+  que FletchTime (thème sombre, `theme.css` fourni), bilingue FR/EN.
+  `theme.css` copié tel quel dans `src/fletchscore/web/` (déjà couvert
+  par `package-data` dans `pyproject.toml`, aucun changement de
+  packaging nécessaire) -- jamais dupliqué dans le code Python, servi
+  directement par le serveur. `classement.css` ajouté à côté pour les
+  tableaux, absents du fichier source (extrait d'une page de config
+  FletchTime sans tableau) -- réutilise les mêmes variables de couleur,
+  ne redéfinit rien. Préférence langue/thème mémorisée par **cookie**
+  plutôt que par JavaScript : cohérent avec le choix "pas de JS" déjà
+  fait pour cette page en v0.2, et surtout survit naturellement au
+  rechargement automatique périodique -- un état JS en mémoire ne
+  survivrait pas à un rechargement complet de page (`<meta
+  http-equiv="refresh">`), alors qu'un cookie si. Bascule via de simples
+  liens `<a>` vers un endpoint `/preference` qui pose les cookies et
+  redirige (302) -- protégé contre l'open redirect (le paramètre
+  `retour` doit commencer par `/` et pas par `//`, sinon repli sur `/`).
+  Le stub `src/fletchscore/web/index.html`, jamais utilisé (l'app
+  génère tout le HTML côté serveur, pas un SPA statique), a été retiré
+  plutôt que laissé comme faux indice. 10 nouveaux tests, vérifiés
+  réellement : fichiers statiques servis (contenu relu, pas juste code
+  200), cookie posé par `/preference` puis respecté sur la requête
+  suivante, et un aperçu HTML complet généré et relu ligne par ligne
+  pour confirmer un rendu cohérent (état "actif" des boutons, bonne
+  langue, chemins de retour corrects).

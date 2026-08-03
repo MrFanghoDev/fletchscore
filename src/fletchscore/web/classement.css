@@ -1,0 +1,74 @@
+/*
+ * classement.css -- complète theme.css (identité visuelle FletchTime)
+ * pour les tableaux de classement, absents du fichier source (extrait
+ * d'une page de configuration FletchTime, sans tableau). Réutilise les
+ * mêmes variables de couleur -- rien de nouveau ici, juste ce qu'il
+ * manquait pour ce contenu précis.
+ *
+ * Toujours chargé après theme.css : <link rel="stylesheet" href="theme.css">
+ * puis <link rel="stylesheet" href="classement.css">.
+ */
+
+table.classement {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5rem 0 1.6rem;
+}
+table.classement th,
+table.classement td {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.88rem;
+}
+table.classement th {
+  color: var(--gold);
+  font-weight: 600;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+table.classement tr:last-child td {
+  border-bottom: none;
+}
+
+h2.categorie {
+  font-size: 1rem;
+  color: var(--text);
+  margin: 1.6rem 0 0.3rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 2px solid var(--gold-dim);
+}
+
+ul.liste-epreuves {
+  list-style: none;
+  padding: 0;
+  margin: 0.4rem 0 1.2rem;
+}
+ul.liste-epreuves li {
+  padding: 0.2rem 0;
+}
+ul.liste-epreuves a {
+  color: var(--blue);
+  text-decoration: none;
+}
+ul.liste-epreuves a:hover {
+  text-decoration: underline;
+}
+
+.section-competition {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.2rem 1.4rem;
+  margin-bottom: 1.4rem;
+}
+.section-competition h2 {
+  margin-top: 0;
+  font-size: 1.1rem;
+}
+.section-competition .dates {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin: -0.4rem 0 0.8rem;
+}
