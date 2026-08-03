@@ -188,6 +188,18 @@ dans cet ordre, avant de livrer quoi que ce soit :
   pas. Bug remonté par l'utilisateur après sa première vraie Release,
   pas détectable ici (impossible de déclencher une Release GitHub pour
   tester).
+- **Suite du point précédent : mon hypothèse (ajouter `release:` à
+  `docs.yml`) n'a pas suffi.** L'utilisateur a confirmé que la doc ne se
+  déployait toujours pas après ce correctif. Plutôt que d'empiler une
+  hypothèse de plus sans preuve, demandé et obtenu le vrai `docs.yml` de
+  FletchTime (confirmé fonctionner chez l'utilisateur) pour réaligner
+  celui de FletchScore fidèlement dessus -- qui n'a en fait PAS de
+  déclencheur `release:` du tout. Leçon plus générale : quand une
+  correction "logique" ne marche pas en pratique et qu'une référence
+  connue-fonctionnelle existe (même projet frère, même auteur), la
+  demander et s'y aligner fidèlement vaut mieux que raisonner à
+  l'aveugle une deuxième fois sur un système (déclencheurs GitHub
+  Actions + Pages) impossible à tester dans cet environnement.
 
 *Voir aussi le `CLAUDE.md` de FletchTime pour les leçons équivalentes sur
 le projet frère (cibles SVG génériques, badge shields.io non vérifié,

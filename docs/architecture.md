@@ -527,3 +527,23 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
     avaient un trou. Bug trouvé uniquement parce que l'utilisateur a
     remarqué l'absence concrète des archives, pas détectable depuis ici
     (impossible de déclencher une vraie Release GitHub pour tester).
+
+- **Révision : l'ajout de `release:` dans `docs.yml` n'a pas suffi --
+  retour au fichier FletchTime confirmé fonctionnel.** L'hypothèse
+  ci-dessus (Release sur tag existant = pas de `push`) restait
+  plausible mais non prouvée, et l'utilisateur a confirmé que la doc ne
+  se déployait toujours pas après ce correctif. Plutôt que d'empiler une
+  hypothèse de plus sans preuve, `docs.yml` a été réaligné **fidèlement**
+  sur le fichier FletchTime réel (fourni par l'utilisateur, confirmé
+  fonctionner chez lui) -- qui n'a PAS de déclencheur `release:` du
+  tout, seulement `push` (branches + tags) et `workflow_dispatch`.
+  Ajouté au passage un vrai plus par rapport à ma version précédente :
+  une étape "Vérifier la documentation générée" qui grep la version
+  attendue dans le HTML produit -- présente dans le fichier FletchTime,
+  absente du mien. `build.yml`, lui, n'a pas été retouché cette fois
+  (l'utilisateur a confirmé que PyPI fonctionne) -- reste à confirmer
+  si les exécutables Windows/Linux sont bien joints à une Release, pas
+  seulement le paquet Python. Piste principale restante si le problème
+  persiste malgré un fichier identique à celui qui fonctionne côté
+  FletchTime : **configuration GitHub du dépôt** (Settings > Pages >
+  Source, voir docs/roadmap.md), pas le workflow lui-même.
