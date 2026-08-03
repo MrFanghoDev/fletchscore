@@ -3,6 +3,7 @@ import tempfile
 import threading
 import unittest
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import date
 from pathlib import Path
@@ -13,7 +14,9 @@ from fletchscore.api.competiteur import (
     creer_serveur,
     page_accueil,
     page_competition,
+    page_confirmation_rattachement,
     page_epreuve,
+    page_rattachement,
 )
 from fletchscore.models import Club, Competiteur, Sexe
 from fletchscore.storage import db
@@ -182,6 +185,95 @@ class TestPageCompetition(unittest.TestCase):
         self.assertIn("220", page)
         self.assertIn("480", page)  # total cumulé
 
+    def test_lien_de_rattachement_present(self):
+        competition = services.creer_competition(
+            self.conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15)
+        )
+        page = page_competition(self.conn, competition.id)
+        self.assertIn(f"/rattachement/{competition.id}", page)
+
+
+class TestPageRattachement(unittest.TestCase):
+    def setUp(self):
+        self.conn = db.connect(":memory:")
+        db.init_schema(self.conn)
+        db.seed_baremes_preconfigures(self.conn)
+        db.insert_club(self.conn, Club("77123", "Archers Libres de FLP"))
+        db.seed_referentiel_styles(self.conn)
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-1",
+                nom="Dupont",
+                prenom="Marie",
+                code_club="77123",
+                sexe=Sexe.F,
+                date_naissance=date(1995, 3, 14),
+                code_style="BB-R",
+            ),
+        )
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-2",
+                nom="Martin",
+                prenom="Léo",
+                code_club="77123",
+                sexe=Sexe.M,
+                date_naissance=date(1995, 3, 14),
+                code_style="BB-R",
+            ),
+        )
+        self.competition = services.creer_competition(
+            self.conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15)
+        )
+        epreuve = services.creer_epreuve(
+            self.conn, self.competition.id, "Indoor", date(2026, 3, 14), "ifaa-indoor"
+        )
+        services.inscrire(self.conn, "FR-1", epreuve.id)
+        services.inscrire(self.conn, "FR-2", epreuve.id)
+
+    def tearDown(self):
+        self.conn.close()
+
+    def test_competition_introuvable(self):
+        page = page_rattachement(self.conn, "competition-fantome")
+        self.assertIn("introuvable", page.lower())
+
+    def test_liste_tous_les_inscrits_sans_recherche(self):
+        page = page_rattachement(self.conn, self.competition.id)
+        self.assertIn("Marie", page)
+        self.assertIn("Léo", page)
+
+    def test_recherche_filtre_les_resultats(self):
+        page = page_rattachement(self.conn, self.competition.id, recherche="Marie")
+        self.assertIn("Marie", page)
+        self.assertNotIn("Léo", page)
+
+    def test_recherche_insensible_a_la_casse(self):
+        page = page_rattachement(self.conn, self.competition.id, recherche="marie")
+        self.assertIn("Marie", page)
+
+    def test_recherche_sans_resultat(self):
+        page = page_rattachement(self.conn, self.competition.id, recherche="Personne")
+        self.assertIn("Aucun compétiteur trouvé", page)
+
+    def test_pas_de_rafraichissement_automatique(self):
+        page = page_rattachement(self.conn, self.competition.id)
+        self.assertNotIn('http-equiv="refresh"', page)
+
+    def test_formulaire_contient_lid_federal_cache(self):
+        page = page_rattachement(self.conn, self.competition.id)
+        self.assertIn('name="id_federal" value="FR-1"', page)
+        self.assertIn('name="id_federal" value="FR-2"', page)
+
+
+class TestPageConfirmationRattachement(unittest.TestCase):
+    def test_contient_le_lien_de_retour(self):
+        page = page_confirmation_rattachement("comp-1")
+        self.assertIn("/competition/comp-1", page)
+        self.assertIn("Demande envoyée", page)
+
 
 class TestAdresseIpLocale(unittest.TestCase):
     def test_retourne_une_chaine_non_vide(self):
@@ -202,12 +294,28 @@ class TestServeurIntegration(unittest.TestCase):
         conn = db.connect(self.chemin_base)
         db.init_schema(conn)
         db.seed_baremes_preconfigures(conn)
+        db.insert_club(conn, Club("77123", "Archers Libres de FLP"))
+        db.seed_referentiel_styles(conn)
+        db.insert_competiteur(
+            conn,
+            Competiteur(
+                id_federal="FR-1",
+                nom="Dupont",
+                prenom="Marie",
+                code_club="77123",
+                sexe=Sexe.F,
+                date_naissance=date(1995, 3, 14),
+                code_style="BB-R",
+            ),
+        )
         competition = services.creer_competition(
             conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15)
         )
+        self.competition_id = competition.id
         self.epreuve = services.creer_epreuve(
             conn, competition.id, "IFAA Indoor", date(2026, 3, 14), "ifaa-indoor"
         )
+        services.inscrire(conn, "FR-1", self.epreuve.id)
         conn.close()  # le serveur ouvre ses propres connexions
 
         self.serveur = creer_serveur(self.chemin_base, port=0)
@@ -275,6 +383,41 @@ class TestServeurIntegration(unittest.TestCase):
             contenu = reponse.read().decode("utf-8")
         self.assertIn('<html lang="en"', contenu)
         self.assertIn('data-theme="light"', contenu)
+
+    def test_get_rattachement_repond_200(self):
+        with urllib.request.urlopen(
+            self._url(f"/rattachement/{self.competition_id}"), timeout=5
+        ) as reponse:
+            self.assertEqual(reponse.status, 200)
+            contenu = reponse.read().decode("utf-8")
+        self.assertIn("Marie", contenu)
+
+    def test_post_rattachement_cree_reellement_une_demande(self):
+        donnees = urllib.parse.urlencode({"id_federal": "FR-1"}).encode("utf-8")
+        requete = urllib.request.Request(
+            self._url(f"/rattachement/{self.competition_id}"), data=donnees, method="POST"
+        )
+        with urllib.request.urlopen(requete, timeout=5) as reponse:
+            self.assertEqual(reponse.status, 200)
+            contenu = reponse.read().decode("utf-8")
+        self.assertIn("Demande envoyée", contenu)
+
+        # Vérifie que la demande a réellement été persistée en base --
+        # pas seulement que la page de confirmation s'affiche.
+        conn_verif = db.connect(self.chemin_base)
+        demandes = services.lister_demandes_en_attente(conn_verif, self.competition_id)
+        conn_verif.close()
+        self.assertEqual(len(demandes), 1)
+        self.assertEqual(demandes[0][0].id_federal, "FR-1")
+
+    def test_post_rattachement_competiteur_inconnu_donne_une_erreur_lisible(self):
+        donnees = urllib.parse.urlencode({"id_federal": "FR-FANTOME"}).encode("utf-8")
+        requete = urllib.request.Request(
+            self._url(f"/rattachement/{self.competition_id}"), data=donnees, method="POST"
+        )
+        with urllib.request.urlopen(requete, timeout=5) as reponse:
+            contenu = reponse.read().decode("utf-8")
+        self.assertIn("introuvable", contenu.lower())
 
 
 if __name__ == "__main__":

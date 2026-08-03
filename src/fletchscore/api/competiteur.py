@@ -1,16 +1,23 @@
-"""Vue compétiteur -- serveur HTTP en lecture seule (v0.2).
+"""Vue compétiteur -- serveur HTTP, majoritairement en lecture seule.
 
-Zéro écriture, donc zéro risque de sécurité nouveau (voir
-docs/roadmap.md) : ni token ni authentification à ce stade -- ça arrive
-en v0.3. N'importe qui sur le réseau local du club peut consulter le
-classement d'une épreuve, mais ne peut rien modifier.
+v0.2 : lecture seule (classement live), zéro écriture, zéro risque de
+sécurité nouveau. v0.3 ajoute une première écriture, à faible enjeu :
+la *demande* de rattachement (« je pense être telle personne ») --
+aucune donnée de score, jamais d'effet avant validation humaine de
+l'organisateur (voir ``services.valider_rattachement``). Toujours pas
+de token requis pour la consulter ni la déposer -- l'authentification
+compétiteur (via token, une fois délivré) arrive après.
 
 Le serveur tourne dans un thread séparé pendant que la GUI continue --
 il utilise donc systématiquement sa **propre connexion SQLite en
 lecture seule** (jamais celle de la GUI, qui appartient à un autre
-thread) via l'URI ``file:...?mode=ro``, une connexion neuve par requête.
+thread) via l'URI ``file:...?mode=ro``, une connexion neuve par requête
+-- y compris pour les écritures, qui passent par ``services.py``, donc
+par sa propre gestion de connexion à chaque appel.
+
 Pas de rendu JS : une simple balise ``<meta http-equiv="refresh">``
-recharge la page à intervalle régulier.
+recharge la page à intervalle régulier ; la demande de rattachement
+passe par un formulaire HTML natif (``POST``), sans JavaScript non plus.
 
 Style visuel et bascule langue/thème repris de ``theme.css``
 (``src/fletchscore/web/``), le système de conception partagé avec
@@ -33,6 +40,7 @@ from pathlib import Path
 from urllib.parse import ParseResult, parse_qs, urlparse
 
 from fletchscore import services
+from fletchscore.models import Competiteur
 from fletchscore.services import ErreurMetier
 from fletchscore.storage import db
 
@@ -54,6 +62,7 @@ _TEXTES: dict[str, dict[str, str]] = {
         "en": "Overall competition ranking",
     },
     "retour": {"fr": "← Toutes les compétitions", "en": "← All competitions"},
+    "retour_competition": {"fr": "← Retour à la compétition", "en": "← Back to competition"},
     "rang": {"fr": "Rang", "en": "Rank"},
     "nom": {"fr": "Nom", "en": "Name"},
     "total": {"fr": "Total", "en": "Total"},
@@ -67,6 +76,28 @@ _TEXTES: dict[str, dict[str, str]] = {
     "erreur": {"fr": "Erreur", "en": "Error"},
     "classement_global_titre": {"fr": "classement global", "en": "overall ranking"},
     "page_introuvable": {"fr": "Page introuvable.", "en": "Page not found."},
+    "demander_rattachement_lien": {
+        "fr": "Pas encore d'accès à cette compétition ? Demander un rattachement",
+        "en": "No access to this competition yet? Request access",
+    },
+    "rattachement_titre": {"fr": "Demander un accès", "en": "Request access"},
+    "rattachement_intro": {
+        "fr": 'Cherche ton nom dans la liste, puis clique sur "C\'est moi" -- '
+        "l'organisateur validera ton identité avant de t'attribuer un accès.",
+        "en": 'Find your name in the list, then click "That\'s me" -- the '
+        "organiser will confirm your identity before granting access.",
+    },
+    "rechercher": {"fr": "Rechercher un nom", "en": "Search a name"},
+    "chercher": {"fr": "Chercher", "en": "Search"},
+    "cest_moi": {"fr": "C'est moi, demander mon accès", "en": "That's me, request access"},
+    "aucun_resultat": {"fr": "Aucun compétiteur trouvé.", "en": "No competitor found."},
+    "demande_envoyee_titre": {"fr": "Demande envoyée", "en": "Request sent"},
+    "demande_envoyee": {
+        "fr": "Ta demande a bien été envoyée. Présente-toi à l'organisateur "
+        "pour qu'il confirme ton identité et t'attribue un accès.",
+        "en": "Your request has been sent. Please see the organiser so they "
+        "can confirm your identity and grant you access.",
+    },
 }
 
 
@@ -267,9 +298,102 @@ def page_competition(
     corps = (
         f'<p><a class="back" href="/">{_t("retour", lang)}</a></p>'
         f"<h1>{_echapper(competition.nom)} -- {_t('classement_global_titre', lang)}</h1>"
+        f'<p><a href="/rattachement/{competition_id}">'
+        f'{_t("demander_rattachement_lien", lang)}</a></p>'
         f"{corps_classement}"
     )
     return _mise_en_page(competition.nom, corps, lang, theme, chemin_retour)
+
+
+def _competiteurs_de_la_competition(
+    conn: sqlite3.Connection, competition_id: str
+) -> list[Competiteur]:
+    """Tous les compétiteurs inscrits à au moins une épreuve de cette
+    compétition, sans doublon -- base de recherche pour la demande de
+    rattachement (le rattachement est par compétition, pas par épreuve,
+    voir models/token.py)."""
+    vus: dict[str, Competiteur] = {}
+    for epreuve in db.list_epreuves_by_competition(conn, competition_id):
+        for inscription in db.list_inscriptions_by_epreuve(conn, epreuve.id):
+            if inscription.id_federal not in vus:
+                competiteur = db.get_competiteur(conn, inscription.id_federal)
+                if competiteur is not None:
+                    vus[inscription.id_federal] = competiteur
+    return sorted(vus.values(), key=lambda c: (c.nom, c.prenom))
+
+
+def page_rattachement(
+    conn: sqlite3.Connection,
+    competition_id: str,
+    lang: str = "fr",
+    theme: str = "dark",
+    recherche: str = "",
+) -> str:
+    """Recherche + formulaire de demande de rattachement -- pas de
+    rechargement automatique ici (contrairement aux pages de classement) :
+    un compétiteur en train de chercher son nom ou de remplir le champ
+    ne doit pas se faire couper par un rafraîchissement intempestif."""
+    chemin_retour = f"/rattachement/{competition_id}"
+    competition = db.get_competition(conn, competition_id)
+    if competition is None:
+        corps = f'<p>{_t("introuvable_competition", lang)}</p>'
+        return _mise_en_page(
+            _t("introuvable", lang), corps, lang, theme, chemin_retour, rafraichir=False
+        )
+
+    tous = _competiteurs_de_la_competition(conn, competition_id)
+    recherche_normalisee = recherche.strip().lower()
+    if recherche_normalisee:
+        resultats = [c for c in tous if recherche_normalisee in f"{c.prenom} {c.nom}".lower()]
+    else:
+        resultats = tous
+
+    if not resultats:
+        liste_html = f'<p>{_t("aucun_resultat", lang)}</p>'
+    else:
+        lignes = "".join(
+            "<li>"
+            f"{_echapper(competiteur.prenom)} {_echapper(competiteur.nom)} "
+            f'<form method="post" action="/rattachement/{competition_id}" '
+            'style="display:inline">'
+            f'<input type="hidden" name="id_federal" value="{_echapper(competiteur.id_federal)}">'
+            f'<button class="btn-primary" type="submit">{_t("cest_moi", lang)}</button>'
+            "</form></li>"
+            for competiteur in resultats
+        )
+        liste_html = f'<ul class="liste-epreuves">{lignes}</ul>'
+
+    corps = (
+        f'<p><a class="back" href="/competition/{competition_id}">'
+        f'{_t("retour_competition", lang)}</a></p>'
+        f'<h1>{_t("rattachement_titre", lang)}</h1>'
+        f'<p class="intro">{_t("rattachement_intro", lang)}</p>'
+        f'<form method="get" action="/rattachement/{competition_id}" class="field">'
+        f'<label for="recherche">{_t("rechercher", lang)}</label>'
+        f'<input type="text" id="recherche" name="recherche" value="{_echapper(recherche)}">'
+        f'<button class="btn-primary" type="submit" '
+        f'style="margin-top:0.5rem;width:fit-content;">{_t("chercher", lang)}</button>'
+        "</form>"
+        f"{liste_html}"
+    )
+    return _mise_en_page(
+        _t("rattachement_titre", lang), corps, lang, theme, chemin_retour, rafraichir=False
+    )
+
+
+def page_confirmation_rattachement(
+    competition_id: str, lang: str = "fr", theme: str = "dark"
+) -> str:
+    chemin_retour = f"/competition/{competition_id}"
+    corps = (
+        f'<h1>{_t("demande_envoyee_titre", lang)}</h1>'
+        f'<p>{_t("demande_envoyee", lang)}</p>'
+        f'<p><a class="back" href="/competition/{competition_id}">'
+        f'{_t("retour_competition", lang)}</a></p>'
+    )
+    return _mise_en_page(
+        _t("demande_envoyee_titre", lang), corps, lang, theme, chemin_retour, rafraichir=False
+    )
 
 
 class ServeurCompetiteur(HTTPServer):
@@ -287,6 +411,14 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
 
     def _connexion_lecture_seule(self) -> sqlite3.Connection:
         conn = sqlite3.connect(f"file:{self.server.chemin_base}?mode=ro", uri=True)
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    def _connexion_ecriture(self) -> sqlite3.Connection:
+        """Réservée aux quelques écritures à faible enjeu autorisées
+        depuis la vue compétiteur (demande de rattachement) -- voir le
+        docstring du module."""
+        conn = sqlite3.connect(self.server.chemin_base)
         conn.row_factory = sqlite3.Row
         return conn
 
@@ -361,6 +493,10 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
                 corps = page_epreuve(conn, chemin.removeprefix("/epreuve/"), lang, theme)
             elif chemin.startswith("/competition/"):
                 corps = page_competition(conn, chemin.removeprefix("/competition/"), lang, theme)
+            elif chemin.startswith("/rattachement/"):
+                competition_id = chemin.removeprefix("/rattachement/")
+                recherche = parse_qs(url.query).get("recherche", [""])[0]
+                corps = page_rattachement(conn, competition_id, lang, theme, recherche)
             else:
                 self.send_response(404)
                 self.send_header("Content-Type", "text/plain; charset=utf-8")
@@ -379,6 +515,48 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
 
     def log_message(self, format: str, *args) -> None:  # noqa: A002
         pass  # pas besoin des logs de requêtes HTTP dans le terminal de l'organisateur
+
+    def do_POST(self) -> None:  # noqa: N802 -- imposé par BaseHTTPRequestHandler
+        url = urlparse(self.path)
+        chemin = url.path
+        lang, theme = self._lire_preferences()
+
+        if not chemin.startswith("/rattachement/"):
+            self.send_response(404)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(_t("page_introuvable", lang).encode("utf-8"))
+            return
+
+        competition_id = chemin.removeprefix("/rattachement/")
+        longueur = int(self.headers.get("Content-Length", 0))
+        corps_requete = self.rfile.read(longueur).decode("utf-8") if longueur else ""
+        champs = parse_qs(corps_requete)
+        id_federal = champs.get("id_federal", [""])[0]
+
+        conn = self._connexion_ecriture()
+        try:
+            try:
+                services.demander_rattachement(conn, id_federal, competition_id)
+                corps = page_confirmation_rattachement(competition_id, lang, theme)
+            except ErreurMetier as erreur:
+                corps = _mise_en_page(
+                    _t("erreur", lang),
+                    f"<p>{_echapper(str(erreur))}</p>",
+                    lang,
+                    theme,
+                    f"/rattachement/{competition_id}",
+                    rafraichir=False,
+                )
+        finally:
+            conn.close()
+
+        corps_octets = corps.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(corps_octets)))
+        self.end_headers()
+        self.wfile.write(corps_octets)
 
 
 def creer_serveur(chemin_base: str, port: int = 0) -> ServeurCompetiteur:

@@ -627,3 +627,27 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   suivante, et un aperçu HTML complet généré et relu ligne par ligne
   pour confirmer un rendu cohérent (état "actif" des boutons, bonne
   langue, chemins de retour corrects).
+
+- **Endpoint de rattachement : vrai formulaire HTML `POST`, pas un
+  lien `GET`.** Une demande de rattachement crée une ligne en base --
+  une action qui modifie un état ne devrait pas être déclenchable par
+  un simple lien `GET` (rechargement de page, prefetch de navigateur,
+  ou simple accident de double-clic pourraient la déclencher sans
+  intention). D'où un vrai `<form method="post">`, avec `do_POST()`
+  ajouté au gestionnaire -- première écriture de tout le module.
+  `page_rattachement()` désactive volontairement le rafraîchissement
+  automatique (`rafraichir=False`), contrairement aux pages de
+  classement : un compétiteur en train de chercher son nom ou de
+  s'apprêter à cliquer ne doit pas se faire interrompre par un
+  rechargement intempestif au mauvais moment. La recherche se fait
+  parmi tous les compétiteurs inscrits à *au moins une épreuve* de la
+  compétition (`_competiteurs_de_la_competition()`), pas par épreuve :
+  le rattachement (comme le `Token`) est par (compétiteur, compétition),
+  pas par épreuve. **Bug de texte repéré en relisant une page générée
+  réellement, pas en test unitaire** : le lien de retour affichait
+  "Toutes les compétitions" en pointant en fait vers une compétition
+  précise -- texte trompeur, corrigé avec une clé i18n dédiée
+  (`retour_competition`). Vérifié réellement de bout en bout : un vrai
+  `POST` HTTP crée une vraie ligne en base, relue ensuite par une
+  connexion séparée pour confirmer -- pas seulement que la page de
+  confirmation s'affiche côté client.

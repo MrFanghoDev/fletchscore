@@ -1,6 +1,6 @@
 # Roadmap FletchScore
 
-**État actuel : v0.1 et v0.2 complètes -- 304 tests, tous verts,
+**État actuel : v0.1 et v0.2 complètes -- 316 tests, tous verts,
 confirmés par la CI sans aucun `skipped`** (y compris les 3 tests
 fpdf2, jamais exécutables dans l'environnement de dev utilisé ici).
 `models/`, `storage/`, `referentiels/`, `io/import_csv.py` (import +
@@ -180,12 +180,25 @@ la vraie donnée sensible.
       **vérifiés aussi en conditions réelles** (flux complet
       demande → validation → vérification avec un vrai secret, un
       mauvais secret bien rejeté).
-- [ ] Génération de QR code (nouvelle dépendance `qrcode` à ajouter)
+- [ ] Génération de QR code (nouvelle dépendance `qrcode` ajoutée à
+      `pyproject.toml`, pas encore utilisée -- reste la génération de
+      l'image et son affichage GUI)
 - [ ] GUI organisateur : voir/valider/rejeter les demandes, afficher le
       code court/QR généré
-- [ ] Endpoint web compétiteur pour soumettre une demande de
-      rattachement (`api/competiteur.py` n'a que des `GET` pour
-      l'instant, voir v0.2)
+- [x] Endpoint web compétiteur pour soumettre une demande de
+      rattachement -- `GET /rattachement/<competition_id>` (recherche
+      par nom parmi tous les inscrits de la compétition, insensible à
+      la casse) puis `POST` (vrai formulaire HTML, sans JavaScript) qui
+      appelle `services.demander_rattachement()`. Pas de rafraîchissement
+      automatique sur cette page (contrairement au classement) : un
+      compétiteur en train de chercher ou remplir un formulaire ne doit
+      pas se faire couper. 12 tests, dont 4 d'intégration avec un
+      **vrai POST HTTP qui crée réellement une demande en base**,
+      vérifiée après coup par une connexion séparée -- pas seulement
+      que la page de confirmation s'affiche. **Bug de texte repéré en
+      relisant une page générée réellement** (pas en test unitaire) :
+      le lien de retour disait "Toutes les compétitions" en pointant en
+      fait vers une compétition précise -- corrigé avec un texte dédié.
 - [ ] Authentification organisateur (mot de passe hashé dans
       `config/auth.toml`, déjà réservé dans `.gitignore` depuis le
       début -- jamais implémenté jusqu'ici)
