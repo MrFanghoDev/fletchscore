@@ -90,6 +90,23 @@ boutons d'export -- une colonne par épreuve, plus un total cumulé.
 La liste du classement s'affiche en dessous, groupée par catégorie
 (sexe + tranche d'âge + style), triée par total décroissant.
 
+Vue compétiteur
+==================
+
+Un bouton **Démarrer le serveur** / **Arrêter le serveur**. Une fois
+démarré, l'adresse à donner aux compétiteurs s'affiche (à taper dans le
+navigateur de leur téléphone, sur le même wifi que le club). La page
+qu'ils voient liste les compétitions et épreuves en cours, avec un lien
+vers le classement de chacune -- en lecture seule, rien n'y est
+modifiable, la page se recharge automatiquement toutes les 15 secondes.
+
+.. note::
+
+   Aucune identification n'est demandée à ce stade (v0.2) -- n'importe
+   qui sur le réseau du club peut consulter les classements, mais pas
+   les modifier. La proposition de score par le compétiteur lui-même
+   (avec token d'accès) arrive dans une version ultérieure.
+
 Aide
 =======
 

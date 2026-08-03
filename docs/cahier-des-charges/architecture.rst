@@ -49,14 +49,14 @@ Stack
    :doc:`roadmap` pour les deux bugs de déclencheur rencontrés et
    corrigés sur la première vraie Release.
 
-Vue d'ensemble des flux (v0.1)
-===================================
+Vue d'ensemble des flux (v0.1 + v0.2)
+==========================================
 
 .. mermaid::
 
    flowchart TB
-       subgraph "Poste organisateur (construit)"
-           GUI["gui/ (6 écrans)"]
+       subgraph "Poste organisateur (construit, v0.1)"
+           GUI["gui/ (7 écrans)"]
            SERVICES[services.py]
            DB[(SQLite local)]
            SCORING[scoring/]
@@ -70,13 +70,23 @@ Vue d'ensemble des flux (v0.1)
        EXPORT --> PDF[PDF]
        EXPORT --> CSV[CSV]
 
-.. admonition:: Vue compétiteur en ligne -- pas encore construite
-   :class: warning
+       subgraph "Vue compétiteur (construite, v0.2 -- lecture seule)"
+           WEB["api/competiteur.py\n(http.server, thread séparé)"]
+           NAVIGATEUR["Navigateur du compétiteur\n(même wifi que le club)"]
+           NAVIGATEUR -->|GET, sans auth| WEB
+       end
 
-   ``api/organisateur.py`` et ``api/competiteur.py`` existent comme
-   fichiers vides (squelette) -- prévus v0.2/v0.3, voir :doc:`roadmap`.
-   Rien de fonctionnel derrière pour l'instant : pas de serveur
-   ``http.server``, pas de token, pas de page web compétiteur.
+       DB -.connexion SQLite dédiée, lecture seule (mode=ro).-> WEB
+
+.. admonition:: Vue compétiteur -- lecture seule construite (v0.2)
+   :class: note
+
+   ``api/competiteur.py`` sert désormais une page web en lecture seule
+   (classement live, sans token ni authentification -- zéro écriture,
+   zéro risque de sécurité nouveau). ``api/organisateur.py`` reste un
+   fichier vide -- la proposition de score par le compétiteur et sa
+   validation par l'organisateur restent prévues v0.3/v0.4, voir
+   :doc:`roadmap`.
 
 Arborescence réelle (v0.1)
 ================================
@@ -116,7 +126,9 @@ Arborescence réelle (v0.1)
    │   │   ├── dialogue_fichier.py  # sélecteur de chemin maison (pas
    │   │   │                        # tkinter.filedialog -- bug Pydroid)
    │   │   └── ecran_*.py           # un fichier par écran
-   │   ├── api/                # squelette vide -- v0.2/v0.3, voir plus haut
+   │   ├── api/
+   │   │   ├── competiteur.py        # serveur HTTP lecture seule (v0.2)
+   │   │   └── organisateur.py       # squelette vide -- v0.3/v0.4
    │   └── __main__.py         # argparse (-h, -V, -v, -d, --db, --http-port)
    ├── tests/                  # ~250 tests -- voir :doc:`roadmap`
    ├── exemples/                # CSV d'exemple pour tests manuels

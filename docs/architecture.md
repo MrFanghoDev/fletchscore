@@ -547,3 +547,24 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   persiste malgré un fichier identique à celui qui fonctionne côté
   FletchTime : **configuration GitHub du dépôt** (Settings > Pages >
   Source, voir docs/roadmap.md), pas le workflow lui-même.
+
+- **v0.2 -- vue compétiteur : chaque requête HTTP ouvre sa propre
+  connexion SQLite en lecture seule.** Le serveur (`api/competiteur.py`)
+  tourne dans un thread séparé pendant que la GUI continue -- partager
+  la connexion de la GUI serait dangereux (les connexions sqlite3 ne
+  sont pas conçues pour être utilisées depuis un autre thread que celui
+  qui les a créées). Chaque requête ouvre donc sa propre connexion via
+  l'URI `file:...?mode=ro` : lecture seule garantie au niveau SQLite
+  lui-même, pas seulement par convention dans le code Python -- même un
+  bug qui tenterait une écriture échouerait proprement plutôt que de
+  corrompre quoi que ce soit. Design cadré par 3 questions posées avant
+  de coder (que voit le compétiteur, démarrage auto ou bouton,
+  mécanique de rafraîchissement) plutôt que de deviner -- première
+  brique web du projet, plus de choix structurants que d'habitude.
+  L'état du serveur (instance + thread) vit sur `FenetrePrincipale`, pas
+  sur l'écran GUI qui le pilote : l'écran est détruit et recréé à
+  chaque navigation, mais le serveur doit continuer de tourner en
+  arrière-plan pendant ce temps. Vérifié réellement de bout en bout
+  hors GUI : démarrage, vraie requête HTTP sur un vrai port, arrêt
+  propre -- pas seulement les fonctions de génération de page testées
+  isolément.

@@ -1,10 +1,12 @@
 # Roadmap FletchScore
 
-**État actuel : v0.1 complète -- 253 tests, tous verts, confirmés par la
-CI sans aucun `skipped`** (y compris les 3 tests fpdf2, jamais exécutables
-dans l'environnement de dev utilisé ici). `models/`, `storage/`,
-`referentiels/`, `io/import_csv.py` (import + export CSV clubs/
-compétiteurs), `scoring/`, `gui/` et `io/export/` sont tous codés. Extension modèles d'épreuve réutilisables (besoin 2)
+**État actuel : v0.1 et v0.2 complètes -- 266 tests, tous verts,
+confirmés par la CI sans aucun `skipped`** (y compris les 3 tests
+fpdf2, jamais exécutables dans l'environnement de dev utilisé ici).
+`models/`, `storage/`, `referentiels/`, `io/import_csv.py` (import +
+export CSV clubs/compétiteurs), `scoring/`, `gui/`, `io/export/` et
+`api/competiteur.py` (vue compétiteur en lecture seule) sont tous
+codés. Extension modèles d'épreuve réutilisables (besoin 2)
 également complète, backend et GUI. Version affichée automatiquement
 dans le titre GUI et la doc Sphinx (voir `docs/architecture.md`). Logo
 FletchScore intégré (`branding/`) : README, doc Sphinx, icône de
@@ -112,8 +114,25 @@ encore été essayés.
 
 ## v0.2 -- Vue compétiteur, lecture seule
 
-- [ ] `api/competiteur.py` (lecture uniquement)
-- [ ] Page web : consultation du classement live depuis un téléphone
+- [x] `api/competiteur.py` (lecture uniquement) -- serveur HTTP stdlib
+      (`http.server`), zéro dépendance ajoutée. Chaque requête ouvre sa
+      propre connexion SQLite en lecture seule (`file:...?mode=ro`) --
+      jamais celle de la GUI, qui appartient à un autre thread. Pas de
+      template engine : HTML généré par de simples f-strings, échappé
+      via `html.escape`. 13 tests, dont 3 d'intégration avec un **vrai
+      serveur démarré sur un port réel et de vraies requêtes HTTP**
+      (`urllib.request`) -- pas seulement les fonctions de génération de
+      page testées isolément.
+- [x] Page web : liste des compétitions/épreuves en cours -> clic ->
+      classement (par épreuve, ou global cumulé pour toute la
+      compétition). Rechargement automatique par balise
+      `<meta http-equiv="refresh">` (15 s) -- pas de JS.
+- [x] GUI (`gui/ecran_vue_competiteur.py`) : bouton démarrer/arrêter
+      explicite (pas de démarrage automatique). L'état du serveur
+      (thread + instance) vit sur `FenetrePrincipale`, pas sur l'écran
+      lui-même -- l'écran est recréé à chaque navigation, le serveur
+      doit lui survivre. ⚠️ **rendu non vérifié** -- cycle
+      démarrer/requête/arrêter vérifié réellement hors GUI.
 
 Zéro écriture, donc zéro risque de sécurité nouveau -- rapide à sortir et
 à faire tester par de vrais archers en salle.

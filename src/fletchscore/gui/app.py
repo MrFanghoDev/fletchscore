@@ -12,11 +12,13 @@ from __future__ import annotations
 
 import signal
 import sqlite3
+import threading
 from pathlib import Path
 
 import customtkinter as ctk
 
 from fletchscore import __version__
+from fletchscore.api.competiteur import adresse_ip_locale, creer_serveur
 from fletchscore.gui import config as gui_config
 from fletchscore.gui.ecran_accueil import EcranAccueil
 from fletchscore.gui.ecran_aide import EcranAide
@@ -24,6 +26,7 @@ from fletchscore.gui.ecran_classement import EcranClassement
 from fletchscore.gui.ecran_competiteurs import EcranCompetiteurs
 from fletchscore.gui.ecran_competitions import EcranCompetitions
 from fletchscore.gui.ecran_saisie import EcranSaisie
+from fletchscore.gui.ecran_vue_competiteur import EcranVueCompetiteur
 from fletchscore.gui.robustesse import (
     ErreurAffichageIndisponible,
     construire_fenetre,
@@ -39,6 +42,7 @@ LIBELLES_SECTIONS = {
     "competiteurs": "Compétiteurs",
     "saisie": "Saisie des scores",
     "classement": "Classement",
+    "vue_competiteur": "Vue compétiteur",
     "aide": "Aide",
 }
 
@@ -48,6 +52,9 @@ class FenetrePrincipale(ctk.CTk):
         super().__init__()
         self.conn = conn
         self.config_gui = config
+        self.chemin_base_db: str | None = None
+        self.serveur_web = None
+        self.thread_serveur_web: threading.Thread | None = None
 
         self.title(f"FletchScore {__version__}")
         self.geometry("1100x700")
@@ -160,7 +167,42 @@ class FenetrePrincipale(ctk.CTk):
             ecran.grid(row=0, column=0, sticky="nsew")
             return
 
+        if cle == "vue_competiteur":
+            ecran = EcranVueCompetiteur(self.cadre_section, self)
+            ecran.grid(row=0, column=0, sticky="nsew")
+            return
+
         raise ValueError(f"Section inconnue : {cle}")
+
+    # -- Serveur de la vue compétiteur (v0.2, lecture seule) --------------
+
+    def demarrer_serveur_web(self) -> str:
+        """Démarre le serveur s'il ne tourne pas déjà, retourne son URL.
+
+        Ne réutilise jamais ``self.conn`` (celle de la GUI) : le serveur
+        tourne dans un thread séparé et ouvre ses propres connexions en
+        lecture seule -- voir ``api/competiteur.py``.
+        """
+        if self.serveur_web is None:
+            chemin = self.chemin_base_db or str(CHEMIN_BASE_PAR_DEFAUT)
+            self.serveur_web = creer_serveur(chemin)
+            self.thread_serveur_web = threading.Thread(
+                target=self.serveur_web.serve_forever, daemon=True
+            )
+            self.thread_serveur_web.start()
+        return self.url_serveur_web()
+
+    def arreter_serveur_web(self) -> None:
+        if self.serveur_web is not None:
+            self.serveur_web.shutdown()
+            self.serveur_web.server_close()
+            self.serveur_web = None
+            self.thread_serveur_web = None
+
+    def url_serveur_web(self) -> str | None:
+        if self.serveur_web is None:
+            return None
+        return f"http://{adresse_ip_locale()}:{self.serveur_web.server_port}/"
 
     # -- Préférences -------------------------------------------------------
 
@@ -180,6 +222,11 @@ def lancer(chemin_base: Path | str = CHEMIN_BASE_PAR_DEFAUT) -> None:
             application = construire_fenetre(conn, config, FenetrePrincipale)
         except ErreurAffichageIndisponible as erreur:
             raise SystemExit(str(erreur)) from erreur
+
+        # Chemin du fichier, pas la connexion -- le serveur web (démarré à
+        # la demande depuis l'écran "Vue compétiteur") ouvre ses propres
+        # connexions en lecture seule dans un thread séparé.
+        application.chemin_base_db = str(chemin_base)
 
         gestionnaire_arret = construire_gestionnaire_arret(application)
         for signal_gere in (signal.SIGINT, signal.SIGTERM):
