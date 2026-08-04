@@ -596,6 +596,13 @@ def get_token_by_code_court(conn: sqlite3.Connection, code_court: str) -> Token 
     return _row_to_token(row) if row else None
 
 
+def list_tokens_by_competition(conn: sqlite3.Connection, competition_id: str) -> list[Token]:
+    rows = conn.execute(
+        "SELECT * FROM tokens WHERE competition_id = ? ORDER BY cree_le", (competition_id,)
+    ).fetchall()
+    return [_row_to_token(r) for r in rows]
+
+
 def revoquer_token(conn: sqlite3.Connection, id_federal: str, competition_id: str) -> None:
     conn.execute(
         """UPDATE tokens SET statut = ?

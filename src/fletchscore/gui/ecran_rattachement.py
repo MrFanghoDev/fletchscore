@@ -41,7 +41,7 @@ class EcranRattachement(ctk.CTkFrame):
 
         self._construire_selecteur_competition()
         self._construire_zone_erreur()
-        self._construire_liste_demandes()
+        self._construire_onglets()
         self._rafraichir_competitions()
 
     # -- Sélecteur de compétition ------------------------------------------
@@ -55,13 +55,11 @@ class EcranRattachement(ctk.CTkFrame):
         self.menu_competition = ctk.CTkOptionMenu(
             cadre,
             values=["(aucune compétition)"],
-            command=lambda _libelle: self._rafraichir_demandes(),
+            command=lambda _libelle: self._rafraichir_tout(),
         )
         self.menu_competition.grid(row=0, column=1, sticky="ew", padx=(0, 10))
 
-        ctk.CTkButton(cadre, text="Actualiser", command=self._rafraichir_demandes).grid(
-            row=0, column=2
-        )
+        ctk.CTkButton(cadre, text="Actualiser", command=self._rafraichir_tout).grid(row=0, column=2)
 
     def _rafraichir_competitions(self) -> None:
         # Même logique que l'export global du classement : dérivée de
@@ -77,7 +75,7 @@ class EcranRattachement(ctk.CTkFrame):
             self.menu_competition.configure(values=["(aucune compétition)"])
             self.menu_competition.set("(aucune compétition)")
             self._competitions_par_libelle = {}
-            self._rafraichir_demandes()
+            self._rafraichir_tout()
             return
 
         self._competitions_par_libelle = {
@@ -86,7 +84,7 @@ class EcranRattachement(ctk.CTkFrame):
         libelles = list(self._competitions_par_libelle.keys())
         self.menu_competition.configure(values=libelles)
         self.menu_competition.set(libelles[0])
-        self._rafraichir_demandes()
+        self._rafraichir_tout()
 
     def _construire_zone_erreur(self) -> None:
         self.erreur = ctk.CTkLabel(self, text="", text_color="red", wraplength=550)
@@ -98,12 +96,31 @@ class EcranRattachement(ctk.CTkFrame):
     def _afficher_info(self, message: str) -> None:
         self.erreur.configure(text=message, text_color="green")
 
-    # -- Liste des demandes --------------------------------------------------
+    # -- Onglets : demandes en attente / accès actifs -----------------------
 
-    def _construire_liste_demandes(self) -> None:
-        self.liste_demandes = ctk.CTkScrollableFrame(self, fg_color="transparent")
-        self.liste_demandes.grid(row=3, column=0, sticky="nsew")
+    def _construire_onglets(self) -> None:
+        self.onglets = ctk.CTkTabview(self)
+        self.onglets.grid(row=3, column=0, sticky="nsew")
+        self.onglets.add("Demandes en attente")
+        self.onglets.add("Accès actifs")
+
+        onglet_demandes = self.onglets.tab("Demandes en attente")
+        onglet_demandes.grid_columnconfigure(0, weight=1)
+        onglet_demandes.grid_rowconfigure(0, weight=1)
+        self.liste_demandes = ctk.CTkScrollableFrame(onglet_demandes, fg_color="transparent")
+        self.liste_demandes.grid(row=0, column=0, sticky="nsew")
         self.liste_demandes.grid_columnconfigure(0, weight=1)
+
+        onglet_actifs = self.onglets.tab("Accès actifs")
+        onglet_actifs.grid_columnconfigure(0, weight=1)
+        onglet_actifs.grid_rowconfigure(0, weight=1)
+        self.liste_actifs = ctk.CTkScrollableFrame(onglet_actifs, fg_color="transparent")
+        self.liste_actifs.grid(row=0, column=0, sticky="nsew")
+        self.liste_actifs.grid_columnconfigure(0, weight=1)
+
+    def _rafraichir_tout(self) -> None:
+        self._rafraichir_demandes()
+        self._rafraichir_actifs()
 
     def _rafraichir_demandes(self) -> None:
         for widget in self.liste_demandes.winfo_children():
@@ -154,7 +171,7 @@ class EcranRattachement(ctk.CTkFrame):
             self._afficher_erreur(str(erreur))
             return
 
-        self._rafraichir_demandes()
+        self._rafraichir_tout()
         self._afficher_info(f"Accès validé -- code {token.code_court}.")
         _FenetreToken(self, token.code_court, secret)
 
@@ -168,6 +185,47 @@ class EcranRattachement(ctk.CTkFrame):
 
         self._rafraichir_demandes()
         self._afficher_info("Demande rejetée.")
+
+    # -- Accès actifs -------------------------------------------------------
+
+    def _rafraichir_actifs(self) -> None:
+        for widget in self.liste_actifs.winfo_children():
+            widget.destroy()
+
+        competition = self._competitions_par_libelle.get(self.menu_competition.get())
+        if competition is None:
+            return
+
+        actifs = services.lister_tokens_actifs(self.conn, competition.id)
+        if not actifs:
+            ctk.CTkLabel(self.liste_actifs, text="Aucun accès actif pour l'instant.").grid(
+                row=0, column=0, sticky="w", pady=10
+            )
+            return
+
+        for index, (competiteur, token) in enumerate(actifs):
+            ligne = ctk.CTkFrame(self.liste_actifs, fg_color="transparent")
+            ligne.grid(row=index, column=0, sticky="ew", pady=3)
+            ligne.grid_columnconfigure(0, weight=1)
+
+            texte = (
+                f"{competiteur.prenom} {competiteur.nom} ({competiteur.id_federal}) -- "
+                f"code {token.code_court}"
+            )
+            ctk.CTkLabel(ligne, text=texte, anchor="w").grid(row=0, column=0, sticky="ew")
+            ctk.CTkButton(
+                ligne,
+                text="Révoquer",
+                width=90,
+                fg_color="gray40",
+                command=lambda c=competiteur, comp=competition: self._revoquer(c, comp),
+            ).grid(row=0, column=1, padx=(6, 0))
+
+    def _revoquer(self, competiteur, competition) -> None:
+        self._afficher_erreur("")
+        services.revoquer_acces(self.conn, competiteur.id_federal, competition.id)
+        self._rafraichir_actifs()
+        self._afficher_info(f"Accès de {competiteur.prenom} {competiteur.nom} révoqué.")
 
 
 class _FenetreToken(ctk.CTkToplevel):

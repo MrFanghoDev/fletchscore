@@ -1,6 +1,6 @@
 # Roadmap FletchScore
 
-**État actuel : v0.1 et v0.2 complètes, v0.3 en cours -- 326 tests,
+**État actuel : v0.1 et v0.2 complètes, v0.3 en cours -- 345 tests,
 tous verts, confirmés par la CI sans aucun `skipped`** (y compris les
 tests fpdf2/qrcode, jamais exécutables dans l'environnement de dev
 utilisé ici).
@@ -236,6 +236,41 @@ la vraie donnée sensible.
       la vérification reste un acte humain -- FletchScore n'a aucun
       moyen de la faire à la place de l'organisateur, seulement
       d'afficher ce qu'il connaît déjà pour aider à recouper.
+- [x] Demande de rattachement déplacée sur la page d'accueil du
+      compétiteur -- demande de l'utilisateur. Un lien apparaît
+      maintenant directement sous chaque compétition listée en accueil
+      (plus besoin de d'abord ouvrir le classement global pour le
+      trouver) ; conservé aussi sur la page compétition, les deux
+      cohabitent sans conflit.
+- [x] Page d'accueil du compétiteur plus accueillante -- message de
+      bienvenue + phrase d'intro (bilingue), avant la liste des
+      compétitions. Demande de l'utilisateur.
+- [x] Saisie manuelle du code de confirmation -- une fois un
+      rattachement validé par l'organisateur, le compétiteur peut taper
+      son code à 6 caractères directement sur la page d'accueil
+      (`POST /code`) plutôt que de devoir scanner le QR. Nouvelle
+      fonction `services.verifier_code_court()`, **volontairement plus
+      faible que `verifier_token()`** (ne demande pas le secret complet)
+      -- acceptable maintenant (aucune donnée sensible en jeu), à
+      revoir avant la v0.4 si ce chemin sert un jour à transmettre un
+      score. 8 tests, dont un vrai `POST /code` avec un vrai token
+      généré, vérifié de bout en bout.
+- [x] Révocation d'accès depuis la GUI -- demande de l'utilisateur.
+      `services.revoquer_acces()` (enveloppe `db.revoquer_token`, déjà
+      existante mais jamais appelée depuis aucune couche supérieure) et
+      `services.lister_tokens_actifs()` (nouveau,
+      `db.list_tokens_by_competition()` ajoutée). L'écran "Demandes
+      d'accès" a maintenant deux onglets (`CTkTabview`) : "Demandes en
+      attente" (inchangé) et "Accès actifs" (nouveau, bouton Révoquer
+      par ligne). 11 tests.
+- [ ] **Envoi de message à un compétiteur (ou à tous)** -- demandé par
+      l'utilisateur, pas encore fait. Contrairement au reste, rien
+      n'existe dans le modèle de données pour ça (pas de table
+      `messages`) -- vraie nouvelle fonctionnalité, pas un fil déjà
+      posé à brancher. Nécessite de cadrer avant de coder : comment le
+      compétiteur voit-il un message (page dédiée ? bandeau sur
+      l'accueil ?), est-ce lu une fois puis disparu ou persistant,
+      faut-il une trace côté organisateur de qui l'a vu.
 
 Prérequis technique avant d'ouvrir la moindre écriture externe -- pas de
 fonctionnalité visible en soi, mais indispensable avant la v0.4.

@@ -13,6 +13,7 @@ from fletchscore.models import (
     StatutCompetition,
     StatutDemandeRattachement,
     StatutScore,
+    StatutToken,
 )
 from fletchscore.services import (
     ErreurMetier,
@@ -904,6 +905,59 @@ class TestVerifierToken(TokenTestCase):
         token, secret = services.generer_token(self.conn, "FR-1", competition.id)
         db.revoquer_token(self.conn, "FR-1", competition.id)
         self.assertIsNone(services.verifier_token(self.conn, token.code_court, secret))
+
+
+class TestVerifierCodeCourt(TokenTestCase):
+    def test_code_valide_accepte_sans_secret(self):
+        competition = self._competition()
+        token, _secret = services.generer_token(self.conn, "FR-1", competition.id)
+        verifie = services.verifier_code_court(self.conn, token.code_court)
+        self.assertEqual(verifie, token)
+
+    def test_code_inconnu_refuse(self):
+        self.assertIsNone(services.verifier_code_court(self.conn, "ZZZZZZ"))
+
+    def test_code_revoque_refuse(self):
+        competition = self._competition()
+        token, _secret = services.generer_token(self.conn, "FR-1", competition.id)
+        db.revoquer_token(self.conn, "FR-1", competition.id)
+        self.assertIsNone(services.verifier_code_court(self.conn, token.code_court))
+
+
+class TestRevoquerAcces(TokenTestCase):
+    def test_revoque_un_token_existant(self):
+        competition = self._competition()
+        token, secret = services.generer_token(self.conn, "FR-1", competition.id)
+        services.revoquer_acces(self.conn, "FR-1", competition.id)
+        self.assertIsNone(services.verifier_token(self.conn, token.code_court, secret))
+
+    def test_ne_leve_pas_derreur_si_aucun_token(self):
+        competition = self._competition()
+        services.revoquer_acces(self.conn, "FR-1", competition.id)  # ne doit pas planter
+
+
+class TestListerTokensActifs(TokenTestCase):
+    def test_liste_les_tokens_non_revoques(self):
+        competition = self._competition()
+        services.generer_token(self.conn, "FR-1", competition.id)
+
+        actifs = services.lister_tokens_actifs(self.conn, competition.id)
+
+        self.assertEqual(len(actifs), 1)
+        competiteur, token = actifs[0]
+        self.assertEqual(competiteur.id_federal, "FR-1")
+        self.assertEqual(token.statut, StatutToken.EMIS)
+
+    def test_exclut_les_tokens_revoques(self):
+        competition = self._competition()
+        services.generer_token(self.conn, "FR-1", competition.id)
+        services.revoquer_acces(self.conn, "FR-1", competition.id)
+
+        self.assertEqual(services.lister_tokens_actifs(self.conn, competition.id), [])
+
+    def test_liste_vide_si_aucun_token(self):
+        competition = self._competition()
+        self.assertEqual(services.lister_tokens_actifs(self.conn, competition.id), [])
 
 
 class TestDemanderRattachement(TokenTestCase):

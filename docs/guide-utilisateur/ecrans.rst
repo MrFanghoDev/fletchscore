@@ -118,17 +118,25 @@ ci-dessous).
 Demandes d'accès
 ====================
 
-Un sélecteur de compétition, puis la liste des demandes en attente --
-nom, prénom, id fédéral, date de naissance et club, pour recouper avec
-une carte de licence ou une pièce d'identité. **FletchScore ne vérifie
-rien à ta place** : à toi de confirmer l'identité de visu avant de
-cliquer sur **Valider**.
+Un sélecteur de compétition, puis deux onglets.
 
-Une fois validée, une fenêtre s'ouvre avec un code d'accès (et un QR
-code, si la bibliothèque correspondante est installée) -- à transmettre
-immédiatement au compétiteur : une fois cette fenêtre fermée, ce code
-ne sera plus jamais réaffichable. Le bouton **Rejeter** clôt une
-demande sans rien attribuer.
+**Demandes en attente**
+   Nom, prénom, id fédéral, date de naissance et club, pour recouper
+   avec une carte de licence ou une pièce d'identité. **FletchScore ne
+   vérifie rien à ta place** : à toi de confirmer l'identité de visu
+   avant de cliquer sur **Valider**.
+
+   Une fois validée, une fenêtre s'ouvre avec un code d'accès (et un QR
+   code, si la bibliothèque correspondante est installée) -- à
+   transmettre immédiatement au compétiteur : une fois cette fenêtre
+   fermée, ce code ne sera plus jamais réaffichable. Le bouton
+   **Rejeter** clôt une demande sans rien attribuer.
+
+**Accès actifs**
+   La liste des compétiteurs ayant déjà un accès valide pour la
+   compétition sélectionnée, avec un bouton **Révoquer** -- utile si un
+   accès a été donné par erreur, ou si un compétiteur ne doit plus
+   pouvoir se connecter.
 
 Aide
 =======

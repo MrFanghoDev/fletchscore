@@ -713,3 +713,38 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   coup d'œil. Une note explicite en tête d'écran clarifie la limite :
   aucune vérification automatique n'existe ni n'est prévue, le rôle du
   logiciel s'arrête à afficher ce qu'il sait déjà.
+
+- **`verifier_code_court()` : délibérément plus faible que
+  `verifier_token()`, documenté comme tel.** Le compétiteur doit
+  pouvoir taper son code à la main sans avoir à recopier le secret
+  complet (peu pratique) -- mais un code à 6 caractères depuis un
+  alphabet de 32 (~30 bits) est en théorie devinable par force brute,
+  ce que le HMAC du token complet empêche. Acceptable maintenant : v0.3
+  n'a encore aucune donnée sensible derrière ce chemin (juste une
+  confirmation d'identité, pas un score). Le docstring de la fonction
+  prévient explicitement qu'il faudra revoir ce compromis avant que la
+  v0.4 (proposition de score) n'y transite -- plutôt que de découvrir
+  le problème après coup.
+
+- **Rattachement accessible directement depuis l'accueil, pas
+  seulement depuis la page compétition.** Demande de l'utilisateur.
+  Les deux points d'entrée cohabitent (le lien reste aussi sur
+  `page_competition`) -- coût nul, pas de raison de choisir entre les
+  deux quand garder les deux ne crée aucune incohérence.
+
+- **Écran "Demandes d'accès" : deux onglets (`CTkTabview`) plutôt que
+  deux listes empilées.** Demandes en attente et accès actifs sont deux
+  vues sur des données différentes (`DemandeRattachement` vs `Token`)
+  -- les séparer en onglets évite un écran qui grandit sans limite au
+  fil d'une compétition avec beaucoup d'inscrits. `_rafraichir_tout()`
+  recharge les deux après une validation (qui fait passer une entrée de
+  l'un à l'autre) ; un rejet ne touche que la liste des demandes, pas
+  celle des accès actifs, donc reste ciblé.
+
+- **Envoi de message : demandé, pas commencé -- rien dans le modèle de
+  données ne le supporte.** Contrairement aux autres demandes de cette
+  session (qui branchaient du code déjà existant à une couche
+  supérieure), c'est une vraie fonctionnalité neuve : pas de table
+  `messages`, pas de mécanisme de livraison pensé. Nécessite un vrai
+  cadrage avant de coder -- voir docs/roadmap.md pour les questions
+  ouvertes.

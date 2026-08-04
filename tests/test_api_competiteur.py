@@ -7,13 +7,17 @@ import urllib.parse
 import urllib.request
 from datetime import date
 from pathlib import Path
+from types import SimpleNamespace
+from unittest import mock
 
-from fletchscore import services
+from fletchscore import securite, services
 from fletchscore.api.competiteur import (
     adresse_ip_locale,
     creer_serveur,
     page_accueil,
+    page_code_invalide,
     page_competition,
+    page_confirmation_code,
     page_confirmation_rattachement,
     page_epreuve,
     page_rattachement,
@@ -77,6 +81,22 @@ class TestPageAccueil(unittest.TestCase):
         page = page_accueil(self.conn)
         self.assertIn('href="/theme.css"', page)
         self.assertIn('href="/classement.css"', page)
+
+    def test_contient_le_message_de_bienvenue(self):
+        page = page_accueil(self.conn)
+        self.assertIn("Bienvenue sur FletchScore", page)
+
+    def test_contient_la_section_code_dacces(self):
+        page = page_accueil(self.conn)
+        self.assertIn('action="/code"', page)
+        self.assertIn('name="code"', page)
+
+    def test_lien_de_rattachement_par_competition(self):
+        competition = services.creer_competition(
+            self.conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15)
+        )
+        page = page_accueil(self.conn)
+        self.assertIn(f"/rattachement/{competition.id}", page)
 
 
 class TestPageEpreuve(unittest.TestCase):
@@ -275,6 +295,31 @@ class TestPageConfirmationRattachement(unittest.TestCase):
         self.assertIn("Demande envoyée", page)
 
 
+class TestPageCode(unittest.TestCase):
+    def test_page_confirmation_code_affiche_le_nom(self):
+        competiteur = Competiteur(
+            id_federal="FR-1",
+            nom="Dupont",
+            prenom="Marie",
+            code_club="77123",
+            sexe=Sexe.F,
+            date_naissance=date(1995, 3, 14),
+            code_style="BB-R",
+        )
+        token = SimpleNamespace(code_court="AB23CD")
+        page = page_confirmation_code(token, "Week-end FFTL", competiteur)
+        self.assertIn("Marie", page)
+        self.assertIn("Dupont", page)
+        self.assertIn("Week-end FFTL", page)
+
+    def test_page_code_invalide_donne_un_message_clair(self):
+        page = page_code_invalide()
+        self.assertIn("invalide", page.lower())
+
+    def test_pas_de_rafraichissement_automatique(self):
+        self.assertNotIn('http-equiv="refresh"', page_code_invalide())
+
+
 class TestAdresseIpLocale(unittest.TestCase):
     def test_retourne_une_chaine_non_vide(self):
         adresse = adresse_ip_locale()
@@ -418,6 +463,30 @@ class TestServeurIntegration(unittest.TestCase):
         with urllib.request.urlopen(requete, timeout=5) as reponse:
             contenu = reponse.read().decode("utf-8")
         self.assertIn("introuvable", contenu.lower())
+
+    def test_post_code_valide_confirme_reellement(self):
+        with tempfile.TemporaryDirectory() as dossier_cle:
+            with mock.patch.object(
+                securite, "CHEMIN_CLE_PAR_DEFAUT", Path(dossier_cle) / "cle.txt"
+            ):
+                conn = db.connect(self.chemin_base)
+                token, _secret = services.generer_token(conn, "FR-1", self.competition_id)
+                conn.close()
+
+                donnees = urllib.parse.urlencode({"code": token.code_court}).encode("utf-8")
+                requete = urllib.request.Request(self._url("/code"), data=donnees, method="POST")
+                with urllib.request.urlopen(requete, timeout=5) as reponse:
+                    self.assertEqual(reponse.status, 200)
+                    contenu = reponse.read().decode("utf-8")
+        self.assertIn("Marie", contenu)
+        self.assertIn("confirmé", contenu.lower())
+
+    def test_post_code_invalide_donne_un_message_clair(self):
+        donnees = urllib.parse.urlencode({"code": "ZZZZZZ"}).encode("utf-8")
+        requete = urllib.request.Request(self._url("/code"), data=donnees, method="POST")
+        with urllib.request.urlopen(requete, timeout=5) as reponse:
+            contenu = reponse.read().decode("utf-8")
+        self.assertIn("invalide", contenu.lower())
 
 
 if __name__ == "__main__":

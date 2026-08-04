@@ -770,6 +770,35 @@ def verifier_token(conn: sqlite3.Connection, code_court: str, secret_token: str)
     return token
 
 
+def verifier_code_court(conn: sqlite3.Connection, code_court: str) -> Token | None:
+    """Vérifie un accès à partir du seul code court, saisi à la main --
+    volontairement plus faible que ``verifier_token()`` : ne demande pas
+    le secret complet, seulement le code à 6 caractères communiqué de
+    vive voix ou par écrit.
+
+    Acceptable dans le contexte actuel (v0.3, wifi de club, aucune
+    écriture de score en jeu -- juste "confirmer que je suis bien
+    identifié") mais **pas suffisant** le jour où une vraie donnée
+    sensible transitera par ce chemin (proposition de score, v0.4) :
+    un code à 6 caractères depuis un alphabet de 32 (~30 bits) reste
+    devinable par force brute si l'enjeu grandit -- à revoir à ce
+    moment-là plutôt que d'y ajouter des rustines a posteriori.
+    """
+    token = db.get_token_by_code_court(conn, code_court)
+    if token is None:
+        return None
+    if not token.est_valide(datetime.now()):
+        return None
+    return token
+
+
+def revoquer_acces(conn: sqlite3.Connection, id_federal: str, competition_id: str) -> None:
+    """Révoque le token d'un compétiteur pour une compétition -- ne lève
+    pas d'erreur si aucun token n'existait déjà (l'effet recherché,
+    "cette personne n'a plus accès", est atteint dans les deux cas)."""
+    db.revoquer_token(conn, id_federal, competition_id)
+
+
 def demander_rattachement(
     conn: sqlite3.Connection, id_federal: str, competition_id: str
 ) -> DemandeRattachement:
@@ -805,6 +834,23 @@ def lister_demandes_en_attente(
         competiteur = db.get_competiteur(conn, demande.id_federal)
         if competiteur is not None:
             resultat.append((competiteur, demande))
+    return resultat
+
+
+def lister_tokens_actifs(
+    conn: sqlite3.Connection, competition_id: str
+) -> list[tuple[Competiteur, Token]]:
+    """Associe chaque token *non révoqué* de cette compétition à son
+    compétiteur -- pour l'écran "révoquer un accès" de la GUI. Les
+    tokens révoqués ne sont pas cachés en base (traçabilité), mais n'ont
+    pas leur place dans une liste "accès actifs"."""
+    resultat = []
+    for token in db.list_tokens_by_competition(conn, competition_id):
+        if token.statut == StatutToken.REVOQUE:
+            continue
+        competiteur = db.get_competiteur(conn, token.id_federal)
+        if competiteur is not None:
+            resultat.append((competiteur, token))
     return resultat
 
 

@@ -412,6 +412,40 @@ class TestTokenEtRattachement(StorageTestCase):
     def test_get_demande_rattachement_inexistante_retourne_none(self):
         self.assertIsNone(db.get_demande_rattachement(self.conn, "demande-fantome"))
 
+    def test_list_tokens_by_competition_vide_au_depart(self):
+        self.assertEqual(db.list_tokens_by_competition(self.conn, "comp-1"), [])
+
+    def test_list_tokens_by_competition_retourne_les_tokens_de_cette_competition(self):
+        db.insert_token(
+            self.conn,
+            Token(
+                id_federal="FR-1",
+                competition_id="comp-1",
+                code_court="AB23CD",
+                hash_token="hash-simulé",
+            ),
+        )
+        tokens = db.list_tokens_by_competition(self.conn, "comp-1")
+        self.assertEqual([t.code_court for t in tokens], ["AB23CD"])
+
+    def test_list_tokens_by_competition_ignore_les_autres_competitions(self):
+        db.insert_competition(
+            self.conn,
+            Competition(
+                id="comp-2", nom="Autre", date_debut=date(2026, 4, 1), date_fin=date(2026, 4, 2)
+            ),
+        )
+        db.insert_token(
+            self.conn,
+            Token(
+                id_federal="FR-1",
+                competition_id="comp-2",
+                code_court="ZZ99ZZ",
+                hash_token="hash-simulé",
+            ),
+        )
+        self.assertEqual(db.list_tokens_by_competition(self.conn, "comp-1"), [])
+
 
 if __name__ == "__main__":
     unittest.main()

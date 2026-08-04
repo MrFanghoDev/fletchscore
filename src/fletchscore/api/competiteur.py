@@ -53,6 +53,21 @@ DOSSIER_WEB = Path(__file__).resolve().parent.parent / "web"
 
 _TEXTES: dict[str, dict[str, str]] = {
     "titre_accueil": {"fr": "Compétitions", "en": "Competitions"},
+    "bienvenue_titre": {"fr": "Bienvenue sur FletchScore", "en": "Welcome to FletchScore"},
+    "bienvenue_intro": {
+        "fr": "Suis les résultats en direct de ta compétition, ou demande un "
+        "accès si l'organisateur t'a inscrit·e.",
+        "en": "Follow your competition's live results, or request access if "
+        "the organiser has registered you.",
+    },
+    "jai_un_code_titre": {"fr": "J'ai déjà un code d'accès", "en": "I already have an access code"},
+    "code_label": {"fr": "Code d'accès", "en": "Access code"},
+    "confirmer": {"fr": "Confirmer", "en": "Confirm"},
+    "code_confirme_titre": {"fr": "Accès confirmé", "en": "Access confirmed"},
+    "code_invalide": {
+        "fr": "Code invalide, expiré, ou révoqué.",
+        "en": "Invalid, expired, or revoked code.",
+    },
     "aucune_competition": {
         "fr": "Aucune compétition pour l'instant.",
         "en": "No competition yet.",
@@ -164,36 +179,58 @@ def _mise_en_page(
 
 
 def page_accueil(conn: sqlite3.Connection, lang: str = "fr", theme: str = "dark") -> str:
-    """Liste des compétitions et de leurs épreuves, avec un lien vers le
-    classement de chacune -- point d'entrée de la vue compétiteur."""
+    """Page d'accueil de la vue compétiteur -- message de bienvenue,
+    liste des compétitions/épreuves (avec un lien de demande d'accès par
+    compétition), et une section pour confirmer un code déjà reçu."""
     competitions = db.list_competitions(conn)
+
+    entete = (
+        f'<h1>{_t("bienvenue_titre", lang)}</h1>'
+        f'<p class="intro">{_t("bienvenue_intro", lang)}</p>'
+    )
+
     if not competitions:
-        corps = f'<h1>FletchScore</h1><p class="intro">{_t("aucune_competition", lang)}</p>'
-        return _mise_en_page(_t("titre_accueil", lang), corps, lang, theme, "/")
+        corps_competitions = f'<p>{_t("aucune_competition", lang)}</p>'
+    else:
+        sections = []
+        for competition in competitions:
+            epreuves = db.list_epreuves_by_competition(conn, competition.id)
+            liens_epreuves = "".join(
+                f'<li><a href="/epreuve/{epreuve.id}">{_echapper(epreuve.nom)} '
+                f"({epreuve.date})</a></li>"
+                for epreuve in epreuves
+            )
+            lien_global = (
+                f'<p><a href="/competition/{competition.id}">'
+                f'{_t("classement_global", lang)}</a></p>'
+                if epreuves
+                else ""
+            )
+            sections.append(
+                '<div class="section-competition">'
+                f"<h2>{_echapper(competition.nom)}</h2>"
+                f'<p class="dates">{competition.date_debut} -- {competition.date_fin}</p>'
+                f'<ul class="liste-epreuves">{liens_epreuves}</ul>{lien_global}'
+                f'<p><a href="/rattachement/{competition.id}">'
+                f'{_t("demander_rattachement_lien", lang)}</a></p>'
+                "</div>"
+            )
+        corps_competitions = "".join(sections)
 
-    sections = []
-    for competition in competitions:
-        epreuves = db.list_epreuves_by_competition(conn, competition.id)
-        liens_epreuves = "".join(
-            f'<li><a href="/epreuve/{epreuve.id}">{_echapper(epreuve.nom)} '
-            f"({epreuve.date})</a></li>"
-            for epreuve in epreuves
-        )
-        lien_global = (
-            f'<p><a href="/competition/{competition.id}">'
-            f'{_t("classement_global", lang)}</a></p>'
-            if epreuves
-            else ""
-        )
-        sections.append(
-            '<div class="section-competition">'
-            f"<h2>{_echapper(competition.nom)}</h2>"
-            f'<p class="dates">{competition.date_debut} -- {competition.date_fin}</p>'
-            f'<ul class="liste-epreuves">{liens_epreuves}</ul>{lien_global}'
-            "</div>"
-        )
+    corps_code = (
+        '<div class="section-competition">'
+        f'<h2>{_t("jai_un_code_titre", lang)}</h2>'
+        '<form method="post" action="/code" class="field">'
+        f'<label for="code">{_t("code_label", lang)}</label>'
+        '<input type="text" id="code" name="code" maxlength="6" '
+        'style="text-transform:uppercase">'
+        f'<button class="btn-primary" type="submit" '
+        f'style="margin-top:0.5rem;width:fit-content;">{_t("confirmer", lang)}</button>'
+        "</form>"
+        "</div>"
+    )
 
-    corps = f'<h1>{_t("titre_accueil", lang)}</h1>' + "".join(sections)
+    corps = entete + corps_competitions + corps_code
     return _mise_en_page(_t("titre_accueil", lang), corps, lang, theme, "/")
 
 
@@ -396,6 +433,27 @@ def page_confirmation_rattachement(
     )
 
 
+def page_confirmation_code(
+    token, competition_nom: str, competiteur, lang: str = "fr", theme: str = "dark"
+) -> str:
+    corps = (
+        f'<h1>{_t("code_confirme_titre", lang)}</h1>'
+        f"<p>{_echapper(competiteur.prenom)} {_echapper(competiteur.nom)} -- "
+        f"{_echapper(competition_nom)}</p>"
+        f'<p><a class="back" href="/">{_t("retour", lang)}</a></p>'
+    )
+    return _mise_en_page(_t("code_confirme_titre", lang), corps, lang, theme, "/", rafraichir=False)
+
+
+def page_code_invalide(lang: str = "fr", theme: str = "dark") -> str:
+    corps = (
+        f'<h1>{_t("erreur", lang)}</h1>'
+        f'<p>{_t("code_invalide", lang)}</p>'
+        f'<p><a class="back" href="/">{_t("retour", lang)}</a></p>'
+    )
+    return _mise_en_page(_t("erreur", lang), corps, lang, theme, "/", rafraichir=False)
+
+
 class ServeurCompetiteur(HTTPServer):
     """Serveur HTTP -- porte le chemin de la base plutôt qu'une connexion
     ouverte, pour que chaque requête ouvre la sienne (voir le docstring
@@ -521,26 +579,39 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
         chemin = url.path
         lang, theme = self._lire_preferences()
 
-        if not chemin.startswith("/rattachement/"):
+        longueur = int(self.headers.get("Content-Length", 0))
+        corps_requete = self.rfile.read(longueur).decode("utf-8") if longueur else ""
+        champs = parse_qs(corps_requete)
+
+        if chemin.startswith("/rattachement/"):
+            corps = self._traiter_rattachement(chemin, champs, lang, theme)
+        elif chemin == "/code":
+            corps = self._traiter_code(champs, lang, theme)
+        else:
             self.send_response(404)
             self.send_header("Content-Type", "text/plain; charset=utf-8")
             self.end_headers()
             self.wfile.write(_t("page_introuvable", lang).encode("utf-8"))
             return
 
+        corps_octets = corps.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(corps_octets)))
+        self.end_headers()
+        self.wfile.write(corps_octets)
+
+    def _traiter_rattachement(self, chemin: str, champs: dict, lang: str, theme: str) -> str:
         competition_id = chemin.removeprefix("/rattachement/")
-        longueur = int(self.headers.get("Content-Length", 0))
-        corps_requete = self.rfile.read(longueur).decode("utf-8") if longueur else ""
-        champs = parse_qs(corps_requete)
         id_federal = champs.get("id_federal", [""])[0]
 
         conn = self._connexion_ecriture()
         try:
             try:
                 services.demander_rattachement(conn, id_federal, competition_id)
-                corps = page_confirmation_rattachement(competition_id, lang, theme)
+                return page_confirmation_rattachement(competition_id, lang, theme)
             except ErreurMetier as erreur:
-                corps = _mise_en_page(
+                return _mise_en_page(
                     _t("erreur", lang),
                     f"<p>{_echapper(str(erreur))}</p>",
                     lang,
@@ -551,12 +622,23 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
         finally:
             conn.close()
 
-        corps_octets = corps.encode("utf-8")
-        self.send_response(200)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
-        self.send_header("Content-Length", str(len(corps_octets)))
-        self.end_headers()
-        self.wfile.write(corps_octets)
+    def _traiter_code(self, champs: dict, lang: str, theme: str) -> str:
+        code = champs.get("code", [""])[0].strip().upper()
+
+        conn = self._connexion_lecture_seule()
+        try:
+            token = services.verifier_code_court(conn, code)
+            if token is None:
+                return page_code_invalide(lang, theme)
+
+            competiteur = db.get_competiteur(conn, token.id_federal)
+            competition = db.get_competition(conn, token.competition_id)
+            if competiteur is None or competition is None:
+                return page_code_invalide(lang, theme)
+
+            return page_confirmation_code(token, competition.nom, competiteur, lang, theme)
+        finally:
+            conn.close()
 
 
 def creer_serveur(chemin_base: str, port: int = 0) -> ServeurCompetiteur:
