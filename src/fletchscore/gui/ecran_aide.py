@@ -55,7 +55,17 @@ _SECTIONS_AIDE = (
         "demande apparaît ici par compétition. Valide seulement après "
         "avoir vérifié son identité de visu -- un code (et un QR code, "
         "si disponible) s'affiche alors une seule fois : à transmettre "
-        "immédiatement, il ne sera plus jamais récupérable ensuite.",
+        "immédiatement, il ne sera plus jamais récupérable ensuite. "
+        "Un onglet permet aussi de révoquer un accès déjà donné, et un "
+        "autre d'envoyer un message à un compétiteur précis ou à tous.",
+    ),
+    (
+        "Sécurité",
+        "Optionnel : définis un mot de passe pour protéger l'ouverture "
+        "de FletchScore. Sans mot de passe défini, l'application "
+        "s'ouvre directement. Une fois défini, tu peux le changer ou "
+        "supprimer la protection -- les deux redemandent le mot de "
+        "passe actuel.",
     ),
 )
 

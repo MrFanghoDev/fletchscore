@@ -1,13 +1,13 @@
 # Roadmap FletchScore
 
-**État actuel : v0.1 et v0.2 complètes, v0.3 en cours -- 376 tests,
-tous verts, confirmés par la CI sans aucun `skipped`** (y compris les
-tests fpdf2/qrcode, jamais exécutables dans l'environnement de dev
-utilisé ici).
+**État actuel : v0.1, v0.2 et v0.3 complètes (hors HTTPS, repoussé par
+choix) -- 387 tests, tous verts, confirmés par la CI sans aucun
+`skipped`** (y compris les tests fpdf2/qrcode, jamais exécutables dans
+l'environnement de dev utilisé ici).
 
 - **v0.1** : `models/`, `storage/`, `referentiels/`, `io/import_csv.py`
   (import + export CSV clubs/compétiteurs), `scoring/`, `gui/`
-  (9 écrans), `io/export/` (CSV/Excel/PDF, classement par épreuve et
+  (10 écrans), `io/export/` (CSV/Excel/PDF, classement par épreuve et
   global). Modification de compétitions/épreuves/clubs/compétiteurs
   existants. 6 barèmes préconfigurés (Flint Indoor, IFAA Indoor, Field,
   Hunter, International, Expert Field). Modèles d'épreuve réutilisables.
@@ -15,10 +15,12 @@ utilisé ici).
   et cahier des charges recalé sur l'état réel.
 - **v0.2** : `api/competiteur.py`, vue compétiteur en lecture seule
   (classement live), identité visuelle FletchTime, bilingue FR/EN.
-- **v0.3 (en cours)** : fondation Token/DemandeRattachement, QR code,
-  GUI organisateur ("Demandes d'accès") et endpoint web de rattachement
-  faits. Reste : authentification organisateur (HTTPS repoussé après la
-  v0.4, voir "Points tranchés" du cahier des charges).
+- **v0.3** : fondation Token/DemandeRattachement, QR code, GUI
+  organisateur ("Demandes d'accès" -- valider/rejeter/révoquer/envoyer
+  un message), endpoint web de rattachement, page "Mes messages"
+  compétiteur (cookie de session signé HMAC), et authentification
+  organisateur (mot de passe optionnel, PBKDF2). HTTPS repoussé après la
+  v0.4, voir "Points tranchés" du cahier des charges.
 
 Détail incrément par incrément ci-dessous.
 
@@ -205,9 +207,21 @@ la vraie donnée sensible.
       relisant une page générée réellement** (pas en test unitaire) :
       le lien de retour disait "Toutes les compétitions" en pointant en
       fait vers une compétition précise -- corrigé avec un texte dédié.
-- [ ] Authentification organisateur (mot de passe hashé dans
-      `config/auth.toml`, déjà réservé dans `.gitignore` depuis le
-      début -- jamais implémenté jusqu'ici)
+- [x] Authentification organisateur -- mot de passe hashé (PBKDF2-
+      SHA256, stdlib, pas de dépendance compilée à faire fonctionner
+      sur Pydroid) dans `config/auth.toml`, déjà réservé dans
+      `.gitignore` depuis le début. **Optionnelle** : sans mot de passe
+      défini, FletchScore s'ouvre directement (comportement historique
+      inchangé). `fletchscore/auth.py` (nouveau module) :
+      `definir_mot_de_passe()`/`verifier_mot_de_passe()`/
+      `supprimer_mot_de_passe()`, sel aléatoire à chaque définition.
+      Écran GUI "Sécurité" (définir, changer, supprimer -- la
+      suppression et le changement redemandent le mot de passe actuel).
+      Fenêtre de connexion bloquante au lancement si un mot de passe
+      est configuré, avant que le reste de l'interface ne se construise.
+      11 tests, et le cycle complet (définir → vérifier → changer →
+      supprimer) **vérifié réellement**, pas seulement en tests
+      unitaires isolés.
 - [ ] HTTPS local, limitation de débit par token -- repoussé après la
       v0.4 (voir ci-dessus)
 - [x] Port du serveur web fixe et paramétrable -- demande de

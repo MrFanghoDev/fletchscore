@@ -17,7 +17,7 @@ from pathlib import Path
 
 import customtkinter as ctk
 
-from fletchscore import __version__
+from fletchscore import __version__, auth
 from fletchscore.api.competiteur import adresse_ip_locale, creer_serveur
 from fletchscore.gui import config as gui_config
 from fletchscore.gui.ecran_accueil import EcranAccueil
@@ -27,6 +27,7 @@ from fletchscore.gui.ecran_competiteurs import EcranCompetiteurs
 from fletchscore.gui.ecran_competitions import EcranCompetitions
 from fletchscore.gui.ecran_rattachement import EcranRattachement
 from fletchscore.gui.ecran_saisie import EcranSaisie
+from fletchscore.gui.ecran_securite import EcranSecurite
 from fletchscore.gui.ecran_vue_competiteur import EcranVueCompetiteur
 from fletchscore.gui.robustesse import (
     ErreurAffichageIndisponible,
@@ -45,6 +46,7 @@ LIBELLES_SECTIONS = {
     "classement": "Classement",
     "vue_competiteur": "Vue compétiteur",
     "rattachement": "Demandes d'accès",
+    "securite": "Sécurité",
     "aide": "Aide",
 }
 
@@ -64,12 +66,58 @@ class FenetrePrincipale(ctk.CTk):
 
         ctk.set_appearance_mode(self.config_gui.theme)
 
+        self.authentifie = True
+        if auth.mot_de_passe_defini():
+            self.authentifie = self._demander_mot_de_passe()
+        if not self.authentifie:
+            # Ne construit pas le reste de l'interface -- lancer() détecte
+            # cet attribut et referme proprement (voir plus bas).
+            return
+
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
         self._construire_barre_laterale()
         self._construire_zone_contenu()
         self.afficher_section("accueil")
+
+    def _demander_mot_de_passe(self) -> bool:
+        """Fenêtre de connexion bloquante -- affichée avant le reste de
+        l'interface si un mot de passe organisateur est configuré (voir
+        gui/ecran_securite.py pour le définir/changer/supprimer)."""
+        self.withdraw()  # cache la fenêtre principale pendant la saisie
+        resultat = {"ok": False}
+
+        dialogue = ctk.CTkToplevel(self)
+        dialogue.title("FletchScore -- connexion")
+        dialogue.geometry("320x180")
+        dialogue.protocol("WM_DELETE_WINDOW", dialogue.destroy)
+
+        ctk.CTkLabel(dialogue, text="Mot de passe organisateur").pack(padx=20, pady=(20, 5))
+        champ = ctk.CTkEntry(dialogue, show="*")
+        champ.pack(padx=20, pady=5, fill="x")
+        erreur = ctk.CTkLabel(dialogue, text="", text_color="red")
+        erreur.pack(padx=20, pady=5)
+
+        def valider() -> None:
+            if auth.verifier_mot_de_passe(champ.get()):
+                resultat["ok"] = True
+                dialogue.destroy()
+            else:
+                erreur.configure(text="Mot de passe incorrect.")
+                champ.delete(0, "end")
+
+        ctk.CTkButton(dialogue, text="Se connecter", command=valider).pack(pady=10)
+        champ.bind("<Return>", lambda _evenement: valider())
+        champ.focus()
+
+        dialogue.transient(self)
+        dialogue.after(50, dialogue.grab_set)
+        self.wait_window(dialogue)
+
+        if resultat["ok"]:
+            self.deiconify()
+        return resultat["ok"]
 
     # -- Construction de l'interface ------------------------------------
 
@@ -179,6 +227,11 @@ class FenetrePrincipale(ctk.CTk):
             ecran.grid(row=0, column=0, sticky="nsew")
             return
 
+        if cle == "securite":
+            ecran = EcranSecurite(self.cadre_section)
+            ecran.grid(row=0, column=0, sticky="nsew")
+            return
+
         raise ValueError(f"Section inconnue : {cle}")
 
     # -- Serveur de la vue compétiteur (v0.2, lecture seule) --------------
@@ -250,6 +303,10 @@ def lancer(chemin_base: Path | str = CHEMIN_BASE_PAR_DEFAUT, http_port: int | No
             application = construire_fenetre(conn, config, FenetrePrincipale)
         except ErreurAffichageIndisponible as erreur:
             raise SystemExit(str(erreur)) from erreur
+
+        if not application.authentifie:
+            application.destroy()
+            raise SystemExit("Authentification échouée -- fermeture de FletchScore.")
 
         # Chemin du fichier, pas la connexion -- le serveur web (démarré à
         # la demande depuis l'écran "Vue compétiteur") ouvre ses propres

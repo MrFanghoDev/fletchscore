@@ -774,3 +774,24 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   fonctions de signature testées isolément : un vrai `POST /code`
   produit un vrai `Set-Cookie`, ce cookie renvoyé sur un vrai `GET
   /mes-messages` donne accès aux bons messages.
+
+- **Authentification organisateur : PBKDF2-SHA256 (stdlib), pas
+  bcrypt/argon2.** Aucune dépendance compilée à faire fonctionner sur
+  Pydroid 3 (même raisonnement que pour `fpdf2`/`qrcode`, mais cette
+  fois pas de contournement possible via `skipUnless` -- l'authentification
+  doit fonctionner partout, pas seulement là où une lib optionnelle est
+  installée). 200 000 itérations, sel aléatoire à chaque définition
+  (deux mots de passe identiques donnent des fichiers différents,
+  vérifié par test). Protection **optionnelle** : sans
+  `config/auth.toml`, FletchScore s'ouvre directement -- ne casse rien
+  pour qui ne veut pas de ce réglage, cohérent avec le fait que le
+  poste organisateur est déjà souvent physiquement contrôlé (un club
+  n'a pas forcément besoin de ce niveau de friction). La fenêtre de
+  connexion bloque la construction du reste de l'interface
+  (`FenetrePrincipale.__init__` s'arrête tôt si l'authentification
+  échoue, `lancer()` détecte l'attribut `authentifie` et referme
+  proprement) -- pas de fenêtre principale visible, même vide, avant
+  qu'un mot de passe correct n'ait été saisi. Changer ou supprimer le
+  mot de passe redemande l'actuel : évite qu'une session organisateur
+  laissée ouverte suffise à désactiver la protection sans le
+  reconfirmer.

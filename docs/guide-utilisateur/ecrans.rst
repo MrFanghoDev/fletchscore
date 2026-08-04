@@ -155,6 +155,19 @@ Un sélecteur de compétition, puis trois onglets.
    qui l'a lu, seulement qu'il a été envoyé. L'historique de tous les
    messages envoyés pour cette compétition s'affiche en dessous.
 
+Sécurité
+===========
+
+Optionnel : définis un mot de passe pour protéger l'ouverture de
+FletchScore. Sans mot de passe défini, l'application s'ouvre
+directement -- rien ne change si tu ne configures rien ici.
+
+Une fois défini, une fenêtre de connexion apparaît à chaque lancement
+de FletchScore, avant le reste de l'interface. Depuis cet écran, tu
+peux aussi le **changer** ou **supprimer la protection** -- les deux
+actions redemandent le mot de passe actuel, pour qu'une session laissée
+ouverte ne suffise pas à elle seule à désactiver la protection.
+
 Aide
 =======
 
