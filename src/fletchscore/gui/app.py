@@ -25,6 +25,7 @@ from fletchscore.gui.ecran_aide import EcranAide
 from fletchscore.gui.ecran_classement import EcranClassement
 from fletchscore.gui.ecran_competiteurs import EcranCompetiteurs
 from fletchscore.gui.ecran_competitions import EcranCompetitions
+from fletchscore.gui.ecran_rattachement import EcranRattachement
 from fletchscore.gui.ecran_saisie import EcranSaisie
 from fletchscore.gui.ecran_vue_competiteur import EcranVueCompetiteur
 from fletchscore.gui.robustesse import (
@@ -43,6 +44,7 @@ LIBELLES_SECTIONS = {
     "saisie": "Saisie des scores",
     "classement": "Classement",
     "vue_competiteur": "Vue compétiteur",
+    "rattachement": "Demandes d'accès",
     "aide": "Aide",
 }
 
@@ -172,12 +174,22 @@ class FenetrePrincipale(ctk.CTk):
             ecran.grid(row=0, column=0, sticky="nsew")
             return
 
+        if cle == "rattachement":
+            ecran = EcranRattachement(self.cadre_section, self.conn)
+            ecran.grid(row=0, column=0, sticky="nsew")
+            return
+
         raise ValueError(f"Section inconnue : {cle}")
 
     # -- Serveur de la vue compétiteur (v0.2, lecture seule) --------------
 
-    def demarrer_serveur_web(self) -> str:
+    def demarrer_serveur_web(self, port: int | None = None) -> str:
         """Démarre le serveur s'il ne tourne pas déjà, retourne son URL.
+
+        ``port`` : ``None`` laisse l'OS choisir un port libre (change à
+        chaque démarrage) ; un port explicite le fixe -- persisté dans
+        la config GUI pour être proposé par défaut au prochain
+        démarrage (voir ``changer_theme`` pour le même principe).
 
         Ne réutilise jamais ``self.conn`` (celle de la GUI) : le serveur
         tourne dans un thread séparé et ouvre ses propres connexions en
@@ -185,11 +197,15 @@ class FenetrePrincipale(ctk.CTk):
         """
         if self.serveur_web is None:
             chemin = self.chemin_base_db or str(CHEMIN_BASE_PAR_DEFAUT)
-            self.serveur_web = creer_serveur(chemin)
+            self.serveur_web = creer_serveur(chemin, port=port or 0)
             self.thread_serveur_web = threading.Thread(
                 target=self.serveur_web.serve_forever, daemon=True
             )
             self.thread_serveur_web.start()
+
+            if port is not None and self.config_gui.http_port != port:
+                self.config_gui.http_port = port
+                gui_config.sauvegarder(self.config_gui)
         return self.url_serveur_web()
 
     def arreter_serveur_web(self) -> None:
@@ -212,11 +228,23 @@ class FenetrePrincipale(ctk.CTk):
         gui_config.sauvegarder(self.config_gui)
 
 
-def lancer(chemin_base: Path | str = CHEMIN_BASE_PAR_DEFAUT) -> None:
-    """Point d'entrée de la fenêtre organisateur, appelé par __main__."""
+def lancer(chemin_base: Path | str = CHEMIN_BASE_PAR_DEFAUT, http_port: int | None = None) -> None:
+    """Point d'entrée de la fenêtre organisateur, appelé par __main__.
+
+    ``http_port`` (depuis ``--http-port`` en CLI) ne démarre PAS le
+    serveur web tout seul -- il ne fait que préremplir le port proposé
+    sur l'écran "Vue compétiteur" : démarrer le serveur reste toujours
+    une action explicite de l'organisateur (voir
+    ``gui/ecran_vue_competiteur.py`` et la décision v0.2 dans
+    docs/architecture.md -- jamais de démarrage automatique).
+    """
     conn = ouvrir_base(chemin_base)
     try:
         config = gui_config.charger()
+        if http_port is not None:
+            if not (1 <= http_port <= 65535):
+                raise SystemExit(f"Port HTTP invalide : {http_port} -- doit être entre 1 et 65535.")
+            config.http_port = http_port
 
         try:
             application = construire_fenetre(conn, config, FenetrePrincipale)

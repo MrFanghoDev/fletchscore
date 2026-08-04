@@ -53,7 +53,7 @@ def main() -> None:
             "pip install customtkinter"
         ) from erreur
 
-    lancer(args.db)
+    lancer(args.db, http_port=args.http_port)
 
 
 if __name__ == "__main__":

@@ -28,11 +28,22 @@ class ConfigGui:
     """Un de THEMES_VALIDES. 'system' suit le réglage clair/sombre du
     système d'exploitation."""
 
+    http_port: int | None = None
+    """Port fixe pour la vue compétiteur (écran "Vue compétiteur") --
+    ``None`` laisse l'OS choisir un port libre à chaque démarrage
+    (comportement historique, l'URL change alors d'une session à
+    l'autre). Un port fixe évite de redonner une nouvelle adresse aux
+    compétiteurs à chaque fois."""
+
     def __post_init__(self) -> None:
         if self.theme not in THEMES_VALIDES:
             raise ValueError(
                 f"Thème inconnu : {self.theme!r} -- valeurs possibles : "
                 f"{', '.join(THEMES_VALIDES)}"
+            )
+        if self.http_port is not None and not (1 <= self.http_port <= 65535):
+            raise ValueError(
+                f"Port HTTP invalide : {self.http_port} -- doit être entre 1 et 65535."
             )
 
 
@@ -59,7 +70,11 @@ def charger(chemin: Path | str = CHEMIN_PAR_DEFAUT) -> ConfigGui:
     if theme not in THEMES_VALIDES:
         return ConfigGui()
 
-    return ConfigGui(theme=theme)
+    http_port = donnees.get("http_port")
+    if http_port is not None and not (1 <= http_port <= 65535):
+        http_port = None  # valeur corrompue -- repli sur "auto" plutôt que planter
+
+    return ConfigGui(theme=theme, http_port=http_port)
 
 
 def sauvegarder(config: ConfigGui, chemin: Path | str = CHEMIN_PAR_DEFAUT) -> None:
@@ -77,6 +92,8 @@ def sauvegarder(config: ConfigGui, chemin: Path | str = CHEMIN_PAR_DEFAUT) -> No
         "# non versionné. Supprime-le pour revenir aux valeurs par défaut.\n"
         f'theme = "{config.theme}"\n'
     )
+    if config.http_port is not None:
+        contenu += f"http_port = {config.http_port}\n"
 
     temporaire = chemin.with_suffix(chemin.suffix + ".tmp")
     temporaire.write_text(contenu, encoding="utf-8")

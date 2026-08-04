@@ -20,6 +20,33 @@ class TestConfigGui(unittest.TestCase):
         with self.assertRaises(ValueError):
             ConfigGui(theme="fluo")
 
+    def test_port_invalide_refuse_a_la_construction(self):
+        with self.assertRaises(ValueError):
+            ConfigGui(http_port=0)
+        with self.assertRaises(ValueError):
+            ConfigGui(http_port=70000)
+
+    def test_port_none_est_valide_par_defaut(self):
+        config = ConfigGui()
+        self.assertIsNone(config.http_port)
+
+    def test_port_valide_accepte(self):
+        config = ConfigGui(http_port=8080)
+        self.assertEqual(config.http_port, 8080)
+
+    def test_port_aller_retour(self):
+        sauvegarder(ConfigGui(theme="dark", http_port=8080), self.chemin)
+        config = charger(self.chemin)
+        self.assertEqual(config.http_port, 8080)
+
+    def test_port_absent_du_fichier_donne_none(self):
+        self.chemin.write_text('theme = "dark"\n', encoding="utf-8")
+        self.assertIsNone(charger(self.chemin).http_port)
+
+    def test_port_corrompu_dans_le_fichier_retombe_sur_none(self):
+        self.chemin.write_text('theme = "dark"\nhttp_port = 999999\n', encoding="utf-8")
+        self.assertIsNone(charger(self.chemin).http_port)
+
     def test_fichier_absent_donne_les_valeurs_par_defaut(self):
         self.assertEqual(charger(self.chemin), ConfigGui(theme="system"))
 

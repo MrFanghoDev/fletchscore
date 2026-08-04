@@ -651,3 +651,65 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   `POST` HTTP crée une vraie ligne en base, relue ensuite par une
   connexion séparée pour confirmer -- pas seulement que la page de
   confirmation s'affiche côté client.
+
+- **`gui/qr_code.py` : même mécanisme `skipUnless` que fpdf2, pas de
+  logique nouvelle inventée.** `qrcode` n'est pas installable ici (pas
+  de réseau), même situation exactement que `fpdf2` -- réutilisation
+  directe du pattern déjà validé (import protégé par
+  `try/except ImportError`, drapeau `QRCODE_DISPONIBLE`, tests
+  `skipUnless`) plutôt que d'en réinventer un autre. Le code court reste
+  affiché quoi qu'il arrive, avec ou sans QR -- jamais le seul moyen
+  d'accès (voir cahier des charges, "QR code + code court en secours").
+
+- **`gui/ecran_rattachement.py` : le token affiché dans une fenêtre
+  éphémère (`CTkToplevel`), pas dans l'écran principal.** Le secret
+  encodé dans le QR n'est récupérable qu'une seule fois, au moment de
+  `services.generer_token()` -- seul son HMAC est stocké ensuite,
+  jamais le secret lui-même (voir la décision Token/rattachement plus
+  haut). Le laisser affiché en permanence dans l'écran principal
+  l'exposerait à quiconque regarde l'écran de l'organisateur bien après
+  la remise au compétiteur ; une fenêtre qu'on ferme après avoir montré
+  le code une fois correspond mieux à l'usage réel (le montrer, puis
+  fermer). Sélecteur de compétition dérivé de
+  `lister_epreuves_toutes()`, même logique de déduplication que la
+  section export global de `ecran_classement.py` -- pas de nouvelle
+  fonction `lister_competitions()` dédiée, cohérence avec l'existant
+  plutôt qu'une resolution ad hoc.
+
+- **Port du serveur web : persisté dans `ConfigGui`, jamais
+  auto-démarré par `--http-port`.** Même mécanisme que le thème
+  (`changer_theme()`/`config/gui.toml`) plutôt qu'un système séparé --
+  `demarrer_serveur_web(port)` persiste le port choisi seulement quand
+  il est explicitement fourni, pour le proposer par défaut au prochain
+  lancement. `--http-port` en CLI ne fait que préremplir ce champ, il
+  ne démarre jamais le serveur tout seul : la décision "démarrage
+  toujours explicite" prise en v0.2 reste valable, un flag CLI ne doit
+  pas la contourner silencieusement. Un port déjà occupé lève une
+  `OSError` (comportement standard de `http.server.HTTPServer`, qui
+  bind() dès sa construction) -- affichée proprement côté GUI plutôt
+  que de laisser remonter une trace Python. Vérifié réellement en
+  faisant collisionner deux serveurs sur le même port.
+
+- **Aide et Accueil dans l'appli n'avaient pas suivi les écrans ajoutés
+  depuis.** Signalé par l'utilisateur : `gui/ecran_aide.py` (l'aide
+  *dans l'application*, distincte de `docs/guide-utilisateur/` qui,
+  elle, avait bien été tenue à jour) ne mentionnait ni la vue
+  compétiteur ni les demandes d'accès, et décrivait encore la saisie
+  comme "volée par volée" -- périmé depuis la révision au score final,
+  quelqu'un qui ouvre l'aide dans l'appli plutôt que la doc en ligne
+  aurait lu une information fausse. Même défaut sur les raccourcis de
+  l'écran Accueil. Les deux sources de vérité (doc Sphinx et aide
+  intégrée) décrivent maintenant la même chose -- pas de raison
+  qu'elles divergent à nouveau, mais rien ne les synchronise
+  automatiquement : à surveiller au prochain ajout d'écran.
+
+- **Vérification d'identité côté organisateur : reste un acte humain,
+  FletchScore ne fait qu'aider à recouper.** Question posée par
+  l'utilisateur ("comment confirmer l'identité ?") qui a révélé que
+  l'écran n'affichait pas de quoi vraiment recouper (juste
+  nom/prénom/id fédéral). Ajouté date de naissance et club à
+  l'affichage de chaque demande -- les deux informations qu'une carte
+  de licence ou une pièce d'identité permettent de confronter en un
+  coup d'œil. Une note explicite en tête d'écran clarifie la limite :
+  aucune vérification automatique n'existe ni n'est prévue, le rôle du
+  logiciel s'arrête à afficher ce qu'il sait déjà.

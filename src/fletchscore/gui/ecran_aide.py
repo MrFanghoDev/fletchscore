@@ -37,7 +37,25 @@ _SECTIONS_AIDE = (
         "Classement",
         "Choisis une épreuve pour voir le classement live, groupé par "
         "catégorie (sexe + âge + style), avec départage au X si le "
-        "barème le prévoit.",
+        "barème le prévoit. Une section séparée permet d'exporter le "
+        "classement cumulé de toute une compétition (une colonne par "
+        "épreuve, un total).",
+    ),
+    (
+        "Vue compétiteur",
+        "Démarre un petit serveur web (bouton, port fixe ou automatique) "
+        "pour que les compétiteurs consultent le classement live depuis "
+        "leur téléphone, sur le wifi du club -- lecture seule, rien n'y "
+        "est modifiable à distance à part une demande d'accès (voir "
+        "« Demandes d'accès »).",
+    ),
+    (
+        "Demandes d'accès",
+        "Quand un compétiteur demande un accès depuis la vue web, sa "
+        "demande apparaît ici par compétition. Valide seulement après "
+        "avoir vérifié son identité de visu -- un code (et un QR code, "
+        "si disponible) s'affiche alors une seule fois : à transmettre "
+        "immédiatement, il ne sera plus jamais récupérable ensuite.",
     ),
 )
 

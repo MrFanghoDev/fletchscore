@@ -93,22 +93,42 @@ La liste du classement s'affiche en dessous, groupée par catégorie
 Vue compétiteur
 ==================
 
-Un bouton **Démarrer le serveur** / **Arrêter le serveur**. Une fois
+Un champ **Port** (laisse-le vide pour un port différent à chaque
+démarrage, ou fixe-en un pour garder toujours la même adresse d'une
+session à l'autre -- mémorisé automatiquement pour la prochaine fois)
+et un bouton **Démarrer le serveur** / **Arrêter le serveur**. Une fois
 démarré, l'adresse à donner aux compétiteurs s'affiche (à taper dans le
 navigateur de leur téléphone, sur le même wifi que le club). La page
 qu'ils voient reprend l'identité visuelle de FletchTime (thème sombre
 par défaut, bascule vers un thème clair possible) et est bilingue
 français/anglais (boutons FR/EN et 🌙/☀ en haut à droite) -- elle liste
 les compétitions et épreuves en cours, avec un lien vers le classement
-de chacune -- en lecture seule, rien n'y est modifiable, la page se
-recharge automatiquement toutes les 15 secondes.
+de chacune, et un lien pour demander un accès (voir "Demandes d'accès"
+ci-dessous).
 
 .. note::
 
-   Aucune identification n'est demandée à ce stade (v0.2) -- n'importe
-   qui sur le réseau du club peut consulter les classements, mais pas
-   les modifier. La proposition de score par le compétiteur lui-même
-   (avec token d'accès) arrive dans une version ultérieure.
+   Consultation en lecture seule pour tout le monde. Seule écriture
+   possible depuis cette page : la *demande* d'accès elle-même (« je
+   pense être telle personne ») -- sans aucun effet tant qu'un
+   organisateur ne l'a pas validée après vérification de visu. La
+   proposition de score par le compétiteur (une fois son accès validé)
+   arrive dans une version ultérieure.
+
+Demandes d'accès
+====================
+
+Un sélecteur de compétition, puis la liste des demandes en attente --
+nom, prénom, id fédéral, date de naissance et club, pour recouper avec
+une carte de licence ou une pièce d'identité. **FletchScore ne vérifie
+rien à ta place** : à toi de confirmer l'identité de visu avant de
+cliquer sur **Valider**.
+
+Une fois validée, une fenêtre s'ouvre avec un code d'accès (et un QR
+code, si la bibliothèque correspondante est installée) -- à transmettre
+immédiatement au compétiteur : une fois cette fenêtre fermée, ce code
+ne sera plus jamais réaffichable. Le bouton **Rejeter** clôt une
+demande sans rien attribuer.
 
 Aide
 =======

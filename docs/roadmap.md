@@ -1,28 +1,26 @@
 # Roadmap FletchScore
 
-**État actuel : v0.1 et v0.2 complètes -- 316 tests, tous verts,
-confirmés par la CI sans aucun `skipped`** (y compris les 3 tests
-fpdf2, jamais exécutables dans l'environnement de dev utilisé ici).
-`models/`, `storage/`, `referentiels/`, `io/import_csv.py` (import +
-export CSV clubs/compétiteurs), `scoring/`, `gui/`, `io/export/` et
-`api/competiteur.py` (vue compétiteur en lecture seule, identité
-visuelle FletchTime, bilingue FR/EN) sont tous codés. v0.3 en cours :
-fondation Token/DemandeRattachement (backend) faite ; QR code, GUI,
-endpoint web et authentification organisateur restent à faire. Extension modèles d'épreuve réutilisables (besoin 2)
-également complète, backend et GUI. Version affichée automatiquement
-dans le titre GUI et la doc Sphinx (voir `docs/architecture.md`). Logo
-FletchScore intégré (`branding/`) : README, doc Sphinx, icône de
-l'exécutable Windows/Linux. Modification de compétitions/épreuves
-existantes possible (backend + GUI). 6 barèmes préconfigurés : Flint
-Indoor, IFAA Indoor, Field, Hunter, International, Expert Field. Écrans
-Accueil (résumé rapide + raccourcis) et Aide (mode d'emploi + lien doc)
-ajoutés. **Saisie révisée au score final** (total + nombre de X par
-épreuve) plutôt que volée par volée -- voir "Extension -- Saisie du
-score final" plus bas ; lève au passage le blocage sur l'Animal Round et
-les rounds 3-D. Classement global sur toute une compétition
-(CSV/Excel/PDF, GUI comprise). Guide utilisateur complet
-(`docs/guide-utilisateur/`) et cahier des charges recalé sur l'état
-réel.
+**État actuel : v0.1 et v0.2 complètes, v0.3 en cours -- 326 tests,
+tous verts, confirmés par la CI sans aucun `skipped`** (y compris les
+tests fpdf2/qrcode, jamais exécutables dans l'environnement de dev
+utilisé ici).
+
+- **v0.1** : `models/`, `storage/`, `referentiels/`, `io/import_csv.py`
+  (import + export CSV clubs/compétiteurs), `scoring/`, `gui/`
+  (9 écrans), `io/export/` (CSV/Excel/PDF, classement par épreuve et
+  global). Modification de compétitions/épreuves/clubs/compétiteurs
+  existants. 6 barèmes préconfigurés (Flint Indoor, IFAA Indoor, Field,
+  Hunter, International, Expert Field). Modèles d'épreuve réutilisables.
+  Saisie au score final (pas volée par volée). Guide utilisateur complet
+  et cahier des charges recalé sur l'état réel.
+- **v0.2** : `api/competiteur.py`, vue compétiteur en lecture seule
+  (classement live), identité visuelle FletchTime, bilingue FR/EN.
+- **v0.3 (en cours)** : fondation Token/DemandeRattachement, QR code,
+  GUI organisateur ("Demandes d'accès") et endpoint web de rattachement
+  faits. Reste : authentification organisateur (HTTPS repoussé après la
+  v0.4, voir "Points tranchés" du cahier des charges).
+
+Détail incrément par incrément ci-dessous.
 
 Découpage par jalons livrables, dans l'ordre des dépendances réelles :
 impossible de tester le scoring sans modèle de données, impossible de
@@ -180,11 +178,19 @@ la vraie donnée sensible.
       **vérifiés aussi en conditions réelles** (flux complet
       demande → validation → vérification avec un vrai secret, un
       mauvais secret bien rejeté).
-- [ ] Génération de QR code (nouvelle dépendance `qrcode` ajoutée à
-      `pyproject.toml`, pas encore utilisée -- reste la génération de
-      l'image et son affichage GUI)
-- [ ] GUI organisateur : voir/valider/rejeter les demandes, afficher le
-      code court/QR généré
+- [x] Génération de QR code -- `qrcode>=7.4` ajoutée à `pyproject.toml`,
+      `gui/qr_code.py` avec le même mécanisme `skipUnless` que `fpdf2`
+      (bibliothèque non installable ici, pas de réseau). Le code court
+      reste affiché en toutes circonstances, avec ou sans QR (voir
+      cahier des charges, "QR code + code court en secours").
+- [x] GUI organisateur : `gui/ecran_rattachement.py`, nouvel écran
+      "Demandes d'accès" -- liste des demandes en attente par
+      compétition, boutons Valider/Rejeter. Une fenêtre éphémère
+      (`CTkToplevel`) affiche le code + QR généré juste après
+      validation -- jamais conservée à l'écran en permanence, puisque
+      le secret ne sera plus jamais récupérable une fois cette fenêtre
+      fermée (voir `services.generer_token`). ⚠️ **rendu non vérifié**
+      -- comme toute la GUI, pas d'affichage disponible ici.
 - [x] Endpoint web compétiteur pour soumettre une demande de
       rattachement -- `GET /rattachement/<competition_id>` (recherche
       par nom parmi tous les inscrits de la compétition, insensible à
@@ -204,6 +210,32 @@ la vraie donnée sensible.
       début -- jamais implémenté jusqu'ici)
 - [ ] HTTPS local, limitation de débit par token -- repoussé après la
       v0.4 (voir ci-dessus)
+- [x] Port du serveur web fixe et paramétrable -- demande de
+      l'utilisateur. `ConfigGui.http_port` (persisté dans
+      `config/gui.toml`, comme le thème), `--http-port` en CLI
+      (préremplit le port proposé, ne démarre jamais le serveur tout
+      seul -- reste une action explicite de l'organisateur, décision
+      déjà prise en v0.2). Champ de saisie sur l'écran "Vue
+      compétiteur", désactivé pendant que le serveur tourne (le
+      changer n'aurait aucun effet avant un arrêt/redémarrage). Un port
+      déjà occupé lève une `OSError` affichée proprement -- **vérifié
+      réellement** en faisant collisionner deux serveurs sur le même
+      port.
+- [x] Écrans Accueil et Aide mis à jour -- demande de l'utilisateur.
+      L'aide **dans l'appli** (`gui/ecran_aide.py`) n'avait jamais
+      suivi l'ajout de la vue compétiteur et des demandes d'accès
+      (seule la doc Sphinx en ligne les décrivait) ; la description de
+      "Saisie des scores" y mentionnait encore des "volées", périmé
+      depuis la révision au score final. Les raccourcis de l'Accueil
+      (`_RACCOURCIS`) ont le même défaut corrigé.
+- [x] Vérification d'identité côté organisateur, clarifiée --
+      `gui/ecran_rattachement.py` affichait seulement nom/prénom/id
+      fédéral, pas assez pour recouper contre une pièce d'identité. La
+      liste des demandes affiche maintenant aussi la date de naissance
+      et le club, et une note en tête d'écran rappelle explicitement que
+      la vérification reste un acte humain -- FletchScore n'a aucun
+      moyen de la faire à la place de l'organisateur, seulement
+      d'afficher ce qu'il connaît déjà pour aider à recouper.
 
 Prérequis technique avant d'ouvrir la moindre écriture externe -- pas de
 fonctionnalité visible en soi, mais indispensable avant la v0.4.

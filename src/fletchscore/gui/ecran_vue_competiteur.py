@@ -32,13 +32,31 @@ class EcranVueCompetiteur(ctk.CTkFrame):
         cadre.grid(row=1, column=0, sticky="ew")
         cadre.grid_columnconfigure(0, weight=1)
 
+        cadre_port = ctk.CTkFrame(cadre, fg_color="transparent")
+        cadre_port.grid(row=0, column=0, sticky="w", padx=15, pady=(15, 5))
+        ctk.CTkLabel(cadre_port, text="Port").grid(row=0, column=0, padx=(0, 5))
+        self.champ_port = ctk.CTkEntry(cadre_port, width=80, placeholder_text="auto")
+        port_actuel = self.fenetre_principale.config_gui.http_port
+        if port_actuel is not None:
+            self.champ_port.insert(0, str(port_actuel))
+        self.champ_port.grid(row=0, column=1)
+        ctk.CTkLabel(
+            cadre_port,
+            text="(laisser vide = port différent à chaque démarrage)",
+            text_color="gray60",
+            font=ctk.CTkFont(size=11),
+        ).grid(row=0, column=2, padx=(8, 0))
+
+        self.erreur_port = ctk.CTkLabel(cadre, text="", text_color="red")
+        self.erreur_port.grid(row=1, column=0, sticky="w", padx=15)
+
         self.bouton_demarrer_arreter = ctk.CTkButton(
             cadre, text="Démarrer le serveur", command=self._basculer_serveur
         )
-        self.bouton_demarrer_arreter.grid(row=0, column=0, sticky="w", padx=15, pady=15)
+        self.bouton_demarrer_arreter.grid(row=2, column=0, sticky="w", padx=15, pady=15)
 
         self.label_url = ctk.CTkLabel(cadre, text="Serveur arrêté.", text_color="gray60")
-        self.label_url.grid(row=1, column=0, sticky="w", padx=15, pady=(0, 15))
+        self.label_url.grid(row=3, column=0, sticky="w", padx=15, pady=(0, 15))
 
         self._rafraichir_etat()
 
@@ -47,16 +65,40 @@ class EcranVueCompetiteur(ctk.CTkFrame):
         if url is None:
             self.bouton_demarrer_arreter.configure(text="Démarrer le serveur")
             self.label_url.configure(text="Serveur arrêté.", text_color="gray60")
+            self.champ_port.configure(state="normal")
         else:
             self.bouton_demarrer_arreter.configure(text="Arrêter le serveur")
             self.label_url.configure(
                 text=f"Serveur démarré -- adresse à donner aux compétiteurs : {url}",
                 text_color="green",
             )
+            # Changer le port pendant que le serveur tourne n'aurait aucun
+            # effet avant un arrêt/redémarrage -- désactivé pour ne pas
+            # laisser croire le contraire.
+            self.champ_port.configure(state="disabled")
 
     def _basculer_serveur(self) -> None:
+        self.erreur_port.configure(text="")
         if self.fenetre_principale.url_serveur_web() is None:
-            self.fenetre_principale.demarrer_serveur_web()
+            texte_port = self.champ_port.get().strip()
+            port = None
+            if texte_port:
+                try:
+                    port = int(texte_port)
+                except ValueError:
+                    self.erreur_port.configure(text="Port invalide -- un nombre est attendu.")
+                    return
+                if not (1 <= port <= 65535):
+                    self.erreur_port.configure(text="Port invalide -- doit être entre 1 et 65535.")
+                    return
+
+            try:
+                self.fenetre_principale.demarrer_serveur_web(port)
+            except OSError as erreur:
+                self.erreur_port.configure(
+                    text=f"Impossible de démarrer le serveur sur ce port : {erreur}"
+                )
+                return
         else:
             self.fenetre_principale.arreter_serveur_web()
         self._rafraichir_etat()
