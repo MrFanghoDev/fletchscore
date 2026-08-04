@@ -535,4 +535,20 @@ tranchés" dans le cahier des charges.
       conception reste à faire avec l'utilisateur avant de coder --
       terme volontairement resté vague pour l'instant, à préciser quand
       le besoin deviendra concret.
+- [x] **`roadmap.md`/`architecture.md` intégrés à la doc Sphinx** --
+      demande de l'utilisateur ("ces fichiers ne sont que gérés en
+      config et peu visibles"). `myst-parser` ajouté (`docs/
+      requirements.txt`, `conf.py`) plutôt que de convertir ~1000
+      lignes en RST à la main, sans pouvoir vérifier le rendu ici --
+      les deux fichiers restent en Markdown, jamais déplacés (trop de
+      références à leur chemin exact dans le reste du code/doc pour
+      risquer un renommage). Nouveau toctree séparé dans `index.rst`
+      ("Suivi du développement", à côté de celui pour les
+      utilisateurs) -- ce sont des journaux de décisions techniques,
+      pas des pages destinées au même public que le guide utilisateur.
+      Extension `tasklist` activée pour que les nombreuses cases
+      `- [x]`/`- [ ]` s'affichent comme de vraies cases à cocher.
+      **Non vérifié par une vraie construction Sphinx** (toujours pas
+      installable ici) -- vérification statique seulement (un seul
+      titre H1 par fichier, aucune syntaxe RST résiduelle).
 

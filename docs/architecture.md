@@ -796,3 +796,17 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   mot de passe redemande l'actuel : évite qu'une session organisateur
   laissée ouverte suffise à désactiver la protection sans le
   reconfirmer.
+
+- **Ce fichier et `roadmap.md` intégrés à la doc Sphinx, restés en
+  Markdown.** Demande de l'utilisateur : ces deux journaux n'étaient
+  visibles que via le dépôt Git, jamais publiés sur le site généré.
+  `myst-parser` ajouté plutôt que de convertir ~1000 lignes cumulées en
+  RST à la main -- un travail mécanique long, à risque d'erreurs de
+  formatage impossibles à vérifier sans pouvoir construire la doc ici.
+  Les deux fichiers restent à leur emplacement actuel (`docs/`
+  directement) : trop de références à leur chemin exact ailleurs dans
+  le code et la doc pour risquer un déplacement. Toctree séparé
+  ("Suivi du développement") plutôt que mélangés avec le guide
+  utilisateur ou le cahier des charges -- public et nature différents
+  (journal de décisions techniques, pas une documentation destinée à
+  l'utilisateur final).

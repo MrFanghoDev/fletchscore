@@ -25,7 +25,23 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx_design",
     "sphinxcontrib.mermaid",
+    "myst_parser",
 ]
+
+# Permet à Sphinx de lire directement roadmap.md/architecture.md (déjà en
+# Markdown, jamais convertis en .rst -- trop de fichiers y font référence
+# par leur chemin exact pour risquer un déplacement/renommage, et les
+# reconvertir à la main aurait été un gros travail mécanique sans pouvoir
+# vérifier le rendu ici). Le reste de la doc (cahier des charges, guide
+# utilisateur) continue en .rst comme avant -- myst_parser ne remplace
+# rien, il ajoute juste la prise en charge du Markdown en plus.
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".md": "markdown",
+}
+myst_enable_extensions = ["tasklist"]  # rend les "- [x]"/"- [ ]" en vraies
+# cases à cocher plutôt qu'en texte brut "[x]" -- les deux fichiers en
+# contiennent beaucoup (suivi de roadmap).
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
