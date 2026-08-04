@@ -530,6 +530,16 @@ def list_inscriptions_by_epreuve(conn: sqlite3.Connection, epreuve_id: str) -> l
     return [Inscription(r["id"], r["id_federal"], r["epreuve_id"]) for r in rows]
 
 
+def get_inscription_par_competiteur_epreuve(
+    conn: sqlite3.Connection, id_federal: str, epreuve_id: str
+) -> Inscription | None:
+    row = conn.execute(
+        "SELECT * FROM inscriptions WHERE id_federal = ? AND epreuve_id = ?",
+        (id_federal, epreuve_id),
+    ).fetchone()
+    return Inscription(row["id"], row["id_federal"], row["epreuve_id"]) if row else None
+
+
 # --------------------------------------------------------------- Score --
 
 

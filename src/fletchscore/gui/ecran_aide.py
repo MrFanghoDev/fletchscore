@@ -60,6 +60,13 @@ _SECTIONS_AIDE = (
         "autre d'envoyer un message à un compétiteur précis ou à tous.",
     ),
     (
+        "Propositions de score",
+        "Un compétiteur identifié (code confirmé) peut proposer son "
+        "score final depuis la page de son épreuve. Ça n'apparaît dans "
+        "aucun classement tant que tu ne l'as pas validé ici -- "
+        "recoupe avec la feuille de match papier avant de valider.",
+    ),
+    (
         "Sécurité",
         "Optionnel : définis un mot de passe pour protéger l'ouverture "
         "de FletchScore. Sans mot de passe défini, l'application "

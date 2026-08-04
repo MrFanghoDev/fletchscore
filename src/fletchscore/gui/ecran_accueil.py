@@ -23,6 +23,7 @@ _RACCOURCIS = (
     ("classement", "Classement", "Consulter le classement live d'une épreuve"),
     ("vue_competiteur", "Vue compétiteur", "Démarrer le serveur web pour les compétiteurs"),
     ("rattachement", "Demandes d'accès", "Valider ou rejeter les demandes de rattachement"),
+    ("propositions", "Propositions de score", "Valider ou rejeter les scores proposés en ligne"),
 )
 
 

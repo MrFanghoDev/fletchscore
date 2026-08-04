@@ -564,6 +564,78 @@ def _epreuve_et_bareme_de(conn: sqlite3.Connection, inscription_id: str):
     return epreuve, bareme
 
 
+def proposer_score(
+    conn: sqlite3.Connection, id_federal: str, epreuve_id: str, total: int, *, nombre_x: int = 0
+) -> Score:
+    """Le compétiteur propose son score final pour une épreuve à
+    laquelle il est inscrit -- mêmes bornes que la saisie organisateur
+    (``saisir_score_final``), statut ``PROPOSE`` : n'apparaît dans aucun
+    classement tant qu'un organisateur ne l'a pas validé
+    (``valider_score_propose``), voir ``scoring.total_scores``.
+
+    Refuse d'écraser un score déjà **validé** -- une nouvelle
+    proposition ne doit jamais rouvrir silencieusement un score
+    officiel déjà entériné ; seul l'organisateur peut le corriger
+    (écran Saisie). Re-proposer avant validation, en revanche, remplace
+    la proposition précédente sans problème (une correction avant
+    revue, cas normal).
+    """
+    inscription = db.get_inscription_par_competiteur_epreuve(conn, id_federal, epreuve_id)
+    if inscription is None:
+        raise ErreurMetier("Tu n'es pas inscrit·e à cette épreuve.")
+
+    score_existant = db.get_score_by_inscription(conn, inscription.id)
+    if score_existant is not None and score_existant.statut == StatutScore.VALIDE:
+        raise ErreurMetier(
+            "Un score officiel existe déjà pour cette épreuve -- "
+            "contacte l'organisateur pour le faire corriger."
+        )
+
+    return saisir_score_final(
+        conn, inscription.id, total, nombre_x=nombre_x, statut=StatutScore.PROPOSE
+    )
+
+
+def lister_propositions_en_attente(
+    conn: sqlite3.Connection, epreuve_id: str
+) -> list[tuple[Competiteur, Score]]:
+    """Associe chaque score proposé (pas encore validé/rejeté) de cette
+    épreuve à son compétiteur -- pour affichage direct dans la GUI."""
+    resultat = []
+    for inscription in db.list_inscriptions_by_epreuve(conn, epreuve_id):
+        score = db.get_score_by_inscription(conn, inscription.id)
+        if score is not None and score.statut == StatutScore.PROPOSE:
+            competiteur = db.get_competiteur(conn, inscription.id_federal)
+            if competiteur is not None:
+                resultat.append((competiteur, score))
+    return resultat
+
+
+def valider_score_propose(conn: sqlite3.Connection, inscription_id: str) -> Score:
+    """Valide un score proposé par le compétiteur -- le fait passer de
+    ``PROPOSE`` à ``VALIDE`` sans en changer les valeurs. Devient à ce
+    moment précis LE score officiel de cette inscription, comptabilisé
+    dans le classement."""
+    score = _obtenir_proposition_en_attente(conn, inscription_id)
+    return saisir_score_final(
+        conn, inscription_id, score.total, nombre_x=score.nombre_x, statut=StatutScore.VALIDE
+    )
+
+
+def rejeter_score_propose(conn: sqlite3.Connection, inscription_id: str) -> None:
+    score = _obtenir_proposition_en_attente(conn, inscription_id)
+    saisir_score_final(
+        conn, inscription_id, score.total, nombre_x=score.nombre_x, statut=StatutScore.REJETE
+    )
+
+
+def _obtenir_proposition_en_attente(conn: sqlite3.Connection, inscription_id: str) -> Score:
+    score = db.get_score_by_inscription(conn, inscription_id)
+    if score is None or score.statut != StatutScore.PROPOSE:
+        raise ErreurMetier("Aucun score proposé en attente pour cette inscription.")
+    return score
+
+
 # -------------------------------------------------------- Classement --
 
 

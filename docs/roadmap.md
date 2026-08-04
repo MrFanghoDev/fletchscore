@@ -1,9 +1,9 @@
 # Roadmap FletchScore
 
-**État actuel : v0.1 et v0.2 complètes (hors HTTPS, repoussé par
-choix) -- 387 tests, tous verts, confirmés par la CI sans aucun
-`skipped`** (y compris les tests fpdf2/qrcode, jamais exécutables dans
-l'environnement de dev utilisé ici).
+**État actuel : v0.1 et v0.2 complètes, v0.3 en cours -- 413 tests,
+tous verts, confirmés par la CI sans aucun `skipped`** (y compris les
+tests fpdf2/qrcode, jamais exécutables dans l'environnement de dev
+utilisé ici).
 
 > **Note de renumérotation** (demande de l'utilisateur) : la v0.2
 > d'origine (vue compétiteur lecture seule) était trop petite pour
@@ -15,7 +15,7 @@ l'environnement de dev utilisé ici).
 
 - **v0.1** : `models/`, `storage/`, `referentiels/`, `io/import_csv.py`
   (import + export CSV clubs/compétiteurs), `scoring/`, `gui/`
-  (10 écrans), `io/export/` (CSV/Excel/PDF, classement par épreuve et
+  (11 écrans), `io/export/` (CSV/Excel/PDF, classement par épreuve et
   global). Modification de compétitions/épreuves/clubs/compétiteurs
   existants. 6 barèmes préconfigurés (Flint Indoor, IFAA Indoor, Field,
   Hunter, International, Expert Field). Modèles d'épreuve réutilisables.
@@ -27,8 +27,15 @@ l'environnement de dev utilisé ici).
   ("Demandes d'accès" -- valider/rejeter/révoquer/envoyer un message),
   endpoint web de rattachement, page "Mes messages" compétiteur (cookie
   de session signé HMAC), et authentification organisateur (mot de
-  passe optionnel, PBKDF2). HTTPS repoussé après la v0.3, voir "Points
+  passe optionnel, PBKDF2). HTTPS décalé en v0.3 (définitif, décision de
+  l'utilisateur), voir "Points
   tranchés" du cahier des charges.
+- **v0.3 (en cours)** : proposition de score compétiteur, du formulaire
+  web (identifié + inscrit, sans champ falsifiable) jusqu'à la
+  validation organisateur (`gui/ecran_propositions.py`) -- le score
+  proposé devient LE score officiel dès validation, réutilisant
+  `StatutScore.PROPOSE` déjà prévu dans le modèle depuis la v0.1. Reste
+  HTTPS et la limitation de débit avant d'être complètement close.
 
 Détail incrément par incrément ci-dessous.
 
@@ -230,8 +237,6 @@ la vraie donnée sensible.
       11 tests, et le cycle complet (définir → vérifier → changer →
       supprimer) **vérifié réellement**, pas seulement en tests
       unitaires isolés.
-- [ ] HTTPS local, limitation de débit par token -- repoussé après la
-      v0.3 (voir ci-dessus)
 - [x] Port du serveur web fixe et paramétrable -- demande de
       l'utilisateur. `ConfigGui.http_port` (persisté dans
       `config/gui.toml`, comme le thème), `--http-port` en CLI
@@ -316,13 +321,48 @@ fonctionnalité visible en soi, mais indispensable avant la v0.3.
 
 ## v0.3 -- Proposition de score compétiteur
 
-- [ ] `api/competiteur.py` (écriture -- proposition de score)
-- [ ] File de validation côté organisateur (`api/organisateur.py`)
-- [ ] Flux complet : proposition -> validation -> score officiel
+- [ ] HTTPS local -- **décalé ici définitivement** (décision de
+      l'utilisateur, plus un "repoussé après" provisoire). Raison
+      inchangée depuis la v0.2 : c'est cette version qui fait
+      transiter la vraie donnée sensible (un score), pas de raison de
+      durcir le transport avant.
+- [ ] Limitation de débit par token
+- [x] `api/competiteur.py` (écriture -- proposition de score) --
+      cadré avec l'utilisateur avant de coder (3 questions : format
+      identique à la saisie organisateur -- total + X ; nécessite le
+      code d'accès confirmé au préalable, même session que "Mes
+      messages" ; la validation appelle directement
+      `services.saisir_score_final()`, le score proposé devient LE
+      score officiel). `services.proposer_score()` -- refuse
+      d'écraser un score déjà **validé** (seule l'organisateur peut le
+      corriger, écran Saisie), mais permet de reproposer librement tant
+      que rien n'est validé. Réutilise `StatutScore.PROPOSE`, déjà
+      prévu dans le modèle depuis la simplification du score en v0.1,
+      jamais branché jusqu'ici. Formulaire affiché sur la page de
+      l'épreuve, uniquement si le compétiteur est identifié (cookie de
+      session), inscrit à cette épreuve précise, et n'a pas déjà de
+      score officiel. **L'id fédéral vient exclusivement du cookie
+      signé, jamais d'un champ de formulaire** -- personne ne peut
+      proposer un score pour quelqu'un d'autre en modifiant du HTML.
+- [x] File de validation côté organisateur --
+      `gui/ecran_propositions.py` (nouvel écran "Propositions de
+      score"), sélecteur d'épreuve, liste des propositions en attente,
+      Valider/Rejeter. `api/organisateur.py` reste vide -- toute la
+      validation se fait depuis la GUI organisateur existante, pas
+      besoin d'une API dédiée pour ça.
+- [x] Flux complet : proposition -> validation -> score officiel --
+      `services.valider_score_propose()`/`rejeter_score_propose()`,
+      27 nouveaux tests, **vérifié réellement à deux niveaux** : (1)
+      bout en bout services (proposer -> lister -> valider -> le
+      classement passe de 0 à 270 points) et (2) bout en bout HTTP
+      (vrai `POST /code` -> vrai cookie -> vrai `POST /proposer-score`
+      -> vrai `Score` en base avec statut `propose`) -- pas seulement
+      des fonctions testées isolément.
 
 Jalon le plus sensible (premières écritures externes en compétition
 réelle) -- à tester d'abord en interne/amical avant un vrai concours
-homologué.
+homologué. Reste HTTPS et la limitation de débit avant d'être
+complètement clos.
 
 ## Extension -- Import/export de compétitions
 

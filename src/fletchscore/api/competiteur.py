@@ -41,7 +41,7 @@ from pathlib import Path
 from urllib.parse import ParseResult, parse_qs, urlparse
 
 from fletchscore import services
-from fletchscore.models import Competiteur
+from fletchscore.models import Competiteur, StatutScore
 from fletchscore.services import ErreurMetier
 from fletchscore.storage import db
 
@@ -72,6 +72,24 @@ _TEXTES: dict[str, dict[str, str]] = {
     "mes_messages_titre": {"fr": "Mes messages", "en": "My messages"},
     "aucun_message": {"fr": "Aucun message pour l'instant.", "en": "No message yet."},
     "voir_tous_les_messages": {"fr": "Voir tous mes messages", "en": "See all my messages"},
+    "proposer_score_titre": {"fr": "Proposer mon score", "en": "Propose my score"},
+    "score_total_label": {"fr": "Score total", "en": "Total score"},
+    "nombre_x_label": {"fr": "Nombre de X", "en": "Number of X"},
+    "proposer_bouton": {"fr": "Proposer", "en": "Submit"},
+    "proposition_en_attente": {
+        "fr": "Ta proposition ({total} pts) est en attente de validation par " "l'organisateur.",
+        "en": "Your proposal ({total} pts) is awaiting organiser validation.",
+    },
+    "score_deja_officiel": {
+        "fr": "Ton score officiel pour cette épreuve est déjà enregistré : " "{total} pts.",
+        "en": "Your official score for this event is already recorded: " "{total} pts.",
+    },
+    "proposition_envoyee_titre": {"fr": "Proposition envoyée", "en": "Proposal sent"},
+    "proposition_envoyee": {
+        "fr": "Ta proposition a bien été envoyée. L'organisateur la "
+        "validera après vérification.",
+        "en": "Your proposal has been sent. The organiser will validate it " "after checking.",
+    },
     "aucune_competition": {
         "fr": "Aucune compétition pour l'instant.",
         "en": "No competition yet.",
@@ -82,6 +100,7 @@ _TEXTES: dict[str, dict[str, str]] = {
     },
     "retour": {"fr": "← Toutes les compétitions", "en": "← All competitions"},
     "retour_competition": {"fr": "← Retour à la compétition", "en": "← Back to competition"},
+    "retour_epreuve": {"fr": "← Retour à l'épreuve", "en": "← Back to event"},
     "rang": {"fr": "Rang", "en": "Rank"},
     "nom": {"fr": "Nom", "en": "Name"},
     "total": {"fr": "Total", "en": "Total"},
@@ -285,8 +304,62 @@ def _tableau_classement(classement: dict, lang: str) -> str:
     return "".join(morceaux)
 
 
+def _section_proposer_score(
+    conn: sqlite3.Connection, epreuve, identite: tuple[str, str] | None, lang: str
+) -> str:
+    """Formulaire de proposition de score -- affiché seulement si le
+    visiteur est identifié (cookie de session signé, voir
+    ``services.verifier_identite_signee``) pour la bonne compétition ET
+    inscrit à cette épreuve précise. Jamais de champ caché portant
+    l'id_federal dans le formulaire : c'est le cookie, vérifié
+    côté serveur, qui détermine qui propose -- un champ de formulaire
+    modifiable à la main permettrait à quiconque de proposer un score
+    pour quelqu'un d'autre."""
+    if identite is None:
+        return ""
+    id_federal, competition_id = identite
+    if competition_id != epreuve.competition_id:
+        return ""
+
+    inscription = db.get_inscription_par_competiteur_epreuve(conn, id_federal, epreuve.id)
+    if inscription is None:
+        return ""
+
+    score = db.get_score_by_inscription(conn, inscription.id)
+    if score is not None and score.statut == StatutScore.VALIDE:
+        texte = _t("score_deja_officiel", lang).format(total=score.total)
+        return f'<div class="section-competition"><p>✅ {_echapper(texte)}</p></div>'
+
+    message_attente = ""
+    if score is not None and score.statut == StatutScore.PROPOSE:
+        texte = _t("proposition_en_attente", lang).format(total=score.total)
+        message_attente = f"<p>⏳ {_echapper(texte)}</p>"
+
+    valeur_total = score.total if score is not None else ""
+    valeur_x = score.nombre_x if score is not None else ""
+
+    return (
+        '<div class="section-competition">'
+        f'<h2>{_t("proposer_score_titre", lang)}</h2>'
+        f"{message_attente}"
+        f'<form method="post" action="/proposer-score/{epreuve.id}" class="field">'
+        f'<label for="total">{_t("score_total_label", lang)}</label>'
+        f'<input type="number" id="total" name="total" min="0" value="{valeur_total}">'
+        f'<label for="nombre_x">{_t("nombre_x_label", lang)}</label>'
+        f'<input type="number" id="nombre_x" name="nombre_x" min="0" value="{valeur_x}">'
+        f'<button class="btn-primary" type="submit" '
+        f'style="margin-top:0.5rem;width:fit-content;">{_t("proposer_bouton", lang)}</button>'
+        "</form>"
+        "</div>"
+    )
+
+
 def page_epreuve(
-    conn: sqlite3.Connection, epreuve_id: str, lang: str = "fr", theme: str = "dark"
+    conn: sqlite3.Connection,
+    epreuve_id: str,
+    lang: str = "fr",
+    theme: str = "dark",
+    identite: tuple[str, str] | None = None,
 ) -> str:
     chemin_retour = f"/epreuve/{epreuve_id}"
     epreuve = db.get_epreuve(conn, epreuve_id)
@@ -308,6 +381,7 @@ def page_epreuve(
         f'<p><a class="back" href="/">{_t("retour", lang)}</a></p>'
         f"<h1>{_echapper(epreuve.nom)}</h1>"
         f'<p class="intro">{epreuve.date}</p>'
+        f"{_section_proposer_score(conn, epreuve, identite, lang)}"
         f"{_tableau_classement(classement, lang)}"
     )
     return _mise_en_page(epreuve.nom, corps, lang, theme, chemin_retour)
@@ -640,7 +714,13 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
             if chemin == "/":
                 corps = page_accueil(conn, lang, theme, identite=self._lire_identite())
             elif chemin.startswith("/epreuve/"):
-                corps = page_epreuve(conn, chemin.removeprefix("/epreuve/"), lang, theme)
+                corps = page_epreuve(
+                    conn,
+                    chemin.removeprefix("/epreuve/"),
+                    lang,
+                    theme,
+                    identite=self._lire_identite(),
+                )
             elif chemin.startswith("/competition/"):
                 corps = page_competition(conn, chemin.removeprefix("/competition/"), lang, theme)
             elif chemin.startswith("/rattachement/"):
@@ -690,10 +770,67 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
             self._repondre_html(corps, cookie_identite)
             return
 
+        if chemin.startswith("/proposer-score/"):
+            corps = self._traiter_proposition_score(chemin, champs, lang, theme)
+            self._repondre_html(corps)
+            return
+
         self.send_response(404)
         self.send_header("Content-Type", "text/plain; charset=utf-8")
         self.end_headers()
         self.wfile.write(_t("page_introuvable", lang).encode("utf-8"))
+
+    def _traiter_proposition_score(self, chemin: str, champs: dict, lang: str, theme: str) -> str:
+        """L'id_federal vient exclusivement du cookie de session signé,
+        jamais d'un champ de formulaire -- voir le docstring de
+        ``_section_proposer_score``. Sans session valide, refus
+        immédiat plutôt qu'une tentative de deviner qui propose."""
+        epreuve_id = chemin.removeprefix("/proposer-score/")
+
+        identite = self._lire_identite()
+        if identite is None:
+            return page_code_invalide(lang, theme)
+        id_federal, _competition_id = identite
+
+        try:
+            total = int(champs.get("total", [""])[0])
+        except ValueError:
+            total = -1  # laisse proposer_score renvoyer une erreur lisible
+        try:
+            nombre_x = int(champs.get("nombre_x", ["0"])[0] or "0")
+        except ValueError:
+            nombre_x = -1
+
+        conn = self._connexion_ecriture()
+        try:
+            try:
+                services.proposer_score(conn, id_federal, epreuve_id, total, nombre_x=nombre_x)
+            except ErreurMetier as erreur:
+                return _mise_en_page(
+                    _t("erreur", lang),
+                    f"<p>{_echapper(str(erreur))}</p>",
+                    lang,
+                    theme,
+                    f"/epreuve/{epreuve_id}",
+                    rafraichir=False,
+                )
+        finally:
+            conn.close()
+
+        corps = (
+            f'<h1>{_t("proposition_envoyee_titre", lang)}</h1>'
+            f'<p>{_t("proposition_envoyee", lang)}</p>'
+            f'<p><a class="back" href="/epreuve/{epreuve_id}">'
+            f'{_t("retour_epreuve", lang)}</a></p>'
+        )
+        return _mise_en_page(
+            _t("proposition_envoyee_titre", lang),
+            corps,
+            lang,
+            theme,
+            f"/epreuve/{epreuve_id}",
+            rafraichir=False,
+        )
 
     def _traiter_rattachement(self, chemin: str, champs: dict, lang: str, theme: str) -> str:
         competition_id = chemin.removeprefix("/rattachement/")

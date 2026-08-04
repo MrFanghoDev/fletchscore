@@ -112,17 +112,21 @@ Une fois un code confirmé, le navigateur du compétiteur garde sa
 session pendant 7 jours (le temps d'un week-end de compétition) : un
 bandeau apparaît alors sur l'accueil dès qu'un message lui a été
 envoyé, avec un lien vers **Mes messages** (l'historique complet, non
-limité au dernier).
+limité au dernier). Sur la page d'une épreuve où il est inscrit, un
+formulaire **Proposer mon score** apparaît aussi (total + nombre de X,
+même format que la saisie organisateur) -- tant que l'organisateur ne
+l'a pas validée (voir "Propositions de score" ci-dessous), la
+proposition n'apparaît dans aucun classement.
 
 .. note::
 
-   Consultation en lecture seule pour tout le monde. Deux écritures
-   possibles depuis cette page, sans jamais rien modifier chez un autre
-   compétiteur : la *demande* d'accès (« je pense être telle
+   Consultation en lecture seule pour la plupart des visiteurs. Trois
+   écritures possibles depuis cette page, jamais sur les données d'un
+   autre compétiteur : la *demande* d'accès (« je pense être telle
    personne » -- sans aucun effet tant qu'un organisateur ne l'a pas
-   validée après vérification de visu) et la confirmation d'un code déjà
-   attribué. La proposition de score par le compétiteur (une fois son
-   accès validé) arrive dans une version ultérieure.
+   validée après vérification de visu), la confirmation d'un code déjà
+   attribué, et la proposition d'un score (réservée à un compétiteur
+   identifié, inscrit à l'épreuve, sans score officiel existant).
 
 Demandes d'accès
 ====================
@@ -154,6 +158,17 @@ Un sélecteur de compétition, puis trois onglets.
    page "Mes messages", voir ci-dessus) -- FletchScore ne te dit pas
    qui l'a lu, seulement qu'il a été envoyé. L'historique de tous les
    messages envoyés pour cette compétition s'affiche en dessous.
+
+Propositions de score
+=========================
+
+Un sélecteur d'épreuve, puis la liste des scores proposés en attente --
+compétiteur, total, nombre de X. Un score proposé n'apparaît dans aucun
+classement tant qu'il n'est pas validé ici. **Recoupe-le avec la
+feuille de match papier avant de valider** : FletchScore ne vérifie que
+les bornes du barème (le total ne dépasse pas le maximum possible),
+rien d'autre. Le bouton **Rejeter** écarte une proposition sans rien
+valider.
 
 Sécurité
 ===========

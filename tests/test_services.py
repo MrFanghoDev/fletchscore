@@ -411,6 +411,143 @@ class TestSaisirScoreFinal(ServiceTestCase):
             services.saisir_score_final(self.conn, "inscription-fantome", 200)
 
 
+class TestProposerScore(ServiceTestCase):
+    def setUp(self):
+        super().setUp()
+        self.competition = self._competition()
+        self.epreuve = self._epreuve(self.competition)  # ifaa-indoor : score_max=300
+        services.inscrire(self.conn, "FR-1", self.epreuve.id)
+
+    def test_proposition_valide_a_le_statut_propose(self):
+        score = services.proposer_score(self.conn, "FR-1", self.epreuve.id, 260, nombre_x=10)
+        self.assertEqual(score.statut, StatutScore.PROPOSE)
+        self.assertEqual(score.total, 260)
+
+    def test_proposition_nabonde_pas_au_classement(self):
+        services.proposer_score(self.conn, "FR-1", self.epreuve.id, 260)
+        classement = services.classement_epreuve(self.conn, self.epreuve.id)
+        ligne = classement["AFBB-R"][0]
+        self.assertEqual(ligne.total, 0)  # PROPOSE ne compte pas, voir scoring.total_scores
+
+    def test_non_inscrit_refuse(self):
+        with self.assertRaises(ErreurMetier) as contexte:
+            services.proposer_score(self.conn, "FR-INCONNU", self.epreuve.id, 260)
+        self.assertIn("inscrit", str(contexte.exception))
+
+    def test_memes_bornes_que_la_saisie_organisateur(self):
+        with self.assertRaises(ErreurMetier):
+            services.proposer_score(self.conn, "FR-1", self.epreuve.id, 301)  # > score_max
+
+    def test_reproposer_avant_validation_remplace(self):
+        services.proposer_score(self.conn, "FR-1", self.epreuve.id, 200)
+        services.proposer_score(self.conn, "FR-1", self.epreuve.id, 260)
+        inscription = db.get_inscription_par_competiteur_epreuve(self.conn, "FR-1", self.epreuve.id)
+        score = db.get_score_by_inscription(self.conn, inscription.id)
+        self.assertEqual(score.total, 260)
+
+    def test_refuse_decraser_un_score_deja_valide(self):
+        inscription = db.get_inscription_par_competiteur_epreuve(self.conn, "FR-1", self.epreuve.id)
+        services.saisir_score_final(self.conn, inscription.id, 270)  # validé par l'organisateur
+
+        with self.assertRaises(ErreurMetier) as contexte:
+            services.proposer_score(self.conn, "FR-1", self.epreuve.id, 100)
+        self.assertIn("officiel", str(contexte.exception))
+
+        # Le score officiel ne doit pas avoir bougé.
+        score = db.get_score_by_inscription(self.conn, inscription.id)
+        self.assertEqual(score.total, 270)
+        self.assertEqual(score.statut, StatutScore.VALIDE)
+
+
+class TestListerPropositionsEnAttente(ServiceTestCase):
+    def setUp(self):
+        super().setUp()
+        self.competition = self._competition()
+        self.epreuve = self._epreuve(self.competition)
+        services.inscrire(self.conn, "FR-1", self.epreuve.id)
+
+    def test_liste_les_propositions_en_attente(self):
+        services.proposer_score(self.conn, "FR-1", self.epreuve.id, 260)
+
+        propositions = services.lister_propositions_en_attente(self.conn, self.epreuve.id)
+
+        self.assertEqual(len(propositions), 1)
+        competiteur, score = propositions[0]
+        self.assertEqual(competiteur.id_federal, "FR-1")
+        self.assertEqual(score.total, 260)
+
+    def test_score_valide_napparait_pas(self):
+        inscription = db.get_inscription_par_competiteur_epreuve(self.conn, "FR-1", self.epreuve.id)
+        services.saisir_score_final(self.conn, inscription.id, 270)
+        self.assertEqual(services.lister_propositions_en_attente(self.conn, self.epreuve.id), [])
+
+    def test_liste_vide_si_aucune_proposition(self):
+        self.assertEqual(services.lister_propositions_en_attente(self.conn, self.epreuve.id), [])
+
+
+class TestValiderScorePropose(ServiceTestCase):
+    def setUp(self):
+        super().setUp()
+        self.competition = self._competition()
+        self.epreuve = self._epreuve(self.competition)
+        services.inscrire(self.conn, "FR-1", self.epreuve.id)
+        self.inscription = db.get_inscription_par_competiteur_epreuve(
+            self.conn, "FR-1", self.epreuve.id
+        )
+
+    def test_validation_rend_le_score_officiel(self):
+        services.proposer_score(self.conn, "FR-1", self.epreuve.id, 260, nombre_x=10)
+
+        score = services.valider_score_propose(self.conn, self.inscription.id)
+
+        self.assertEqual(score.statut, StatutScore.VALIDE)
+        self.assertEqual(score.total, 260)
+        self.assertEqual(score.nombre_x, 10)
+
+    def test_score_valide_compte_desormais_au_classement(self):
+        services.proposer_score(self.conn, "FR-1", self.epreuve.id, 260)
+        services.valider_score_propose(self.conn, self.inscription.id)
+
+        classement = services.classement_epreuve(self.conn, self.epreuve.id)
+        self.assertEqual(classement["AFBB-R"][0].total, 260)
+
+    def test_aucune_proposition_en_attente_refuse(self):
+        with self.assertRaises(ErreurMetier):
+            services.valider_score_propose(self.conn, self.inscription.id)
+
+    def test_deja_valide_ne_peut_pas_etre_revalide(self):
+        services.proposer_score(self.conn, "FR-1", self.epreuve.id, 260)
+        services.valider_score_propose(self.conn, self.inscription.id)
+        with self.assertRaises(ErreurMetier):
+            services.valider_score_propose(self.conn, self.inscription.id)
+
+
+class TestRejeterScorePropose(ServiceTestCase):
+    def setUp(self):
+        super().setUp()
+        self.competition = self._competition()
+        self.epreuve = self._epreuve(self.competition)
+        services.inscrire(self.conn, "FR-1", self.epreuve.id)
+        self.inscription = db.get_inscription_par_competiteur_epreuve(
+            self.conn, "FR-1", self.epreuve.id
+        )
+
+    def test_rejet_retire_de_la_liste_en_attente(self):
+        services.proposer_score(self.conn, "FR-1", self.epreuve.id, 260)
+        services.rejeter_score_propose(self.conn, self.inscription.id)
+        self.assertEqual(services.lister_propositions_en_attente(self.conn, self.epreuve.id), [])
+
+    def test_rejet_ne_compte_pas_au_classement(self):
+        services.proposer_score(self.conn, "FR-1", self.epreuve.id, 260)
+        services.rejeter_score_propose(self.conn, self.inscription.id)
+        classement = services.classement_epreuve(self.conn, self.epreuve.id)
+        self.assertEqual(classement["AFBB-R"][0].total, 0)
+
+    def test_aucune_proposition_en_attente_refuse(self):
+        with self.assertRaises(ErreurMetier):
+            services.rejeter_score_propose(self.conn, self.inscription.id)
+
+
 class TestClassementEpreuve(ServiceTestCase):
     def test_classement_utilise_le_reglage_veteran_de_la_competition(self):
         # Compétiteur né en 1965 -> 61 ans en 2026 -> Veteran si activé.

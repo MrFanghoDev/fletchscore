@@ -266,6 +266,15 @@ class TestCompetitionEpreuveInscriptionScore(StorageTestCase):
         with self.assertRaises(sqlite3.IntegrityError):
             db.insert_inscription(self.conn, doublon)
 
+    def test_get_inscription_par_competiteur_epreuve_trouve(self):
+        inscription = db.get_inscription_par_competiteur_epreuve(self.conn, "FR-1", "epr-1")
+        self.assertEqual(inscription.id, "insc-1")
+
+    def test_get_inscription_par_competiteur_epreuve_absente(self):
+        self.assertIsNone(
+            db.get_inscription_par_competiteur_epreuve(self.conn, "FR-1", "epr-fantome")
+        )
+
     def test_upsert_score_insertion_initiale(self):
         score = Score(
             id="s1",

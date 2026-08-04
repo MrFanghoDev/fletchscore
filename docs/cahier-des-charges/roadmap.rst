@@ -136,3 +136,7 @@ Points tranchés
    *d'origine (vue compétiteur seule) était trop petite pour une*
    *version à part -- fusionnée avec cette v0.3 pour devenir la v0.2*
    *actuelle. Ce dropdown reprend cette version fusionnée.*
+
+   *Confirmation ultérieure (demande de l'utilisateur) : le report*
+   *HTTPS en v0.3 est définitif, plus une clause provisoire -- la v0.3*
+   *démarre sur cette base.*

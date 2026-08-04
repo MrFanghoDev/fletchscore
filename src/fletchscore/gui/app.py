@@ -25,6 +25,7 @@ from fletchscore.gui.ecran_aide import EcranAide
 from fletchscore.gui.ecran_classement import EcranClassement
 from fletchscore.gui.ecran_competiteurs import EcranCompetiteurs
 from fletchscore.gui.ecran_competitions import EcranCompetitions
+from fletchscore.gui.ecran_propositions import EcranPropositions
 from fletchscore.gui.ecran_rattachement import EcranRattachement
 from fletchscore.gui.ecran_saisie import EcranSaisie
 from fletchscore.gui.ecran_securite import EcranSecurite
@@ -46,6 +47,7 @@ LIBELLES_SECTIONS = {
     "classement": "Classement",
     "vue_competiteur": "Vue compétiteur",
     "rattachement": "Demandes d'accès",
+    "propositions": "Propositions de score",
     "securite": "Sécurité",
     "aide": "Aide",
 }
@@ -224,6 +226,11 @@ class FenetrePrincipale(ctk.CTk):
 
         if cle == "rattachement":
             ecran = EcranRattachement(self.cadre_section, self.conn)
+            ecran.grid(row=0, column=0, sticky="nsew")
+            return
+
+        if cle == "propositions":
+            ecran = EcranPropositions(self.cadre_section, self.conn)
             ecran.grid(row=0, column=0, sticky="nsew")
             return
 

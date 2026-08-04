@@ -203,6 +203,42 @@ class TestPageEpreuve(unittest.TestCase):
         page = page_epreuve(self.conn, self.epreuve.id)
         self.assertIn('http-equiv="refresh"', page)
 
+    def test_pas_de_formulaire_sans_identite(self):
+        page = page_epreuve(self.conn, self.epreuve.id, identite=None)
+        self.assertNotIn("proposer-score", page)
+
+    def test_pas_de_formulaire_si_non_inscrit(self):
+        page = page_epreuve(self.conn, self.epreuve.id, identite=("FR-1", self.competition.id))
+        self.assertNotIn("proposer-score", page)
+
+    def test_pas_de_formulaire_si_autre_competition(self):
+        services.inscrire(self.conn, "FR-1", self.epreuve.id)
+        page = page_epreuve(self.conn, self.epreuve.id, identite=("FR-1", "autre-competition"))
+        self.assertNotIn("proposer-score", page)
+
+    def test_formulaire_present_si_inscrit_et_identifie(self):
+        services.inscrire(self.conn, "FR-1", self.epreuve.id)
+        page = page_epreuve(self.conn, self.epreuve.id, identite=("FR-1", self.competition.id))
+        self.assertIn(f"/proposer-score/{self.epreuve.id}", page)
+
+    def test_score_officiel_affiche_sans_formulaire_de_proposition(self):
+        inscription = services.inscrire(self.conn, "FR-1", self.epreuve.id)
+        services.saisir_score_final(self.conn, inscription.id, 270)
+
+        page = page_epreuve(self.conn, self.epreuve.id, identite=("FR-1", self.competition.id))
+
+        self.assertNotIn("proposer-score", page)
+        self.assertIn("270", page)
+
+    def test_proposition_en_attente_affichee(self):
+        services.inscrire(self.conn, "FR-1", self.epreuve.id)
+        services.proposer_score(self.conn, "FR-1", self.epreuve.id, 260)
+
+        page = page_epreuve(self.conn, self.epreuve.id, identite=("FR-1", self.competition.id))
+
+        self.assertIn("260", page)
+        self.assertIn(f"/proposer-score/{self.epreuve.id}", page)  # peut encore reproposer
+
 
 class TestPageCompetition(unittest.TestCase):
     def setUp(self):
@@ -621,6 +657,62 @@ class TestServeurIntegration(unittest.TestCase):
         with urllib.request.urlopen(requete, timeout=5) as reponse:
             # urllib suit la redirection -- on doit atterrir sur l'accueil.
             self.assertIn("Bienvenue", reponse.read().decode("utf-8"))
+
+    def test_cookie_de_session_permet_de_proposer_un_score(self):
+        # Le test décisif de ce chantier : un vrai POST /code pose un
+        # vrai cookie, ce cookie renvoyé sur un vrai POST
+        # /proposer-score doit vraiment créer un Score en base avec le
+        # statut PROPOSE -- pas seulement que les fonctions isolées
+        # fonctionnent.
+        with tempfile.TemporaryDirectory() as dossier_cle:
+            with mock.patch.object(
+                securite, "CHEMIN_CLE_PAR_DEFAUT", Path(dossier_cle) / "cle.txt"
+            ):
+                conn = db.connect(self.chemin_base)
+                token, _secret = services.generer_token(conn, "FR-1", self.competition_id)
+                conn.close()
+
+                donnees_code = urllib.parse.urlencode({"code": token.code_court}).encode("utf-8")
+                requete_code = urllib.request.Request(
+                    self._url("/code"), data=donnees_code, method="POST"
+                )
+                with urllib.request.urlopen(requete_code, timeout=5) as reponse:
+                    cookies_recus = reponse.headers.get_all("Set-Cookie") or []
+                cookie_identite = next(
+                    (c for c in cookies_recus if c.startswith("identite=")), None
+                )
+                valeur_cookie = cookie_identite.split(";")[0]
+
+                donnees_score = urllib.parse.urlencode({"total": "270", "nombre_x": "12"})
+                requete_score = urllib.request.Request(
+                    self._url(f"/proposer-score/{self.epreuve.id}"),
+                    data=donnees_score.encode("utf-8"),
+                    method="POST",
+                )
+                requete_score.add_header("Cookie", valeur_cookie)
+                with urllib.request.urlopen(requete_score, timeout=5) as reponse:
+                    self.assertEqual(reponse.status, 200)
+                    contenu = reponse.read().decode("utf-8")
+
+        self.assertIn("envoyée", contenu.lower())
+
+        conn_verif = db.connect(self.chemin_base)
+        inscription = db.get_inscription_par_competiteur_epreuve(
+            conn_verif, "FR-1", self.epreuve.id
+        )
+        score = db.get_score_by_inscription(conn_verif, inscription.id)
+        conn_verif.close()
+        self.assertEqual(score.total, 270)
+        self.assertEqual(score.statut.value, "propose")
+
+    def test_proposer_score_sans_cookie_refuse(self):
+        donnees = urllib.parse.urlencode({"total": "270", "nombre_x": "0"}).encode("utf-8")
+        requete = urllib.request.Request(
+            self._url(f"/proposer-score/{self.epreuve.id}"), data=donnees, method="POST"
+        )
+        with urllib.request.urlopen(requete, timeout=5) as reponse:
+            contenu = reponse.read().decode("utf-8")
+        self.assertIn("invalide", contenu.lower())
 
 
 if __name__ == "__main__":

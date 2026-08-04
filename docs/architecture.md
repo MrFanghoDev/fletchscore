@@ -810,3 +810,37 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   utilisateur ou le cahier des charges -- public et nature différents
   (journal de décisions techniques, pas une documentation destinée à
   l'utilisateur final).
+
+- **Proposition de score : `StatutScore.PROPOSE` enfin branché, prévu
+  depuis la v0.1.** L'énumération existait déjà (EMIS/PROPOSE/VALIDE/
+  REJETE ramenés à PROPOSE/VALIDE/REJETE lors de la simplification du
+  score en v0.1) et `scoring.total_scores()` filtrait déjà sur
+  `VALIDE` uniquement -- mais rien n'écrivait jamais `PROPOSE` jusqu'à
+  cette version. `services.proposer_score()` refuse d'écraser un score
+  déjà **validé** (seule l'organisateur peut le corriger, écran
+  Saisie) mais permet de reproposer librement tant que rien n'est
+  validé -- un score `PROPOSE` peut se faire remplacer par un nouveau
+  `PROPOSE`, jamais par-dessus un `VALIDE`. `valider_score_propose()`
+  rappelle `saisir_score_final()` avec les mêmes valeurs déjà
+  proposées (pas de nouvelle saisie) : la validation ne fait que
+  changer le statut, jamais les valeurs -- si l'organisateur doit
+  corriger un chiffre, il le fait depuis l'écran Saisie habituel,
+  après validation.
+- **L'id fédéral d'une proposition vient exclusivement du cookie de
+  session signé, jamais d'un champ de formulaire.** Même principe de
+  sécurité que la messagerie ciblée (voir plus haut) : un champ caché
+  `id_federal` dans le HTML serait modifiable par n'importe qui avant
+  envoi, permettant de proposer un score au nom de quelqu'un d'autre.
+  Le formulaire de proposition n'apparaît d'ailleurs que si le cookie
+  identifie quelqu'un d'inscrit à cette épreuve précise et qui n'a pas
+  déjà de score officiel -- trois conditions vérifiées côté serveur
+  avant même d'afficher le formulaire, pas seulement à la soumission.
+  **Bug de texte repéré en relisant une page générée réellement, une
+  fois de plus** : le lien de retour après une proposition disait "vers
+  la compétition" en pointant en fait vers l'épreuve -- corrigé avec
+  une clé i18n dédiée (`retour_epreuve`), même famille de bug que pour
+  le rattachement (`retour_competition`) quelques versions plus tôt.
+  Vérifié réellement à deux niveaux : bout en bout services (proposer
+  → lister → valider → le classement passe de 0 à 270 points) et bout
+  en bout HTTP (vrai `POST /code` → vrai cookie → vrai `POST
+  /proposer-score` → vrai `Score` en base avec statut `propose`).
