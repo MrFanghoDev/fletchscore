@@ -29,6 +29,7 @@ from fletchscore.models import (
     Epreuve,
     EpreuveTemplate,
     Inscription,
+    Message,
     Score,
     Sexe,
     StatutCompetition,
@@ -799,6 +800,43 @@ def revoquer_acces(conn: sqlite3.Connection, id_federal: str, competition_id: st
     db.revoquer_token(conn, id_federal, competition_id)
 
 
+def signer_identite_competiteur(id_federal: str, competition_id: str) -> str:
+    """Signe un id fédéral + une compétition pour un cookie de session
+    côté vue compétiteur -- empêche un navigateur de se faire passer
+    pour quelqu'un d'autre juste en modifiant son cookie à la main.
+
+    Utilisé après confirmation d'un code d'accès (voir
+    ``api/competiteur.py``) pour que le navigateur "se souvienne" de qui
+    il est le temps de la session, sans qu'un cookie en clair suffise à
+    usurper l'identité d'un autre compétiteur -- même principe HMAC que
+    les tokens (``_hash_token``), même clé serveur. La compétition est
+    signée avec l'id fédéral (pas seulement l'id) : "Mes messages" a
+    besoin de savoir pour quelle compétition, un compétiteur pouvant en
+    principe avoir un accès à plusieurs.
+    """
+    cle = securite.obtenir_cle_secrete(securite.CHEMIN_CLE_PAR_DEFAUT)
+    charge = f"{id_federal}|{competition_id}"
+    signature = hmac.new(cle, charge.encode(), hashlib.sha256).hexdigest()
+    return f"{charge}:{signature}"
+
+
+def verifier_identite_signee(valeur: str) -> tuple[str, str] | None:
+    """Vérifie une valeur de cookie produite par
+    ``signer_identite_competiteur`` -- retourne ``(id_federal,
+    competition_id)`` si la signature est valide, ``None`` sinon (cookie
+    absent, altéré, ou fabriqué de toutes pièces)."""
+    charge, _, signature_recue = valeur.rpartition(":")
+    if not charge or "|" not in charge:
+        return None
+    id_federal, _, competition_id = charge.partition("|")
+    if not id_federal or not competition_id:
+        return None
+    signature_attendue = signer_identite_competiteur(id_federal, competition_id).rpartition(":")[2]
+    if not hmac.compare_digest(signature_attendue, signature_recue):
+        return None
+    return id_federal, competition_id
+
+
 def demander_rattachement(
     conn: sqlite3.Connection, id_federal: str, competition_id: str
 ) -> DemandeRattachement:
@@ -876,3 +914,52 @@ def valider_rattachement(conn: sqlite3.Connection, demande_id: str) -> tuple[Tok
 def rejeter_rattachement(conn: sqlite3.Connection, demande_id: str) -> None:
     _obtenir_demande_en_attente(conn, demande_id)  # lève ErreurMetier si invalide
     db.update_statut_demande(conn, demande_id, StatutDemandeRattachement.REJETEE)
+
+
+# ------------------------------------------------------------- Message --
+
+
+def envoyer_message(
+    conn: sqlite3.Connection,
+    competition_id: str,
+    contenu: str,
+    id_federal: str | None = None,
+) -> Message:
+    """Envoie un message -- à un compétiteur précis (``id_federal``
+    fourni) ou à tous ceux de la compétition (``id_federal=None``).
+
+    Pas de suivi lu/non lu : envoyer suffit, l'organisateur n'a pas
+    besoin de savoir qui l'a vu (choix explicite, voir docs/roadmap.md).
+    """
+    if db.get_competition(conn, competition_id) is None:
+        raise ErreurMetier("Compétition introuvable.")
+    if id_federal is not None and db.get_competiteur(conn, id_federal) is None:
+        raise ErreurMetier(f"Compétiteur introuvable : {id_federal}")
+    if not contenu.strip():
+        raise ErreurMetier("Le message ne peut pas être vide.")
+
+    message = Message(
+        id=_nouvel_id(),
+        competition_id=competition_id,
+        contenu=contenu.strip(),
+        id_federal=id_federal,
+        envoye_le=datetime.now(),
+    )
+    db.insert_message(conn, message)
+    return message
+
+
+def lister_messages_pour(
+    conn: sqlite3.Connection, competition_id: str, id_federal: str
+) -> list[Message]:
+    """Messages visibles par ce compétiteur : les siens + ceux adressés
+    à tous, du plus récent au plus ancien (voir db.list_messages_for)."""
+    if db.get_competiteur(conn, id_federal) is None:
+        raise ErreurMetier(f"Compétiteur introuvable : {id_federal}")
+    return db.list_messages_for(conn, competition_id, id_federal)
+
+
+def lister_messages_envoyes(conn: sqlite3.Connection, competition_id: str) -> list[Message]:
+    """Historique complet des messages envoyés pour cette compétition,
+    tous destinataires confondus -- pour l'écran organisateur."""
+    return db.list_messages_by_competition(conn, competition_id)

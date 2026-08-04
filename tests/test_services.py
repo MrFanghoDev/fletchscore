@@ -1059,5 +1059,109 @@ class TestRejeterRattachement(TokenTestCase):
             services.rejeter_rattachement(self.conn, demande.id)
 
 
+class TestEnvoyerMessage(ServiceTestCase):
+    def test_message_cible_valide(self):
+        competition = self._competition()
+        message = services.envoyer_message(
+            self.conn, competition.id, "Ton créneau a changé", id_federal="FR-1"
+        )
+        self.assertEqual(message.id_federal, "FR-1")
+        self.assertEqual(message.contenu, "Ton créneau a changé")
+
+    def test_message_diffuse_a_id_federal_none(self):
+        competition = self._competition()
+        message = services.envoyer_message(self.conn, competition.id, "Retard")
+        self.assertIsNone(message.id_federal)
+
+    def test_message_persiste(self):
+        competition = self._competition()
+        services.envoyer_message(self.conn, competition.id, "Salut", id_federal="FR-1")
+        messages = services.lister_messages_pour(self.conn, competition.id, "FR-1")
+        self.assertEqual(len(messages), 1)
+
+    def test_contenu_vide_refuse(self):
+        competition = self._competition()
+        with self.assertRaises(ErreurMetier):
+            services.envoyer_message(self.conn, competition.id, "   ")
+
+    def test_competition_inconnue_refusee(self):
+        with self.assertRaises(ErreurMetier):
+            services.envoyer_message(self.conn, "competition-fantome", "Salut")
+
+    def test_competiteur_cible_inconnu_refuse(self):
+        competition = self._competition()
+        with self.assertRaises(ErreurMetier):
+            services.envoyer_message(self.conn, competition.id, "Salut", id_federal="FR-FANTOME")
+
+
+class TestListerMessagesPour(ServiceTestCase):
+    def test_voit_ses_messages_et_les_diffuses(self):
+        competition = self._competition()
+        services.envoyer_message(self.conn, competition.id, "Pour toi", id_federal="FR-1")
+        services.envoyer_message(self.conn, competition.id, "Pour tous")
+
+        messages = services.lister_messages_pour(self.conn, competition.id, "FR-1")
+        self.assertEqual(len(messages), 2)
+
+    def test_ne_voit_pas_les_messages_dautrui(self):
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-2",
+                nom="Martin",
+                prenom="Léo",
+                code_club="77123",
+                sexe=Sexe.M,
+                date_naissance=date(1995, 3, 14),
+                code_style="BB-R",
+            ),
+        )
+        competition = self._competition()
+        services.envoyer_message(self.conn, competition.id, "Pour FR-2", id_federal="FR-2")
+
+        self.assertEqual(services.lister_messages_pour(self.conn, competition.id, "FR-1"), [])
+
+    def test_competiteur_inconnu_refuse(self):
+        competition = self._competition()
+        with self.assertRaises(ErreurMetier):
+            services.lister_messages_pour(self.conn, competition.id, "FR-FANTOME")
+
+
+class TestListerMessagesEnvoyes(ServiceTestCase):
+    def test_donne_tout_sans_filtrer(self):
+        competition = self._competition()
+        services.envoyer_message(self.conn, competition.id, "Pour toi", id_federal="FR-1")
+        services.envoyer_message(self.conn, competition.id, "Pour tous")
+
+        self.assertEqual(len(services.lister_messages_envoyes(self.conn, competition.id)), 2)
+
+
+class TestSignerIdentiteCompetiteur(TokenTestCase):
+    def test_verifie_une_signature_valide(self):
+        cookie = services.signer_identite_competiteur("FR-1", "comp-1")
+        self.assertEqual(services.verifier_identite_signee(cookie), ("FR-1", "comp-1"))
+
+    def test_cookie_avec_id_modifie_refuse(self):
+        cookie = services.signer_identite_competiteur("FR-1", "comp-1")
+        cookie_falsifie = cookie.replace("FR-1", "FR-2", 1)  # id changé, signature intacte
+        self.assertIsNone(services.verifier_identite_signee(cookie_falsifie))
+
+    def test_cookie_avec_competition_modifiee_refuse(self):
+        cookie = services.signer_identite_competiteur("FR-1", "comp-1")
+        cookie_falsifie = cookie.replace("comp-1", "comp-2", 1)
+        self.assertIsNone(services.verifier_identite_signee(cookie_falsifie))
+
+    def test_cookie_sans_signature_refuse(self):
+        self.assertIsNone(services.verifier_identite_signee("FR-1|comp-1"))
+
+    def test_cookie_vide_refuse(self):
+        self.assertIsNone(services.verifier_identite_signee(""))
+
+    def test_deux_ids_differents_donnent_des_signatures_differentes(self):
+        cookie1 = services.signer_identite_competiteur("FR-1", "comp-1")
+        cookie2 = services.signer_identite_competiteur("FR-2", "comp-1")
+        self.assertNotEqual(cookie1, cookie2)
+
+
 if __name__ == "__main__":
     unittest.main()

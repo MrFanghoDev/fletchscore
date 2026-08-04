@@ -745,6 +745,32 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   données ne le supporte.** Contrairement aux autres demandes de cette
   session (qui branchaient du code déjà existant à une couche
   supérieure), c'est une vraie fonctionnalité neuve : pas de table
-  `messages`, pas de mécanisme de livraison pensé. Nécessite un vrai
-  cadrage avant de coder -- voir docs/roadmap.md pour les questions
-  ouvertes.
+  `messages`, pas de mécanisme de livraison pensé. Cadré avec
+  l'utilisateur (3 questions : bandeau + page dédiée, historique
+  persistant, pas de suivi lu/non lu) avant de coder -- voir
+  docs/roadmap.md pour le résultat.
+
+- **Cookie de session signé HMAC pour identifier le compétiteur d'une
+  visite à l'autre.** Un message *ciblé* doit arriver à la bonne
+  personne, ce qui suppose que le serveur sache "qui visite" au-delà
+  d'une seule requête -- rien dans l'architecture existante ne portait
+  cette notion (les cookies `lang`/`theme` sont de simples préférences,
+  jamais pensés pour porter une identité). Un cookie `identite` en
+  clair aurait été trivialement falsifiable : n'importe qui aurait pu
+  lire les messages de n'importe qui en éditant son cookie à la main.
+  `services.signer_identite_competiteur()`/`verifier_identite_signee()`
+  réutilisent le même principe HMAC que les tokens (`_hash_token`),
+  avec la même clé serveur (`securite.obtenir_cle_secrete()`) -- pas un
+  deuxième mécanisme de signature à maintenir en parallèle. La charge
+  signée porte `id_federal` **et** `competition_id` ensemble (pas l'id
+  seul) : "Mes messages" doit savoir pour quelle compétition afficher
+  l'historique, un compétiteur pouvant en principe avoir accès à
+  plusieurs. Posé uniquement après un `POST /code` réussi (jamais après
+  une simple consultation en lecture seule), `HttpOnly` (pas lisible en
+  JS, même si cette page n'en a de toute façon aucun -- défense en
+  profondeur), 7 jours de durée de vie (le temps d'un week-end de
+  compétition sans avoir à retaper son code à chaque visite). Vérifié
+  par un test d'intégration de bout en bout, pas seulement les
+  fonctions de signature testées isolément : un vrai `POST /code`
+  produit un vrai `Set-Cookie`, ce cookie renvoyé sur un vrai `GET
+  /mes-messages` donne accès aux bons messages.

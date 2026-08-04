@@ -1,6 +1,6 @@
 # Roadmap FletchScore
 
-**État actuel : v0.1 et v0.2 complètes, v0.3 en cours -- 345 tests,
+**État actuel : v0.1 et v0.2 complètes, v0.3 en cours -- 376 tests,
 tous verts, confirmés par la CI sans aucun `skipped`** (y compris les
 tests fpdf2/qrcode, jamais exécutables dans l'environnement de dev
 utilisé ici).
@@ -263,14 +263,31 @@ la vraie donnée sensible.
       d'accès" a maintenant deux onglets (`CTkTabview`) : "Demandes en
       attente" (inchangé) et "Accès actifs" (nouveau, bouton Révoquer
       par ligne). 11 tests.
-- [ ] **Envoi de message à un compétiteur (ou à tous)** -- demandé par
-      l'utilisateur, pas encore fait. Contrairement au reste, rien
-      n'existe dans le modèle de données pour ça (pas de table
-      `messages`) -- vraie nouvelle fonctionnalité, pas un fil déjà
-      posé à brancher. Nécessite de cadrer avant de coder : comment le
-      compétiteur voit-il un message (page dédiée ? bandeau sur
-      l'accueil ?), est-ce lu une fois puis disparu ou persistant,
-      faut-il une trace côté organisateur de qui l'a vu.
+- [x] **Envoi de message à un compétiteur (ou à tous)** -- demandé par
+      l'utilisateur, cadré puis fait (bandeau sur l'accueil ET page
+      dédiée "Mes messages" ; historique persistant ; pas de suivi
+      lu/non lu, confirmé par l'utilisateur). Vraie nouvelle
+      fonctionnalité, contrairement au reste de cette session :
+      `models/message.py` (nouvelle entité, table `messages`),
+      `services.envoyer_message()`/`lister_messages_pour()`/
+      `lister_messages_envoyes()`.
+      **Sujet technique nouveau soulevé par cette fonctionnalité** :
+      pour qu'un message *ciblé* arrive à la bonne personne, le
+      navigateur du compétiteur doit "se souvenir" de qui il est après
+      confirmation d'un code -- un cookie en clair aurait permis à
+      n'importe qui de lire les messages de n'importe qui en modifiant
+      son cookie à la main. `services.signer_identite_competiteur()`/
+      `verifier_identite_signee()` : cookie de session **signé HMAC**
+      (même principe que les tokens), portant id fédéral + compétition
+      ensemble (un "mes messages" doit savoir pour quelle compétition).
+      Posé après un `POST /code` réussi, `HttpOnly`, 7 jours (le temps
+      d'un week-end de compétition). GUI : 3ᵉ onglet "Envoyer un
+      message" dans l'écran "Demandes d'accès" (destinataire = un
+      compétiteur actif ou "Tous", historique des envois). 20 tests,
+      dont un **test d'intégration décisif** : vrai `POST /code` → vrai
+      `Set-Cookie` reçu → ce cookie renvoyé sur un vrai `GET
+      /mes-messages` → les bons messages apparaissent -- pas seulement
+      les fonctions testées isolément.
 
 Prérequis technique avant d'ouvrir la moindre écriture externe -- pas de
 fonctionnalité visible en soi, mais indispensable avant la v0.4.

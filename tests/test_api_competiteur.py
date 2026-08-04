@@ -20,6 +20,7 @@ from fletchscore.api.competiteur import (
     page_confirmation_code,
     page_confirmation_rattachement,
     page_epreuve,
+    page_mes_messages,
     page_rattachement,
 )
 from fletchscore.models import Club, Competiteur, Sexe
@@ -31,6 +32,8 @@ class TestPageAccueil(unittest.TestCase):
         self.conn = db.connect(":memory:")
         db.init_schema(self.conn)
         db.seed_baremes_preconfigures(self.conn)
+        db.insert_club(self.conn, Club("77123", "Archers Libres de FLP"))
+        db.seed_referentiel_styles(self.conn)
 
     def tearDown(self):
         self.conn.close()
@@ -97,6 +100,51 @@ class TestPageAccueil(unittest.TestCase):
         )
         page = page_accueil(self.conn)
         self.assertIn(f"/rattachement/{competition.id}", page)
+
+    def test_pas_de_banniere_sans_identite(self):
+        page = page_accueil(self.conn, identite=None)
+        self.assertNotIn("mes-messages", page)
+
+    def test_banniere_absente_si_aucun_message(self):
+        competition = services.creer_competition(
+            self.conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15)
+        )
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-1",
+                nom="Dupont",
+                prenom="Marie",
+                code_club="77123",
+                sexe=Sexe.F,
+                date_naissance=date(1995, 3, 14),
+                code_style="BB-R",
+            ),
+        )
+        page = page_accueil(self.conn, identite=("FR-1", competition.id))
+        self.assertNotIn("mes-messages", page)
+
+    def test_banniere_affiche_le_dernier_message(self):
+        competition = services.creer_competition(
+            self.conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15)
+        )
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-1",
+                nom="Dupont",
+                prenom="Marie",
+                code_club="77123",
+                sexe=Sexe.F,
+                date_naissance=date(1995, 3, 14),
+                code_style="BB-R",
+            ),
+        )
+        services.envoyer_message(self.conn, competition.id, "Retard de 30 minutes")
+
+        page = page_accueil(self.conn, identite=("FR-1", competition.id))
+        self.assertIn("Retard de 30 minutes", page)
+        self.assertIn("/mes-messages", page)
 
 
 class TestPageEpreuve(unittest.TestCase):
@@ -320,6 +368,52 @@ class TestPageCode(unittest.TestCase):
         self.assertNotIn('http-equiv="refresh"', page_code_invalide())
 
 
+class TestPageMesMessages(unittest.TestCase):
+    def setUp(self):
+        self.conn = db.connect(":memory:")
+        db.init_schema(self.conn)
+        db.insert_club(self.conn, Club("77123", "Archers Libres de FLP"))
+        db.seed_referentiel_styles(self.conn)
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-1",
+                nom="Dupont",
+                prenom="Marie",
+                code_club="77123",
+                sexe=Sexe.F,
+                date_naissance=date(1995, 3, 14),
+                code_style="BB-R",
+            ),
+        )
+        self.competition = services.creer_competition(
+            self.conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15)
+        )
+
+    def tearDown(self):
+        self.conn.close()
+
+    def test_aucun_message(self):
+        page = page_mes_messages(self.conn, self.competition.id, "FR-1")
+        self.assertIn("Aucun message", page)
+
+    def test_affiche_les_messages_cibles_et_diffuses(self):
+        services.envoyer_message(self.conn, self.competition.id, "Pour toi", id_federal="FR-1")
+        services.envoyer_message(self.conn, self.competition.id, "Pour tous")
+
+        page = page_mes_messages(self.conn, self.competition.id, "FR-1")
+        self.assertIn("Pour toi", page)
+        self.assertIn("Pour tous", page)
+
+    def test_competiteur_inconnu_donne_une_erreur_lisible(self):
+        page = page_mes_messages(self.conn, self.competition.id, "FR-FANTOME")
+        self.assertIn("introuvable", page.lower())
+
+    def test_pas_de_rafraichissement_automatique(self):
+        page = page_mes_messages(self.conn, self.competition.id, "FR-1")
+        self.assertNotIn('http-equiv="refresh"', page)
+
+
 class TestAdresseIpLocale(unittest.TestCase):
     def test_retourne_une_chaine_non_vide(self):
         adresse = adresse_ip_locale()
@@ -487,6 +581,46 @@ class TestServeurIntegration(unittest.TestCase):
         with urllib.request.urlopen(requete, timeout=5) as reponse:
             contenu = reponse.read().decode("utf-8")
         self.assertIn("invalide", contenu.lower())
+
+    def test_cookie_de_session_permet_de_voir_mes_messages(self):
+        # Le test décisif : un vrai POST /code pose un vrai cookie, ce
+        # cookie renvoyé sur une vraie requête /mes-messages doit bien
+        # donner accès aux messages de la bonne personne -- pas juste
+        # que les fonctions de génération de page fonctionnent isolément.
+        with tempfile.TemporaryDirectory() as dossier_cle:
+            with mock.patch.object(
+                securite, "CHEMIN_CLE_PAR_DEFAUT", Path(dossier_cle) / "cle.txt"
+            ):
+                conn = db.connect(self.chemin_base)
+                token, _secret = services.generer_token(conn, "FR-1", self.competition_id)
+                services.envoyer_message(conn, self.competition_id, "Retard de 30 minutes")
+                conn.close()
+
+                donnees = urllib.parse.urlencode({"code": token.code_court}).encode("utf-8")
+                requete_code = urllib.request.Request(
+                    self._url("/code"), data=donnees, method="POST"
+                )
+                with urllib.request.urlopen(requete_code, timeout=5) as reponse:
+                    cookies_recus = reponse.headers.get_all("Set-Cookie") or []
+
+                cookie_identite = next(
+                    (c for c in cookies_recus if c.startswith("identite=")), None
+                )
+                self.assertIsNotNone(cookie_identite)
+                valeur_cookie = cookie_identite.split(";")[0]
+
+                requete_messages = urllib.request.Request(self._url("/mes-messages"))
+                requete_messages.add_header("Cookie", valeur_cookie)
+                with urllib.request.urlopen(requete_messages, timeout=5) as reponse:
+                    self.assertEqual(reponse.status, 200)
+                    contenu = reponse.read().decode("utf-8")
+        self.assertIn("Retard de 30 minutes", contenu)
+
+    def test_mes_messages_sans_cookie_redirige_vers_laccueil(self):
+        requete = urllib.request.Request(self._url("/mes-messages"))
+        with urllib.request.urlopen(requete, timeout=5) as reponse:
+            # urllib suit la redirection -- on doit atterrir sur l'accueil.
+            self.assertIn("Bienvenue", reponse.read().decode("utf-8"))
 
 
 if __name__ == "__main__":

@@ -23,6 +23,7 @@ from fletchscore.models.enums import (
 from fletchscore.models.epreuve import Epreuve
 from fletchscore.models.epreuve_template import EpreuveTemplate
 from fletchscore.models.inscription import Inscription
+from fletchscore.models.message import Message
 from fletchscore.models.score import Score
 from fletchscore.models.style import STYLES_IFAA, Style
 from fletchscore.models.token import Token
@@ -50,6 +51,7 @@ __all__ = [
     "Epreuve",
     "EpreuveTemplate",
     "Inscription",
+    "Message",
     "Score",
     "STYLES_IFAA",
     "Style",

@@ -98,27 +98,36 @@ démarrage, ou fixe-en un pour garder toujours la même adresse d'une
 session à l'autre -- mémorisé automatiquement pour la prochaine fois)
 et un bouton **Démarrer le serveur** / **Arrêter le serveur**. Une fois
 démarré, l'adresse à donner aux compétiteurs s'affiche (à taper dans le
-navigateur de leur téléphone, sur le même wifi que le club). La page
-qu'ils voient reprend l'identité visuelle de FletchTime (thème sombre
-par défaut, bascule vers un thème clair possible) et est bilingue
-français/anglais (boutons FR/EN et 🌙/☀ en haut à droite) -- elle liste
-les compétitions et épreuves en cours, avec un lien vers le classement
-de chacune, et un lien pour demander un accès (voir "Demandes d'accès"
-ci-dessous).
+navigateur de leur téléphone, sur le même wifi que le club).
+
+La page qu'ils voient reprend l'identité visuelle de FletchTime (thème
+sombre par défaut, bascule vers un thème clair possible) et est
+bilingue français/anglais (boutons FR/EN et 🌙/☀ en haut à droite).
+L'accueil affiche un message de bienvenue, la liste des compétitions et
+épreuves en cours (avec un lien vers le classement de chacune et un
+lien pour demander un accès -- voir "Demandes d'accès" ci-dessous), et
+un champ pour confirmer un code d'accès déjà reçu.
+
+Une fois un code confirmé, le navigateur du compétiteur garde sa
+session pendant 7 jours (le temps d'un week-end de compétition) : un
+bandeau apparaît alors sur l'accueil dès qu'un message lui a été
+envoyé, avec un lien vers **Mes messages** (l'historique complet, non
+limité au dernier).
 
 .. note::
 
-   Consultation en lecture seule pour tout le monde. Seule écriture
-   possible depuis cette page : la *demande* d'accès elle-même (« je
-   pense être telle personne ») -- sans aucun effet tant qu'un
-   organisateur ne l'a pas validée après vérification de visu. La
-   proposition de score par le compétiteur (une fois son accès validé)
-   arrive dans une version ultérieure.
+   Consultation en lecture seule pour tout le monde. Deux écritures
+   possibles depuis cette page, sans jamais rien modifier chez un autre
+   compétiteur : la *demande* d'accès (« je pense être telle
+   personne » -- sans aucun effet tant qu'un organisateur ne l'a pas
+   validée après vérification de visu) et la confirmation d'un code déjà
+   attribué. La proposition de score par le compétiteur (une fois son
+   accès validé) arrive dans une version ultérieure.
 
 Demandes d'accès
 ====================
 
-Un sélecteur de compétition, puis deux onglets.
+Un sélecteur de compétition, puis trois onglets.
 
 **Demandes en attente**
    Nom, prénom, id fédéral, date de naissance et club, pour recouper
@@ -137,6 +146,14 @@ Un sélecteur de compétition, puis deux onglets.
    compétition sélectionnée, avec un bouton **Révoquer** -- utile si un
    accès a été donné par erreur, ou si un compétiteur ne doit plus
    pouvoir se connecter.
+
+**Envoyer un message**
+   Choisis un destinataire (un compétiteur avec un accès actif, ou
+   "Tous les compétiteurs"), écris ton message, clique **Envoyer**. Le
+   compétiteur le voit dès sa prochaine visite (bandeau sur l'accueil +
+   page "Mes messages", voir ci-dessus) -- FletchScore ne te dit pas
+   qui l'a lu, seulement qu'il a été envoyé. L'historique de tous les
+   messages envoyés pour cette compétition s'affiche en dessous.
 
 Aide
 =======

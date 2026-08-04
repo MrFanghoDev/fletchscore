@@ -68,6 +68,9 @@ _TEXTES: dict[str, dict[str, str]] = {
         "fr": "Code invalide, expiré, ou révoqué.",
         "en": "Invalid, expired, or revoked code.",
     },
+    "mes_messages_titre": {"fr": "Mes messages", "en": "My messages"},
+    "aucun_message": {"fr": "Aucun message pour l'instant.", "en": "No message yet."},
+    "voir_tous_les_messages": {"fr": "Voir tous mes messages", "en": "See all my messages"},
     "aucune_competition": {
         "fr": "Aucune compétition pour l'instant.",
         "en": "No competition yet.",
@@ -178,16 +181,40 @@ def _mise_en_page(
 </html>"""
 
 
-def page_accueil(conn: sqlite3.Connection, lang: str = "fr", theme: str = "dark") -> str:
+def page_accueil(
+    conn: sqlite3.Connection,
+    lang: str = "fr",
+    theme: str = "dark",
+    identite: tuple[str, str] | None = None,
+) -> str:
     """Page d'accueil de la vue compétiteur -- message de bienvenue,
-    liste des compétitions/épreuves (avec un lien de demande d'accès par
-    compétition), et une section pour confirmer un code déjà reçu."""
+    bannière du dernier message reçu si une session est identifiée
+    (voir ``identite``, posée après confirmation d'un code), liste des
+    compétitions/épreuves (avec un lien de demande d'accès par
+    compétition), et une section pour confirmer un code déjà reçu.
+    """
     competitions = db.list_competitions(conn)
 
     entete = (
         f'<h1>{_t("bienvenue_titre", lang)}</h1>'
         f'<p class="intro">{_t("bienvenue_intro", lang)}</p>'
     )
+
+    banniere = ""
+    if identite is not None:
+        id_federal, competition_id = identite
+        try:
+            messages = services.lister_messages_pour(conn, competition_id, id_federal)
+        except ErreurMetier:
+            messages = []
+        if messages:
+            dernier = messages[0]
+            banniere = (
+                '<div class="section-competition">'
+                f"<p>📬 {_echapper(dernier.contenu)}</p>"
+                f'<p><a href="/mes-messages">{_t("voir_tous_les_messages", lang)}</a></p>'
+                "</div>"
+            )
 
     if not competitions:
         corps_competitions = f'<p>{_t("aucune_competition", lang)}</p>'
@@ -230,7 +257,7 @@ def page_accueil(conn: sqlite3.Connection, lang: str = "fr", theme: str = "dark"
         "</div>"
     )
 
-    corps = entete + corps_competitions + corps_code
+    corps = entete + banniere + corps_competitions + corps_code
     return _mise_en_page(_t("titre_accueil", lang), corps, lang, theme, "/")
 
 
@@ -454,6 +481,38 @@ def page_code_invalide(lang: str = "fr", theme: str = "dark") -> str:
     return _mise_en_page(_t("erreur", lang), corps, lang, theme, "/", rafraichir=False)
 
 
+def page_mes_messages(
+    conn: sqlite3.Connection,
+    competition_id: str,
+    id_federal: str,
+    lang: str = "fr",
+    theme: str = "dark",
+) -> str:
+    try:
+        messages = services.lister_messages_pour(conn, competition_id, id_federal)
+    except ErreurMetier as erreur:
+        corps = f"<p>{_echapper(str(erreur))}</p>"
+        return _mise_en_page(_t("erreur", lang), corps, lang, theme, "/", rafraichir=False)
+
+    if not messages:
+        corps_liste = f'<p>{_t("aucun_message", lang)}</p>'
+    else:
+        lignes = "".join(
+            "<li>"
+            f'<strong>{message.envoye_le.strftime("%d/%m %H:%M") if message.envoye_le else ""}'
+            f"</strong> -- {_echapper(message.contenu)}</li>"
+            for message in messages
+        )
+        corps_liste = f'<ul class="liste-epreuves">{lignes}</ul>'
+
+    corps = (
+        f'<p><a class="back" href="/">{_t("retour", lang)}</a></p>'
+        f'<h1>{_t("mes_messages_titre", lang)}</h1>'
+        f"{corps_liste}"
+    )
+    return _mise_en_page(_t("mes_messages_titre", lang), corps, lang, theme, "/", rafraichir=False)
+
+
 class ServeurCompetiteur(HTTPServer):
     """Serveur HTTP -- porte le chemin de la base plutôt qu'une connexion
     ouverte, pour que chaque requête ouvre la sienne (voir le docstring
@@ -528,6 +587,18 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
         self.send_header("Set-Cookie", f"theme={theme}; Path=/; Max-Age=31536000")
         self.end_headers()
 
+    def _lire_identite(self) -> tuple[str, str] | None:
+        """Lit et vérifie le cookie de session posé après confirmation
+        d'un code -- ``None`` si absent ou invalide (voir
+        ``services.verifier_identite_signee``)."""
+        cookies = SimpleCookie()
+        entete = self.headers.get("Cookie")
+        if entete:
+            cookies.load(entete)
+        if "identite" not in cookies:
+            return None
+        return services.verifier_identite_signee(cookies["identite"].value)
+
     def do_GET(self) -> None:  # noqa: N802 -- imposé par BaseHTTPRequestHandler
         url = urlparse(self.path)
         chemin = url.path
@@ -543,10 +614,30 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
             return
 
         lang, theme = self._lire_preferences()
+
+        if chemin == "/mes-messages":
+            identite = self._lire_identite()
+            if identite is None:
+                # Pas (ou plus) de session valide -- retour à l'accueil
+                # plutôt qu'une page d'erreur, le compétiteur peut
+                # reconfirmer son code depuis là.
+                self.send_response(302)
+                self.send_header("Location", "/")
+                self.end_headers()
+                return
+            id_federal, competition_id = identite
+            conn = self._connexion_lecture_seule()
+            try:
+                corps = page_mes_messages(conn, competition_id, id_federal, lang, theme)
+            finally:
+                conn.close()
+            self._repondre_html(corps)
+            return
+
         conn = self._connexion_lecture_seule()
         try:
             if chemin == "/":
-                corps = page_accueil(conn, lang, theme)
+                corps = page_accueil(conn, lang, theme, identite=self._lire_identite())
             elif chemin.startswith("/epreuve/"):
                 corps = page_epreuve(conn, chemin.removeprefix("/epreuve/"), lang, theme)
             elif chemin.startswith("/competition/"):
@@ -564,10 +655,15 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
         finally:
             conn.close()
 
+        self._repondre_html(corps)
+
+    def _repondre_html(self, corps: str, cookie_supplementaire: str | None = None) -> None:
         corps_octets = corps.encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(corps_octets)))
+        if cookie_supplementaire:
+            self.send_header("Set-Cookie", cookie_supplementaire)
         self.end_headers()
         self.wfile.write(corps_octets)
 
@@ -585,21 +681,18 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
 
         if chemin.startswith("/rattachement/"):
             corps = self._traiter_rattachement(chemin, champs, lang, theme)
-        elif chemin == "/code":
-            corps = self._traiter_code(champs, lang, theme)
-        else:
-            self.send_response(404)
-            self.send_header("Content-Type", "text/plain; charset=utf-8")
-            self.end_headers()
-            self.wfile.write(_t("page_introuvable", lang).encode("utf-8"))
+            self._repondre_html(corps)
             return
 
-        corps_octets = corps.encode("utf-8")
-        self.send_response(200)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
-        self.send_header("Content-Length", str(len(corps_octets)))
+        if chemin == "/code":
+            corps, cookie_identite = self._traiter_code(champs, lang, theme)
+            self._repondre_html(corps, cookie_identite)
+            return
+
+        self.send_response(404)
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
         self.end_headers()
-        self.wfile.write(corps_octets)
+        self.wfile.write(_t("page_introuvable", lang).encode("utf-8"))
 
     def _traiter_rattachement(self, chemin: str, champs: dict, lang: str, theme: str) -> str:
         competition_id = chemin.removeprefix("/rattachement/")
@@ -622,21 +715,33 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
         finally:
             conn.close()
 
-    def _traiter_code(self, champs: dict, lang: str, theme: str) -> str:
+    def _traiter_code(self, champs: dict, lang: str, theme: str) -> tuple[str, str | None]:
+        """Retourne (corps HTML, cookie de session à poser -- ``None``
+        si le code était invalide, rien à mémoriser dans ce cas)."""
         code = champs.get("code", [""])[0].strip().upper()
 
         conn = self._connexion_lecture_seule()
         try:
             token = services.verifier_code_court(conn, code)
             if token is None:
-                return page_code_invalide(lang, theme)
+                return page_code_invalide(lang, theme), None
 
             competiteur = db.get_competiteur(conn, token.id_federal)
             competition = db.get_competition(conn, token.competition_id)
             if competiteur is None or competition is None:
-                return page_code_invalide(lang, theme)
+                return page_code_invalide(lang, theme), None
 
-            return page_confirmation_code(token, competition.nom, competiteur, lang, theme)
+            corps = page_confirmation_code(token, competition.nom, competiteur, lang, theme)
+            valeur_signee = services.signer_identite_competiteur(
+                token.id_federal, token.competition_id
+            )
+            # 7 jours : le temps d'un week-end de compétition sans avoir
+            # à retaper son code à chaque visite -- HttpOnly : jamais
+            # lu depuis un éventuel script, seulement envoyé par le
+            # navigateur (défense en profondeur, cette page n'a de toute
+            # façon aucun JS).
+            cookie = f"identite={valeur_signee}; Path=/; Max-Age=604800; HttpOnly"
+            return corps, cookie
         finally:
             conn.close()
 

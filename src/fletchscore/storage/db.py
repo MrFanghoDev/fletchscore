@@ -24,6 +24,7 @@ from fletchscore.models import (
     Epreuve,
     EpreuveTemplate,
     Inscription,
+    Message,
     Score,
     Sexe,
     StatutCompetition,
@@ -124,6 +125,14 @@ CREATE TABLE IF NOT EXISTS demandes_rattachement (
     competition_id TEXT NOT NULL,
     statut TEXT NOT NULL DEFAULT 'en_attente',
     horodatage TEXT
+);
+
+CREATE TABLE IF NOT EXISTS messages (
+    id TEXT PRIMARY KEY,
+    competition_id TEXT NOT NULL,
+    contenu TEXT NOT NULL,
+    id_federal TEXT,
+    envoye_le TEXT
 );
 """
 
@@ -675,6 +684,60 @@ def update_statut_demande(
         (statut.value, demande_id),
     )
     conn.commit()
+
+
+# ---------------------------------------------------------------- Message --
+
+
+def insert_message(conn: sqlite3.Connection, message: Message) -> None:
+    conn.execute(
+        """INSERT INTO messages (id, competition_id, contenu, id_federal, envoye_le)
+           VALUES (?, ?, ?, ?, ?)""",
+        (
+            message.id,
+            message.competition_id,
+            message.contenu,
+            message.id_federal,
+            message.envoye_le.isoformat() if message.envoye_le else None,
+        ),
+    )
+    conn.commit()
+
+
+def _row_to_message(row: sqlite3.Row) -> Message:
+    return Message(
+        id=row["id"],
+        competition_id=row["competition_id"],
+        contenu=row["contenu"],
+        id_federal=row["id_federal"],
+        envoye_le=datetime.fromisoformat(row["envoye_le"]) if row["envoye_le"] else None,
+    )
+
+
+def list_messages_for(
+    conn: sqlite3.Connection, competition_id: str, id_federal: str
+) -> list[Message]:
+    """Messages visibles par ce compétiteur pour cette compétition --
+    ceux qui lui sont adressés (``id_federal`` correspond) et ceux
+    adressés à tous (``id_federal IS NULL``). Triés du plus récent au
+    plus ancien."""
+    rows = conn.execute(
+        """SELECT * FROM messages
+           WHERE competition_id = ? AND (id_federal = ? OR id_federal IS NULL)
+           ORDER BY envoye_le DESC""",
+        (competition_id, id_federal),
+    ).fetchall()
+    return [_row_to_message(r) for r in rows]
+
+
+def list_messages_by_competition(conn: sqlite3.Connection, competition_id: str) -> list[Message]:
+    """Tous les messages d'une compétition, tous destinataires confondus
+    -- pour l'écran organisateur (historique de ce qui a été envoyé)."""
+    rows = conn.execute(
+        "SELECT * FROM messages WHERE competition_id = ? ORDER BY envoye_le DESC",
+        (competition_id,),
+    ).fetchall()
+    return [_row_to_message(r) for r in rows]
 
 
 # ------------------------------------------------- Ouverture complète --

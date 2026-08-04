@@ -23,6 +23,7 @@ class EcranRattachement(ctk.CTkFrame):
         super().__init__(parent, fg_color="transparent")
         self.conn = conn
         self._competitions_par_libelle: dict = {}
+        self._destinataires_par_libelle: dict = {}
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(3, weight=1)
@@ -103,6 +104,7 @@ class EcranRattachement(ctk.CTkFrame):
         self.onglets.grid(row=3, column=0, sticky="nsew")
         self.onglets.add("Demandes en attente")
         self.onglets.add("Accès actifs")
+        self.onglets.add("Envoyer un message")
 
         onglet_demandes = self.onglets.tab("Demandes en attente")
         onglet_demandes.grid_columnconfigure(0, weight=1)
@@ -118,9 +120,13 @@ class EcranRattachement(ctk.CTkFrame):
         self.liste_actifs.grid(row=0, column=0, sticky="nsew")
         self.liste_actifs.grid_columnconfigure(0, weight=1)
 
+        self._construire_onglet_message(self.onglets.tab("Envoyer un message"))
+
     def _rafraichir_tout(self) -> None:
         self._rafraichir_demandes()
         self._rafraichir_actifs()
+        self._rafraichir_destinataires()
+        self._rafraichir_historique_messages()
 
     def _rafraichir_demandes(self) -> None:
         for widget in self.liste_demandes.winfo_children():
@@ -226,6 +232,104 @@ class EcranRattachement(ctk.CTkFrame):
         services.revoquer_acces(self.conn, competiteur.id_federal, competition.id)
         self._rafraichir_actifs()
         self._afficher_info(f"Accès de {competiteur.prenom} {competiteur.nom} révoqué.")
+
+    # -- Envoyer un message ---------------------------------------------
+
+    _TOUS_LES_COMPETITEURS = "Tous les compétiteurs"
+
+    def _construire_onglet_message(self, onglet: ctk.CTkBaseClass) -> None:
+        onglet.grid_columnconfigure(0, weight=1)
+
+        ctk.CTkLabel(onglet, text="Destinataire :").grid(row=0, column=0, sticky="w", pady=(10, 2))
+        self.menu_destinataire = ctk.CTkOptionMenu(onglet, values=[self._TOUS_LES_COMPETITEURS])
+        self.menu_destinataire.grid(row=1, column=0, sticky="ew", pady=(0, 10))
+
+        self.champ_message = ctk.CTkTextbox(onglet, height=80)
+        self.champ_message.grid(row=2, column=0, sticky="ew", pady=(0, 10))
+
+        ctk.CTkButton(onglet, text="Envoyer", command=self._envoyer_message).grid(
+            row=3, column=0, sticky="w", pady=(0, 15)
+        )
+
+        ctk.CTkLabel(
+            onglet, text="Messages envoyés", font=ctk.CTkFont(size=13, weight="bold")
+        ).grid(row=4, column=0, sticky="nw")
+        self.liste_messages = ctk.CTkScrollableFrame(onglet, fg_color="transparent")
+        self.liste_messages.grid(row=5, column=0, sticky="nsew", pady=(5, 0))
+        self.liste_messages.grid_columnconfigure(0, weight=1)
+        onglet.grid_rowconfigure(5, weight=1)
+
+    def _rafraichir_destinataires(self) -> None:
+        competition = self._competitions_par_libelle.get(self.menu_competition.get())
+        if competition is None:
+            self.menu_destinataire.configure(values=[self._TOUS_LES_COMPETITEURS])
+            self.menu_destinataire.set(self._TOUS_LES_COMPETITEURS)
+            self._destinataires_par_libelle = {}
+            return
+
+        actifs = services.lister_tokens_actifs(self.conn, competition.id)
+        self._destinataires_par_libelle = {
+            f"{c.prenom} {c.nom} ({c.id_federal})": c.id_federal for c, _t in actifs
+        }
+        valeurs = [self._TOUS_LES_COMPETITEURS, *self._destinataires_par_libelle.keys()]
+        valeur_actuelle = self.menu_destinataire.get()
+        self.menu_destinataire.configure(values=valeurs)
+        if valeur_actuelle not in valeurs:
+            self.menu_destinataire.set(self._TOUS_LES_COMPETITEURS)
+
+    def _rafraichir_historique_messages(self) -> None:
+        for widget in self.liste_messages.winfo_children():
+            widget.destroy()
+
+        competition = self._competitions_par_libelle.get(self.menu_competition.get())
+        if competition is None:
+            return
+
+        messages = services.lister_messages_envoyes(self.conn, competition.id)
+        if not messages:
+            ctk.CTkLabel(self.liste_messages, text="Aucun message envoyé pour l'instant.").grid(
+                row=0, column=0, sticky="w", pady=10
+            )
+            return
+
+        for index, message in enumerate(messages):
+            if message.id_federal is None:
+                destinataire = "Tous"
+            else:
+                competiteur = db.get_competiteur(self.conn, message.id_federal)
+                destinataire = (
+                    f"{competiteur.prenom} {competiteur.nom}" if competiteur else message.id_federal
+                )
+            horodatage = message.envoye_le.strftime("%d/%m %H:%M") if message.envoye_le else ""
+            texte = f"[{horodatage}] {destinataire} -- {message.contenu}"
+            ctk.CTkLabel(self.liste_messages, text=texte, anchor="w", wraplength=520).grid(
+                row=index, column=0, sticky="ew", pady=2
+            )
+
+    def _envoyer_message(self) -> None:
+        self._afficher_erreur("")
+        competition = self._competitions_par_libelle.get(self.menu_competition.get())
+        if competition is None:
+            self._afficher_erreur("Choisis d'abord une compétition.")
+            return
+
+        libelle_destinataire = self.menu_destinataire.get()
+        id_federal = (
+            None
+            if libelle_destinataire == self._TOUS_LES_COMPETITEURS
+            else self._destinataires_par_libelle.get(libelle_destinataire)
+        )
+        contenu = self.champ_message.get("1.0", "end").strip()
+
+        try:
+            services.envoyer_message(self.conn, competition.id, contenu, id_federal=id_federal)
+        except ErreurMetier as erreur:
+            self._afficher_erreur(str(erreur))
+            return
+
+        self.champ_message.delete("1.0", "end")
+        self._rafraichir_historique_messages()
+        self._afficher_info("Message envoyé.")
 
 
 class _FenetreToken(ctk.CTkToplevel):

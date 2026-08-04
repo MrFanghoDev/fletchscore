@@ -10,6 +10,7 @@ from fletchscore.models import (
     DemandeRattachement,
     Epreuve,
     Inscription,
+    Message,
     Score,
     Sexe,
     StatutDemandeRattachement,
@@ -445,6 +446,117 @@ class TestTokenEtRattachement(StorageTestCase):
             ),
         )
         self.assertEqual(db.list_tokens_by_competition(self.conn, "comp-1"), [])
+
+
+class TestMessage(StorageTestCase):
+    def setUp(self):
+        super().setUp()
+        db.insert_club(self.conn, Club("77123", "Archers Libres de FLP"))
+        db.seed_referentiel_styles(self.conn)
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-1",
+                nom="Dupont",
+                prenom="Marie",
+                code_club="77123",
+                sexe=Sexe.F,
+                date_naissance=date(1995, 3, 14),
+                code_style="BB-R",
+            ),
+        )
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-2",
+                nom="Martin",
+                prenom="Léo",
+                code_club="77123",
+                sexe=Sexe.M,
+                date_naissance=date(1995, 3, 14),
+                code_style="BB-R",
+            ),
+        )
+
+    def test_message_cible_visible_par_son_destinataire(self):
+        db.insert_message(
+            self.conn,
+            Message(
+                id="msg-1",
+                competition_id="comp-1",
+                contenu="Ton créneau a changé",
+                id_federal="FR-1",
+            ),
+        )
+        messages = db.list_messages_for(self.conn, "comp-1", "FR-1")
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(messages[0].contenu, "Ton créneau a changé")
+
+    def test_message_cible_invisible_pour_un_autre(self):
+        db.insert_message(
+            self.conn,
+            Message(
+                id="msg-1",
+                competition_id="comp-1",
+                contenu="Message privé",
+                id_federal="FR-1",
+            ),
+        )
+        self.assertEqual(db.list_messages_for(self.conn, "comp-1", "FR-2"), [])
+
+    def test_message_diffuse_visible_par_tous(self):
+        db.insert_message(
+            self.conn,
+            Message(
+                id="msg-1",
+                competition_id="comp-1",
+                contenu="Retard sur le programme",
+                id_federal=None,
+            ),
+        )
+        self.assertEqual(len(db.list_messages_for(self.conn, "comp-1", "FR-1")), 1)
+        self.assertEqual(len(db.list_messages_for(self.conn, "comp-1", "FR-2")), 1)
+
+    def test_message_dune_autre_competition_invisible(self):
+        db.insert_message(
+            self.conn,
+            Message(id="msg-1", competition_id="comp-AUTRE", contenu="Ailleurs", id_federal=None),
+        )
+        self.assertEqual(db.list_messages_for(self.conn, "comp-1", "FR-1"), [])
+
+    def test_tries_du_plus_recent_au_plus_ancien(self):
+        db.insert_message(
+            self.conn,
+            Message(
+                id="msg-1",
+                competition_id="comp-1",
+                contenu="Premier",
+                envoye_le=datetime(2026, 3, 14, 9, 0),
+            ),
+        )
+        db.insert_message(
+            self.conn,
+            Message(
+                id="msg-2",
+                competition_id="comp-1",
+                contenu="Second",
+                envoye_le=datetime(2026, 3, 14, 10, 0),
+            ),
+        )
+        messages = db.list_messages_for(self.conn, "comp-1", "FR-1")
+        self.assertEqual([m.contenu for m in messages], ["Second", "Premier"])
+
+    def test_list_messages_by_competition_donne_tout_sans_filtrer_le_destinataire(self):
+        db.insert_message(
+            self.conn,
+            Message(id="msg-1", competition_id="comp-1", contenu="Pour FR-1", id_federal="FR-1"),
+        )
+        db.insert_message(
+            self.conn,
+            Message(id="msg-2", competition_id="comp-1", contenu="Pour tous", id_federal=None),
+        )
+        messages = db.list_messages_by_competition(self.conn, "comp-1")
+        self.assertEqual(len(messages), 2)
 
 
 if __name__ == "__main__":
