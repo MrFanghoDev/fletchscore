@@ -31,6 +31,12 @@ config/auth.toml
 # installation -- jamais versionnée (voir fletchscore/securite.py).
 config/cle_secrete.txt
 
+# Certificat HTTPS auto-signé (+ clé privée) -- généré automatiquement
+# au premier lancement en HTTPS, propre à chaque installation -- jamais
+# versionné (voir fletchscore/certificat_https.py).
+config/certificat_https.pem
+config/certificat_https_cle.pem
+
 # Préférences de la fenêtre graphique (thème...) -- propres à la machine/
 # personne qui lance la fenêtre, pas un réglage de club à partager.
 config/gui.toml

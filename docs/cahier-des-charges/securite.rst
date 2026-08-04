@@ -4,16 +4,17 @@
 Sécurité & vue compétiteur
 =================================
 
-.. admonition:: v0.2 construite en presque totalité -- HTTPS reste en v0.3
+.. admonition:: v0.2 et v0.3 construites intégralement
    :class: note
 
-   Tout ce que décrit cette page est construit, sauf HTTPS : vue
-   compétiteur en lecture seule (classement live), génération/
-   vérification de token (QR code + code court, backend et GUI),
-   demande et validation de rattachement (organisateur comme
-   compétiteur), authentification organisateur (mot de passe optionnel).
-   Voir :doc:`roadmap` pour le détail. HTTPS local reste repoussé après
-   la v0.3 -- voir "Points tranchés" dans :doc:`roadmap`.
+   Tout ce que décrit cette page est construit : vue compétiteur en
+   lecture seule (classement live), génération/vérification de token
+   (QR code + code court, backend et GUI), demande et validation de
+   rattachement (organisateur comme compétiteur), authentification
+   organisateur (mot de passe optionnel), proposition de score
+   compétiteur avec validation organisateur, HTTPS local (certificat
+   auto-signé généré automatiquement). Voir :doc:`roadmap` pour le
+   détail de chaque incrément.
 
 Principe général
 ====================

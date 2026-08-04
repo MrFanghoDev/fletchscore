@@ -95,10 +95,14 @@ Vue compétiteur
 
 Un champ **Port** (laisse-le vide pour un port différent à chaque
 démarrage, ou fixe-en un pour garder toujours la même adresse d'une
-session à l'autre -- mémorisé automatiquement pour la prochaine fois)
-et un bouton **Démarrer le serveur** / **Arrêter le serveur**. Une fois
-démarré, l'adresse à donner aux compétiteurs s'affiche (à taper dans le
-navigateur de leur téléphone, sur le même wifi que le club).
+session à l'autre -- mémorisé automatiquement pour la prochaine fois),
+une case **Activer HTTPS** (certificat auto-signé généré
+automatiquement -- le navigateur du compétiteur affichera un
+avertissement "connexion non sécurisée" à accepter manuellement une
+fois, normal pour ce type de certificat), et un bouton **Démarrer le
+serveur** / **Arrêter le serveur**. Une fois démarré, l'adresse à
+donner aux compétiteurs s'affiche (à taper dans le navigateur de leur
+téléphone, sur le même wifi que le club).
 
 La page qu'ils voient reprend l'identité visuelle de FletchTime (thème
 sombre par défaut, bascule vers un thème clair possible) et est

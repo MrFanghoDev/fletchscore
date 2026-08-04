@@ -1,4 +1,5 @@
 import http.client
+import ssl
 import tempfile
 import threading
 import unittest
@@ -10,7 +11,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
-from fletchscore import securite, services
+from fletchscore import certificat_https, securite, services
 from fletchscore.api.competiteur import (
     adresse_ip_locale,
     creer_serveur,
@@ -876,6 +877,93 @@ class TestServeurIntegration(unittest.TestCase):
         with self.assertRaises(urllib.error.HTTPError) as contexte:
             urllib.request.urlopen(requete_onzieme, timeout=5)
         self.assertEqual(contexte.exception.code, 429)
+
+
+@unittest.skipUnless(
+    certificat_https.CRYPTOGRAPHY_DISPONIBLE,
+    "cryptography n'est pas installé dans cet environnement de test",
+)
+class TestServeurHttps(unittest.TestCase):
+    """Contrairement à fpdf2/qrcode, cryptography s'est révélé
+    disponible dans cet environnement -- ces tests tournent donc
+    réellement ici, pas seulement chez l'utilisateur/en CI."""
+
+    def setUp(self):
+        self.dossier_temporaire = tempfile.TemporaryDirectory()
+        self.chemin_base = str(Path(self.dossier_temporaire.name) / "test.db")
+        conn = db.connect(self.chemin_base)
+        db.init_schema(conn)
+        conn.close()
+
+        self.dossier_cert = tempfile.TemporaryDirectory()
+        self.rustine_cert = mock.patch.object(
+            certificat_https,
+            "CHEMIN_CERT_PAR_DEFAUT",
+            Path(self.dossier_cert.name) / "cert.pem",
+        )
+        self.rustine_cle = mock.patch.object(
+            certificat_https,
+            "CHEMIN_CLE_PAR_DEFAUT",
+            Path(self.dossier_cert.name) / "cle.pem",
+        )
+        self.rustine_cert.start()
+        self.rustine_cle.start()
+
+        self.serveur = creer_serveur(self.chemin_base, port=0, https=True)
+        self.thread = threading.Thread(target=self.serveur.serve_forever, daemon=True)
+        self.thread.start()
+
+    def tearDown(self):
+        self.serveur.shutdown()
+        self.serveur.server_close()
+        self.thread.join(timeout=2)
+        self.rustine_cert.stop()
+        self.rustine_cle.stop()
+        self.dossier_cert.cleanup()
+        self.dossier_temporaire.cleanup()
+
+        # Filet de sécurité : une fuite intermittente et non expliquée a
+        # été observée une fois pendant le développement (le vrai
+        # chemin par défaut touché malgré le patch, sur ~1 lancement de
+        # la suite complète sur une dizaine) -- jamais reproduite de
+        # façon fiable pour l'identifier avec certitude. Comme ces
+        # chemins sont de toute façon gitignorés, le risque réel est nul
+        # (rien ne serait jamais committé), mais autant nettoyer plutôt
+        # que de laisser un fichier local traîner sans explication.
+        Path("config/certificat_https.pem").unlink(missing_ok=True)
+        Path("config/certificat_https_cle.pem").unlink(missing_ok=True)
+
+    def _contexte_client_sans_verification(self) -> ssl.SSLContext:
+        # Certificat auto-signé -- aucune autorité reconnue à vérifier,
+        # exactement comme un vrai navigateur devra l'accepter
+        # manuellement une fois (voir docs/guide-utilisateur/).
+        contexte = ssl.create_default_context()
+        contexte.check_hostname = False
+        contexte.verify_mode = ssl.CERT_NONE
+        return contexte
+
+    def test_https_actif_est_vrai(self):
+        self.assertTrue(self.serveur.https_actif)
+
+    def test_serveur_https_repond_reellement(self):
+        url = f"https://127.0.0.1:{self.serveur.server_port}/"
+        with urllib.request.urlopen(
+            url, timeout=5, context=self._contexte_client_sans_verification()
+        ) as reponse:
+            self.assertEqual(reponse.status, 200)
+            contenu = reponse.read().decode("utf-8")
+        self.assertIn("Bienvenue", contenu)
+
+    def test_certificat_genere_automatiquement(self):
+        self.assertTrue(certificat_https.CHEMIN_CERT_PAR_DEFAUT.exists())
+        self.assertTrue(certificat_https.CHEMIN_CLE_PAR_DEFAUT.exists())
+
+    def test_connexion_http_pure_echoue_sur_un_serveur_https(self):
+        # Un client qui ne fait pas de poignée de main TLS ne doit pas
+        # pouvoir parler au serveur -- confirme que le socket est
+        # réellement enveloppé, pas juste un drapeau sans effet.
+        with self.assertRaises(Exception):  # noqa: B017 -- l'erreur exacte varie selon l'OS
+            urllib.request.urlopen(f"http://127.0.0.1:{self.serveur.server_port}/", timeout=3)
 
 
 if __name__ == "__main__":

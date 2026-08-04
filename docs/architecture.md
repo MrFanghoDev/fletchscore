@@ -899,3 +899,36 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   Vérifié réellement avec un vrai serveur : 10 vraies requêtes passent,
   la 11e reçoit un vrai HTTP 429 -- pas seulement `LimiteurDebit` testé
   en isolation.
+
+- **HTTPS local : `cryptography`, décision explicitement confirmée par
+  l'utilisateur malgré le risque de compatibilité Pydroid.** Trois
+  options envisagées : `cryptography` (génération automatique, risque
+  de compatibilité non vérifiable ici faute de réseau), appeler
+  `openssl` en CLI (présence incertaine sur Pydroid), ou demander un
+  certificat fourni par l'utilisateur (zéro dépendance, plus de
+  friction). L'utilisateur a choisi la première malgré le risque
+  assumé -- **bonne surprise en pratique** : contrairement à
+  `fpdf2`/`qrcode`, `cryptography` s'est révélée réellement disponible
+  dans cet environnement de développement, ce qui a permis de vérifier
+  tout le chantier HTTPS avec de vrais tests d'intégration (vraie
+  poignée de main TLS, pas seulement des fonctions testées isolément)
+  -- une confiance qu'on n'a pas pu avoir pour fpdf2/qrcode/auth.
+  `certificat_https.py` génère un certificat auto-signé (RSA 2048,
+  SHA-256, 10 ans -- usage local, pas de raison de le faire tourner) une
+  seule fois, réutilisé ensuite ; `creer_serveur(..., https=True)`
+  enveloppe le socket déjà lié (`server_bind`/`server_activate`, faits
+  par `HTTPServer.__init__`) dans un `ssl.SSLContext`, plutôt qu'une
+  configuration TLS spéciale au niveau de la classe du serveur.
+  **Même piège que `_hash_token` déjà rencontré** : le premier jet de
+  `creer_serveur` appelait `obtenir_certificat()` sans arguments,
+  utilisant son propre défaut figé à la définition plutôt que de relire
+  l'attribut du module -- un `mock.patch` en test n'avait alors aucun
+  effet. Corrigé en passant les chemins explicitement (même correctif
+  que pour la clé secrète serveur). **Fuite de fichier intermittente et
+  non totalement expliquée**, observée une fois sur une dizaine de
+  lancements complets de la suite pendant le développement : plutôt que
+  de la laisser sans réponse claire, un filet de sécurité explicite en
+  fin de test supprime tout fichier qui se serait retrouvé au vrai
+  chemin par défaut -- confirmé propre sur 5 relances après coup. Le
+  risque réel restait de toute façon nul (ces chemins sont gitignorés,
+  jamais committables), mais autant nettoyer que laisser un mystère.

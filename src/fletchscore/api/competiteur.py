@@ -35,12 +35,13 @@ from __future__ import annotations
 import html
 import socket
 import sqlite3
+import ssl
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from urllib.parse import ParseResult, parse_qs, urlparse
 
-from fletchscore import services
+from fletchscore import certificat_https, services
 from fletchscore.limiteur_debit import LimiteurDebit
 from fletchscore.models import Competiteur, StatutScore
 from fletchscore.services import ErreurMetier
@@ -690,6 +691,7 @@ class ServeurCompetiteur(HTTPServer):
     def __init__(self, adresse: tuple[str, int], chemin_base: str) -> None:
         super().__init__(adresse, GestionnaireRequetesCompetiteur)
         self.chemin_base = chemin_base
+        self.https_actif = False  # ajusté par creer_serveur() si https=True
         # Plus stricte sur /code : c'est la porte d'entrée qui devine un
         # secret (le code court, ~30 bits -- voir
         # services.verifier_code_court), pas une simple action limitée
@@ -1019,10 +1021,37 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
             conn.close()
 
 
-def creer_serveur(chemin_base: str, port: int = 0) -> ServeurCompetiteur:
+def creer_serveur(chemin_base: str, port: int = 0, https: bool = False) -> ServeurCompetiteur:
     """Crée le serveur sans le démarrer -- ``port=0`` laisse l'OS choisir
-    un port libre (consulter ensuite ``serveur.server_port``)."""
-    return ServeurCompetiteur(("0.0.0.0", port), chemin_base)
+    un port libre (consulter ensuite ``serveur.server_port``).
+
+    ``https=True`` enveloppe le socket dans TLS avec un certificat
+    auto-signé, généré au besoin (voir ``certificat_https``). Le socket
+    est déjà lié (``server_bind``/``server_activate``, faits par
+    ``HTTPServer.__init__``) avant d'être enveloppé -- enveloppement
+    après coup, pas de configuration TLS spéciale au niveau de la classe
+    du serveur elle-même.
+    """
+    serveur = ServeurCompetiteur(("0.0.0.0", port), chemin_base)
+    serveur.https_actif = https
+    if https:
+        if not certificat_https.CRYPTOGRAPHY_DISPONIBLE:
+            serveur.server_close()
+            raise ImportError("La bibliothèque cryptography n'est pas installée.")
+
+        # Passe les chemins explicitement plutôt que de laisser
+        # obtenir_certificat() utiliser ses propres défauts : un
+        # argument par défaut est figé une seule fois à la définition
+        # de la fonction -- patcher l'attribut du module en test (voir
+        # TestServeurHttps) ne le changerait pas si on ne le relit pas
+        # ici (même piège déjà rencontré avec securite._hash_token).
+        chemin_cert, chemin_cle = certificat_https.obtenir_certificat(
+            certificat_https.CHEMIN_CERT_PAR_DEFAUT, certificat_https.CHEMIN_CLE_PAR_DEFAUT
+        )
+        contexte = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        contexte.load_cert_chain(certfile=str(chemin_cert), keyfile=str(chemin_cle))
+        serveur.socket = contexte.wrap_socket(serveur.socket, server_side=True)
+    return serveur
 
 
 def adresse_ip_locale() -> str:

@@ -35,6 +35,14 @@ class ConfigGui:
     l'autre). Un port fixe évite de redonner une nouvelle adresse aux
     compétiteurs à chaque fois."""
 
+    https_actif: bool = False
+    """Sert la vue compétiteur en HTTPS (certificat auto-signé, généré
+    au besoin) plutôt qu'en HTTP simple -- voir
+    ``fletchscore.certificat_https``. Faux par défaut : le certificat
+    auto-signé déclenche un avertissement "connexion non sécurisée"
+    dans le navigateur du compétiteur, à accepter manuellement une
+    fois -- pas le comportement souhaité par tout le monde."""
+
     def __post_init__(self) -> None:
         if self.theme not in THEMES_VALIDES:
             raise ValueError(
@@ -74,7 +82,11 @@ def charger(chemin: Path | str = CHEMIN_PAR_DEFAUT) -> ConfigGui:
     if http_port is not None and not (1 <= http_port <= 65535):
         http_port = None  # valeur corrompue -- repli sur "auto" plutôt que planter
 
-    return ConfigGui(theme=theme, http_port=http_port)
+    https_actif = donnees.get("https_actif", False)
+    if not isinstance(https_actif, bool):
+        https_actif = False  # valeur corrompue -- repli sur False plutôt que planter
+
+    return ConfigGui(theme=theme, http_port=http_port, https_actif=https_actif)
 
 
 def sauvegarder(config: ConfigGui, chemin: Path | str = CHEMIN_PAR_DEFAUT) -> None:
@@ -94,6 +106,8 @@ def sauvegarder(config: ConfigGui, chemin: Path | str = CHEMIN_PAR_DEFAUT) -> No
     )
     if config.http_port is not None:
         contenu += f"http_port = {config.http_port}\n"
+    if config.https_actif:
+        contenu += f"https_actif = {str(config.https_actif).lower()}\n"
 
     temporaire = chemin.with_suffix(chemin.suffix + ".tmp")
     temporaire.write_text(contenu, encoding="utf-8")

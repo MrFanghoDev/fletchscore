@@ -43,11 +43,12 @@ _SECTIONS_AIDE = (
     ),
     (
         "Vue compétiteur",
-        "Démarre un petit serveur web (bouton, port fixe ou automatique) "
+        "Démarre un petit serveur web (bouton, port fixe ou automatique, "
+        "HTTPS optionnel si la bibliothèque cryptography est installée) "
         "pour que les compétiteurs consultent le classement live depuis "
-        "leur téléphone, sur le wifi du club -- lecture seule, rien n'y "
-        "est modifiable à distance à part une demande d'accès (voir "
-        "« Demandes d'accès »).",
+        "leur téléphone, sur le wifi du club -- surtout en lecture "
+        "seule, à part une demande d'accès et une proposition de score "
+        "(voir « Demandes d'accès » et « Propositions de score »).",
     ),
     (
         "Demandes d'accès",

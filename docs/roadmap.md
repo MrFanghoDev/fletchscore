@@ -1,9 +1,10 @@
 # Roadmap FletchScore
 
-**État actuel : v0.1 et v0.2 complètes, v0.3 en cours -- 435 tests,
+**État actuel : v0.1, v0.2 et v0.3 complètes -- 453 tests,
 tous verts, confirmés par la CI sans aucun `skipped`** (y compris les
 tests fpdf2/qrcode, jamais exécutables dans l'environnement de dev
-utilisé ici).
+utilisé ici -- `cryptography`, en revanche, s'y est révélée
+disponible, voir la v0.3 ci-dessous).
 
 > **Note de renumérotation** (demande de l'utilisateur) : la v0.2
 > d'origine (vue compétiteur lecture seule) était trop petite pour
@@ -30,12 +31,15 @@ utilisé ici).
   passe optionnel, PBKDF2). HTTPS décalé en v0.3 (définitif, décision de
   l'utilisateur), voir "Points
   tranchés" du cahier des charges.
-- **v0.3 (en cours)** : proposition de score compétiteur, du formulaire
+- **v0.3** : proposition de score compétiteur, du formulaire
   web (identifié + inscrit, sans champ falsifiable) jusqu'à la
   validation organisateur (`gui/ecran_propositions.py`) -- le score
   proposé devient LE score officiel dès validation, réutilisant
-  `StatutScore.PROPOSE` déjà prévu dans le modèle depuis la v0.1. Reste
-  HTTPS et la limitation de débit avant d'être complètement close.
+  `StatutScore.PROPOSE` déjà prévu dans le modèle depuis la v0.1.
+  Garde-fou contre les demandes de rattachement redondantes. Accueil
+  personnalisé (bienvenue, statut par épreuve). Limitation de débit
+  (`fletchscore/limiteur_debit.py`). HTTPS local, certificat auto-signé
+  généré automatiquement (`fletchscore/certificat_https.py`).
 
 Détail incrément par incrément ci-dessous.
 
@@ -321,11 +325,33 @@ fonctionnalité visible en soi, mais indispensable avant la v0.3.
 
 ## v0.3 -- Proposition de score compétiteur
 
-- [ ] HTTPS local -- **décalé ici définitivement** (décision de
-      l'utilisateur, plus un "repoussé après" provisoire). Raison
-      inchangée depuis la v0.2 : c'est cette version qui fait
-      transiter la vraie donnée sensible (un score), pas de raison de
-      durcir le transport avant.
+- [x] HTTPS local -- décalé ici définitivement (décision de
+      l'utilisateur), puis fait. Cadré avant de coder : `cryptography`
+      choisie plutôt qu'appeler `openssl` en CLI (présence incertaine
+      sur Pydroid) ou demander un certificat fourni par l'utilisateur
+      (plus de friction) -- confirmé par l'utilisateur malgré le risque
+      de compatibilité Pydroid non vérifiable ici. **Bonne surprise** :
+      contrairement à `fpdf2`/`qrcode`, `cryptography` s'est révélée
+      réellement disponible dans cet environnement de dev -- tous les
+      tests HTTPS tournent donc ici pour de vrai, pas seulement chez
+      l'utilisateur/en CI. `fletchscore/certificat_https.py` (nouveau) :
+      certificat auto-signé (RSA 2048, SHA-256, 10 ans de validité --
+      usage local, pas de raison de le faire tourner), généré une seule
+      fois puis réutilisé. `creer_serveur(..., https=True)` enveloppe
+      le socket déjà lié dans TLS. Case à cocher sur l'écran "Vue
+      compétiteur" (désactivée si `cryptography` absent, avec message
+      explicite), persistée comme le port. **Bug attrapé avant
+      livraison** : même piège que `_hash_token` déjà rencontré (un
+      argument par défaut figé à la définition de fonction ignore un
+      `mock.patch` sur l'attribut du module) -- corrigé en passant les
+      chemins explicitement. **Fuite de fichier intermittente non
+      totalement expliquée** pendant le développement (~1 fois sur une
+      dizaine de lancements complets de la suite) -- filet de sécurité
+      ajouté en fin de test plutôt que laissée sans réponse claire,
+      confirmé propre sur 5 relances après coup. 14 nouveaux tests, et
+      **vérifié réellement** : une vraie poignée de main TLS établie,
+      une vraie réponse HTTPS reçue, une connexion HTTP simple qui
+      échoue bien contre le serveur HTTPS.
 - [x] Limitation de débit -- `fletchscore/limiteur_debit.py` (nouveau
       module, fenêtre glissante en mémoire, aucune dépendance). Plus
       stricte sur `POST /code` (10 tentatives / 5 min par IP) que sur
@@ -404,8 +430,7 @@ fonctionnalité visible en soi, mais indispensable avant la v0.3.
 
 Jalon le plus sensible (premières écritures externes en compétition
 réelle) -- à tester d'abord en interne/amical avant un vrai concours
-homologué. Reste HTTPS et la limitation de débit avant d'être
-complètement clos.
+homologué. **v0.3 complète.**
 
 ## Extension -- Import/export de compétitions
 

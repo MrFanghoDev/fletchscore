@@ -243,7 +243,7 @@ class FenetrePrincipale(ctk.CTk):
 
     # -- Serveur de la vue compétiteur (v0.2, lecture seule) --------------
 
-    def demarrer_serveur_web(self, port: int | None = None) -> str:
+    def demarrer_serveur_web(self, port: int | None = None, https: bool = False) -> str:
         """Démarre le serveur s'il ne tourne pas déjà, retourne son URL.
 
         ``port`` : ``None`` laisse l'OS choisir un port libre (change à
@@ -251,20 +251,33 @@ class FenetrePrincipale(ctk.CTk):
         la config GUI pour être proposé par défaut au prochain
         démarrage (voir ``changer_theme`` pour le même principe).
 
+        ``https`` : sert la vue compétiteur en HTTPS (certificat
+        auto-signé, généré au besoin -- voir
+        ``fletchscore.certificat_https``) plutôt qu'en HTTP simple.
+        Lève ``ImportError`` si la bibliothèque ``cryptography`` n'est
+        pas installée -- à l'appelant (l'écran GUI) de l'afficher
+        proprement plutôt que de laisser planter.
+
         Ne réutilise jamais ``self.conn`` (celle de la GUI) : le serveur
         tourne dans un thread séparé et ouvre ses propres connexions en
         lecture seule -- voir ``api/competiteur.py``.
         """
         if self.serveur_web is None:
             chemin = self.chemin_base_db or str(CHEMIN_BASE_PAR_DEFAUT)
-            self.serveur_web = creer_serveur(chemin, port=port or 0)
+            self.serveur_web = creer_serveur(chemin, port=port or 0, https=https)
             self.thread_serveur_web = threading.Thread(
                 target=self.serveur_web.serve_forever, daemon=True
             )
             self.thread_serveur_web.start()
 
+            a_sauvegarder = False
             if port is not None and self.config_gui.http_port != port:
                 self.config_gui.http_port = port
+                a_sauvegarder = True
+            if self.config_gui.https_actif != https:
+                self.config_gui.https_actif = https
+                a_sauvegarder = True
+            if a_sauvegarder:
                 gui_config.sauvegarder(self.config_gui)
         return self.url_serveur_web()
 
@@ -278,7 +291,8 @@ class FenetrePrincipale(ctk.CTk):
     def url_serveur_web(self) -> str | None:
         if self.serveur_web is None:
             return None
-        return f"http://{adresse_ip_locale()}:{self.serveur_web.server_port}/"
+        schema = "https" if self.serveur_web.https_actif else "http"
+        return f"{schema}://{adresse_ip_locale()}:{self.serveur_web.server_port}/"
 
     # -- Préférences -------------------------------------------------------
 
