@@ -909,6 +909,23 @@ def verifier_identite_signee(valeur: str) -> tuple[str, str] | None:
     return id_federal, competition_id
 
 
+def _a_deja_un_acces_valide(conn: sqlite3.Connection, id_federal: str, competition_id: str) -> bool:
+    maintenant = datetime.now()
+    return any(
+        token.id_federal == id_federal and token.est_valide(maintenant)
+        for token in db.list_tokens_by_competition(conn, competition_id)
+    )
+
+
+def _a_deja_une_demande_en_attente(
+    conn: sqlite3.Connection, id_federal: str, competition_id: str
+) -> bool:
+    return any(
+        demande.id_federal == id_federal
+        for demande in db.list_demandes_en_attente(conn, competition_id)
+    )
+
+
 def demander_rattachement(
     conn: sqlite3.Connection, id_federal: str, competition_id: str
 ) -> DemandeRattachement:
@@ -916,11 +933,26 @@ def demander_rattachement(
     token à ce stade, seulement une entrée en file d'attente (voir
     docs/cahier-des-charges/securite.rst : le token n'est émis qu'après
     validation humaine de l'organisateur, voir ``valider_rattachement``).
+
+    Refuse une nouvelle demande si un accès valide existe déjà, ou si
+    une demande est déjà en attente pour ce (compétiteur, compétition)
+    -- sans ce garde-fou, valider une demande redondante émettrait un
+    second token pour la même personne, sans jamais révoquer le
+    premier : deux codes valides simultanés pour un seul compétiteur,
+    confusion pour l'organisateur qui reverrait une demande déjà
+    traitée en pratique.
     """
     if db.get_competiteur(conn, id_federal) is None:
         raise ErreurMetier(f"Compétiteur introuvable : {id_federal}")
     if db.get_competition(conn, competition_id) is None:
         raise ErreurMetier("Compétition introuvable.")
+    if _a_deja_un_acces_valide(conn, id_federal, competition_id):
+        raise ErreurMetier(
+            "Un accès valide existe déjà pour cette compétition -- "
+            "utilise ton code existant plutôt que d'en redemander un."
+        )
+    if _a_deja_une_demande_en_attente(conn, id_federal, competition_id):
+        raise ErreurMetier("Une demande est déjà en attente de validation pour cette compétition.")
 
     demande = DemandeRattachement(
         id=_nouvel_id(),

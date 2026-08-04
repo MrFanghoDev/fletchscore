@@ -118,6 +118,10 @@ _TEXTES: dict[str, dict[str, str]] = {
         "fr": "Pas encore d'accès à cette compétition ? Demander un rattachement",
         "en": "No access to this competition yet? Request access",
     },
+    "acces_deja_confirme": {
+        "fr": "Accès déjà confirmé pour cette compétition.",
+        "en": "Access already confirmed for this competition.",
+    },
     "rattachement_titre": {"fr": "Demander un accès", "en": "Request access"},
     "rattachement_intro": {
         "fr": 'Cherche ton nom dans la liste, puis clique sur "C\'est moi" -- '
@@ -253,13 +257,24 @@ def page_accueil(
                 if epreuves
                 else ""
             )
+            if identite is not None and identite[1] == competition.id:
+                # Déjà identifié pour cette compétition précise -- proposer
+                # de redemander un accès n'aurait aucun sens (et
+                # services.demander_rattachement le refuserait de toute
+                # façon, voir services.py -- mais autant ne pas l'afficher
+                # du tout plutôt que de laisser cliquer pour rien).
+                ligne_acces = f'<p>✅ {_t("acces_deja_confirme", lang)}</p>'
+            else:
+                ligne_acces = (
+                    f'<p><a href="/rattachement/{competition.id}">'
+                    f'{_t("demander_rattachement_lien", lang)}</a></p>'
+                )
             sections.append(
                 '<div class="section-competition">'
                 f"<h2>{_echapper(competition.nom)}</h2>"
                 f'<p class="dates">{competition.date_debut} -- {competition.date_fin}</p>'
                 f'<ul class="liste-epreuves">{liens_epreuves}</ul>{lien_global}'
-                f'<p><a href="/rattachement/{competition.id}">'
-                f'{_t("demander_rattachement_lien", lang)}</a></p>'
+                f"{ligne_acces}"
                 "</div>"
             )
         corps_competitions = "".join(sections)
@@ -388,7 +403,11 @@ def page_epreuve(
 
 
 def page_competition(
-    conn: sqlite3.Connection, competition_id: str, lang: str = "fr", theme: str = "dark"
+    conn: sqlite3.Connection,
+    competition_id: str,
+    lang: str = "fr",
+    theme: str = "dark",
+    identite: tuple[str, str] | None = None,
 ) -> str:
     chemin_retour = f"/competition/{competition_id}"
     competition = db.get_competition(conn, competition_id)
@@ -434,11 +453,18 @@ def page_competition(
             )
         corps_classement = "".join(morceaux)
 
+    if identite is not None and identite[1] == competition_id:
+        ligne_acces = f'<p>✅ {_t("acces_deja_confirme", lang)}</p>'
+    else:
+        ligne_acces = (
+            f'<p><a href="/rattachement/{competition_id}">'
+            f'{_t("demander_rattachement_lien", lang)}</a></p>'
+        )
+
     corps = (
         f'<p><a class="back" href="/">{_t("retour", lang)}</a></p>'
         f"<h1>{_echapper(competition.nom)} -- {_t('classement_global_titre', lang)}</h1>"
-        f'<p><a href="/rattachement/{competition_id}">'
-        f'{_t("demander_rattachement_lien", lang)}</a></p>'
+        f"{ligne_acces}"
         f"{corps_classement}"
     )
     return _mise_en_page(competition.nom, corps, lang, theme, chemin_retour)
@@ -467,6 +493,7 @@ def page_rattachement(
     lang: str = "fr",
     theme: str = "dark",
     recherche: str = "",
+    identite: tuple[str, str] | None = None,
 ) -> str:
     """Recherche + formulaire de demande de rattachement -- pas de
     rechargement automatique ici (contrairement aux pages de classement) :
@@ -478,6 +505,17 @@ def page_rattachement(
         corps = f'<p>{_t("introuvable_competition", lang)}</p>'
         return _mise_en_page(
             _t("introuvable", lang), corps, lang, theme, chemin_retour, rafraichir=False
+        )
+
+    if identite is not None and identite[1] == competition_id:
+        corps = (
+            f'<p><a class="back" href="/competition/{competition_id}">'
+            f'{_t("retour_competition", lang)}</a></p>'
+            f'<h1>{_t("rattachement_titre", lang)}</h1>'
+            f'<p>✅ {_t("acces_deja_confirme", lang)}</p>'
+        )
+        return _mise_en_page(
+            _t("rattachement_titre", lang), corps, lang, theme, chemin_retour, rafraichir=False
         )
 
     tous = _competiteurs_de_la_competition(conn, competition_id)
@@ -711,22 +749,23 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
 
         conn = self._connexion_lecture_seule()
         try:
+            identite = self._lire_identite()
             if chemin == "/":
-                corps = page_accueil(conn, lang, theme, identite=self._lire_identite())
+                corps = page_accueil(conn, lang, theme, identite=identite)
             elif chemin.startswith("/epreuve/"):
                 corps = page_epreuve(
-                    conn,
-                    chemin.removeprefix("/epreuve/"),
-                    lang,
-                    theme,
-                    identite=self._lire_identite(),
+                    conn, chemin.removeprefix("/epreuve/"), lang, theme, identite=identite
                 )
             elif chemin.startswith("/competition/"):
-                corps = page_competition(conn, chemin.removeprefix("/competition/"), lang, theme)
+                corps = page_competition(
+                    conn, chemin.removeprefix("/competition/"), lang, theme, identite=identite
+                )
             elif chemin.startswith("/rattachement/"):
                 competition_id = chemin.removeprefix("/rattachement/")
                 recherche = parse_qs(url.query).get("recherche", [""])[0]
-                corps = page_rattachement(conn, competition_id, lang, theme, recherche)
+                corps = page_rattachement(
+                    conn, competition_id, lang, theme, recherche, identite=identite
+                )
             else:
                 self.send_response(404)
                 self.send_header("Content-Type", "text/plain; charset=utf-8")

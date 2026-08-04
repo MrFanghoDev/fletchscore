@@ -63,6 +63,33 @@ class TestPageAccueil(unittest.TestCase):
         self.assertNotIn("<script>alert(1)</script>", page)
         self.assertIn("&lt;script&gt;", page)
 
+    def test_lien_de_rattachement_present_sans_identite(self):
+        competition = services.creer_competition(
+            self.conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15)
+        )
+        page = page_accueil(self.conn)
+        self.assertIn(f"/rattachement/{competition.id}", page)
+
+    def test_lien_de_rattachement_masque_si_deja_identifie(self):
+        competition = services.creer_competition(
+            self.conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15)
+        )
+        page = page_accueil(self.conn, identite=("FR-1", competition.id))
+        self.assertNotIn(f"/rattachement/{competition.id}", page)
+        self.assertIn("Accès déjà confirmé", page)
+
+    def test_lien_de_rattachement_present_pour_une_autre_competition(self):
+        competition1 = services.creer_competition(
+            self.conn, "Comp 1", date(2026, 3, 14), date(2026, 3, 15)
+        )
+        competition2 = services.creer_competition(
+            self.conn, "Comp 2", date(2026, 4, 1), date(2026, 4, 2)
+        )
+        # Identifié pour competition1 -- le lien reste pour competition2.
+        page = page_accueil(self.conn, identite=("FR-1", competition1.id))
+        self.assertNotIn(f"/rattachement/{competition1.id}", page)
+        self.assertIn(f"/rattachement/{competition2.id}", page)
+
     def test_langue_anglaise(self):
         page = page_accueil(self.conn, lang="en")
         self.assertIn("Competitions", page)
@@ -296,6 +323,14 @@ class TestPageCompetition(unittest.TestCase):
         page = page_competition(self.conn, competition.id)
         self.assertIn(f"/rattachement/{competition.id}", page)
 
+    def test_lien_de_rattachement_masque_si_deja_identifie(self):
+        competition = services.creer_competition(
+            self.conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15)
+        )
+        page = page_competition(self.conn, competition.id, identite=("FR-1", competition.id))
+        self.assertNotIn(f"/rattachement/{competition.id}", page)
+        self.assertIn("Accès déjà confirmé", page)
+
 
 class TestPageRattachement(unittest.TestCase):
     def setUp(self):
@@ -370,6 +405,13 @@ class TestPageRattachement(unittest.TestCase):
         page = page_rattachement(self.conn, self.competition.id)
         self.assertIn('name="id_federal" value="FR-1"', page)
         self.assertIn('name="id_federal" value="FR-2"', page)
+
+    def test_formulaire_masque_si_deja_identifie(self):
+        page = page_rattachement(
+            self.conn, self.competition.id, identite=("FR-1", self.competition.id)
+        )
+        self.assertNotIn('name="id_federal"', page)
+        self.assertIn("Accès déjà confirmé", page)
 
 
 class TestPageConfirmationRattachement(unittest.TestCase):

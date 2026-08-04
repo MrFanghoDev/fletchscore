@@ -844,3 +844,23 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   → lister → valider → le classement passe de 0 à 270 points) et bout
   en bout HTTP (vrai `POST /code` → vrai cookie → vrai `POST
   /proposer-score` → vrai `Score` en base avec statut `propose`).
+
+- **Demande de rattachement : refusée si un accès valide ou une
+  demande en attente existe déjà, mais pas si l'accès a été
+  révoqué.** Trou repéré par l'utilisateur : sans ce garde-fou, valider
+  une deuxième demande émettait un second token pour le même
+  (compétiteur, compétition), sans jamais révoquer le premier -- deux
+  codes valides simultanés, source de confusion côté organisateur (une
+  demande qui n'aurait jamais dû exister) et côté compétiteur (lequel
+  des deux codes est le bon ?). `_a_deja_un_acces_valide()` réutilise
+  `Token.est_valide()` -- une révocation explicite débloque donc bien
+  une nouvelle demande, volontairement : empêcher indéfiniment quelqu'un
+  dont l'accès a été retiré de le redemander n'aurait aucun sens.
+  Double protection appliquée, pas seulement le backend : le lien
+  "Demander un accès" et le formulaire de recherche disparaissent de
+  l'accueil, de la page compétition et de la page de rattachement
+  elle-même dès que le cookie de session identifie déjà ce compétiteur
+  pour cette compétition précise -- remplacés par un simple message
+  "Accès déjà confirmé". Le backend reste la garde réelle (protège même
+  si l'UI est contournée ou en cache), l'UI n'est qu'un confort pour ne
+  pas laisser cliquer sur une action vouée à échouer.

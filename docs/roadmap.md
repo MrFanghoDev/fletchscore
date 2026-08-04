@@ -1,6 +1,6 @@
 # Roadmap FletchScore
 
-**État actuel : v0.1 et v0.2 complètes, v0.3 en cours -- 413 tests,
+**État actuel : v0.1 et v0.2 complètes, v0.3 en cours -- 422 tests,
 tous verts, confirmés par la CI sans aucun `skipped`** (y compris les
 tests fpdf2/qrcode, jamais exécutables dans l'environnement de dev
 utilisé ici).
@@ -358,6 +358,24 @@ fonctionnalité visible en soi, mais indispensable avant la v0.3.
       (vrai `POST /code` -> vrai cookie -> vrai `POST /proposer-score`
       -> vrai `Score` en base avec statut `propose`) -- pas seulement
       des fonctions testées isolément.
+- [x] Garde-fou contre les demandes/liens redondants -- signalé par
+      l'utilisateur ("si le code a déjà été donné, il ne devrait pas y
+      avoir de demande d'accès possible"). Sans ça, valider une
+      deuxième demande aurait émis un second token sans jamais révoquer
+      le premier : deux codes valides simultanés pour un seul
+      compétiteur. `services.demander_rattachement()` refuse désormais
+      si un accès valide existe déjà, ou si une demande est déjà en
+      attente -- mais reste possible après une révocation (un accès
+      révoqué ne doit pas bloquer indéfiniment). Le lien "Demander un
+      accès" et le formulaire de recherche disparaissent de l'accueil,
+      de la page compétition et de la page de rattachement elle-même
+      dès que le compétiteur est identifié pour cette compétition
+      précise (remplacés par un simple "Accès déjà confirmé") --
+      double protection : le backend refuse même si l'UI était
+      contournée, l'UI n'affiche même plus l'option pour éviter un clic
+      inutile. 11 nouveaux tests. **Vérifié réellement** : demande →
+      validation → nouvelle tentative de demande, refusée avec le bon
+      message.
 
 Jalon le plus sensible (premières écritures externes en compétition
 réelle) -- à tester d'abord en interne/amical avant un vrai concours

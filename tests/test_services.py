@@ -1116,6 +1116,42 @@ class TestDemanderRattachement(TokenTestCase):
         with self.assertRaises(ErreurMetier):
             services.demander_rattachement(self.conn, "FR-FANTOME", competition.id)
 
+    def test_refuse_si_demande_deja_en_attente(self):
+        competition = self._competition()
+        services.demander_rattachement(self.conn, "FR-1", competition.id)
+
+        with self.assertRaises(ErreurMetier) as contexte:
+            services.demander_rattachement(self.conn, "FR-1", competition.id)
+        self.assertIn("déjà en attente", str(contexte.exception))
+
+    def test_refuse_si_acces_deja_valide(self):
+        competition = self._competition()
+        services.generer_token(self.conn, "FR-1", competition.id)
+
+        with self.assertRaises(ErreurMetier) as contexte:
+            services.demander_rattachement(self.conn, "FR-1", competition.id)
+        self.assertIn("accès valide existe déjà", str(contexte.exception))
+
+    def test_accepte_de_nouveau_apres_revocation(self):
+        # Un accès révoqué ne doit pas bloquer indéfiniment une nouvelle
+        # demande -- seul un accès *actif* le fait.
+        competition = self._competition()
+        services.generer_token(self.conn, "FR-1", competition.id)
+        services.revoquer_acces(self.conn, "FR-1", competition.id)
+
+        demande = services.demander_rattachement(self.conn, "FR-1", competition.id)
+        self.assertEqual(demande.statut, StatutDemandeRattachement.EN_ATTENTE)
+
+    def test_accepte_pour_une_autre_competition(self):
+        # Un accès valide pour une compétition ne doit pas bloquer une
+        # demande pour une compétition différente.
+        competition1 = self._competition(nom="Comp 1")
+        competition2 = self._competition(nom="Comp 2")
+        services.generer_token(self.conn, "FR-1", competition1.id)
+
+        demande = services.demander_rattachement(self.conn, "FR-1", competition2.id)
+        self.assertEqual(demande.statut, StatutDemandeRattachement.EN_ATTENTE)
+
 
 class TestListerDemandesEnAttente(TokenTestCase):
     def test_associe_competiteur_et_demande(self):
