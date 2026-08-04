@@ -1,4 +1,4 @@
-"""Écran « Demandes d'accès » : valider/rejeter les rattachements (v0.3).
+"""Écran « Demandes d'accès » : valider/rejeter les rattachements (v0.2).
 
 ⚠️ Non vérifié dans l'environnement de développement (pas d'affichage
 disponible). Toute la validation vit dans ``fletchscore.services``

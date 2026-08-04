@@ -1,5 +1,5 @@
 """Écran « Sécurité » : définir/changer/supprimer le mot de passe
-organisateur (v0.3).
+organisateur (v0.2).
 
 ⚠️ Non vérifié dans l'environnement de développement (pas d'affichage
 disponible). Toute la logique de hachage vit dans ``fletchscore.auth``

@@ -56,7 +56,7 @@ Vue d'ensemble des flux (v0.1 + v0.2)
 
    flowchart TB
        subgraph "Poste organisateur (construit, v0.1)"
-           GUI["gui/ (7 écrans)"]
+           GUI["gui/ (10 écrans)"]
            SERVICES[services.py]
            DB[(SQLite local)]
            SCORING[scoring/]
@@ -70,23 +70,23 @@ Vue d'ensemble des flux (v0.1 + v0.2)
        EXPORT --> PDF[PDF]
        EXPORT --> CSV[CSV]
 
-       subgraph "Vue compétiteur (construite, v0.2 -- lecture seule)"
+       subgraph "Vue compétiteur (construite, v0.2)"
            WEB["api/competiteur.py\n(http.server, thread séparé)"]
            NAVIGATEUR["Navigateur du compétiteur\n(même wifi que le club)"]
-           NAVIGATEUR -->|GET, sans auth| WEB
+           NAVIGATEUR -->|GET/POST, token optionnel| WEB
        end
 
-       DB -.connexion SQLite dédiée, lecture seule (mode=ro).-> WEB
+       DB -.connexion SQLite dédiée, lecture seule (mode=ro) pour la\nconsultation, écriture pour rattachement/messages.-> WEB
 
-.. admonition:: Vue compétiteur -- lecture seule construite (v0.2)
+.. admonition:: Vue compétiteur + token/rattachement construits (v0.2)
    :class: note
 
-   ``api/competiteur.py`` sert désormais une page web en lecture seule
-   (classement live, sans token ni authentification -- zéro écriture,
-   zéro risque de sécurité nouveau). ``api/organisateur.py`` reste un
-   fichier vide -- la proposition de score par le compétiteur et sa
-   validation par l'organisateur restent prévues v0.3/v0.4, voir
-   :doc:`roadmap`.
+   ``api/competiteur.py`` sert le classement live (lecture seule), la
+   demande/confirmation de rattachement, la confirmation d'un code
+   d'accès, et une messagerie organisateur → compétiteur (ciblée ou
+   diffusée, via un cookie de session signé HMAC). ``api/organisateur.py``
+   reste un fichier vide -- la proposition de score par le compétiteur
+   et sa validation restent prévues v0.3, voir :doc:`roadmap`.
 
 Arborescence réelle (v0.1)
 ================================
@@ -127,8 +127,9 @@ Arborescence réelle (v0.1)
    │   │   │                        # tkinter.filedialog -- bug Pydroid)
    │   │   └── ecran_*.py           # un fichier par écran
    │   ├── api/
-   │   │   ├── competiteur.py        # serveur HTTP lecture seule (v0.2)
-   │   │   └── organisateur.py       # squelette vide -- v0.3/v0.4
+   │   │   ├── competiteur.py        # serveur HTTP (v0.2 -- classement,
+   │   │   │                         # rattachement, messagerie)
+   │   │   └── organisateur.py       # squelette vide -- v0.3
    │   └── __main__.py         # argparse (-h, -V, -v, -d, --db, --http-port)
    ├── tests/                  # ~250 tests -- voir :doc:`roadmap`
    ├── exemples/                # CSV d'exemple pour tests manuels

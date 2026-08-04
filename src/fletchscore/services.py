@@ -777,10 +777,10 @@ def verifier_code_court(conn: sqlite3.Connection, code_court: str) -> Token | No
     le secret complet, seulement le code à 6 caractères communiqué de
     vive voix ou par écrit.
 
-    Acceptable dans le contexte actuel (v0.3, wifi de club, aucune
+    Acceptable dans le contexte actuel (v0.2, wifi de club, aucune
     écriture de score en jeu -- juste "confirmer que je suis bien
     identifié") mais **pas suffisant** le jour où une vraie donnée
-    sensible transitera par ce chemin (proposition de score, v0.4) :
+    sensible transitera par ce chemin (proposition de score, v0.3) :
     un code à 6 caractères depuis un alphabet de 32 (~30 bits) reste
     devinable par force brute si l'enjeu grandit -- à revoir à ce
     moment-là plutôt que d'y ajouter des rustines a posteriori.

@@ -1,12 +1,13 @@
 """Vue compétiteur -- serveur HTTP, majoritairement en lecture seule.
 
-v0.2 : lecture seule (classement live), zéro écriture, zéro risque de
-sécurité nouveau. v0.3 ajoute une première écriture, à faible enjeu :
-la *demande* de rattachement (« je pense être telle personne ») --
-aucune donnée de score, jamais d'effet avant validation humaine de
-l'organisateur (voir ``services.valider_rattachement``). Toujours pas
-de token requis pour la consulter ni la déposer -- l'authentification
-compétiteur (via token, une fois délivré) arrive après.
+Lecture seule pour l'essentiel (classement live), plus quelques
+écritures à faible enjeu, jamais de score : la *demande* de
+rattachement (« je pense être telle personne » -- aucun effet avant
+validation humaine de l'organisateur, voir
+``services.valider_rattachement``) et la confirmation d'un code déjà
+attribué. Pas de token requis pour consulter le classement -- seulement
+pour les fonctionnalités qui identifient le compétiteur (messages
+ciblés, voir ``page_mes_messages``).
 
 Le serveur tourne dans un thread séparé pendant que la GUI continue --
 il utilise donc systématiquement sa **propre connexion SQLite en

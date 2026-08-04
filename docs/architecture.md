@@ -21,9 +21,10 @@ directement sur le code.
 - **Couche `services.py`** : implémenté -- cas d'usage organisateur
   (créer compétition/épreuve, inscrire, saisir un score final, classement
   live), validations métier, `ErreurMetier` avec messages lisibles.
-- **Deux vues, un seul outil** : GUI organisateur (customtkinter)
-  codée (`gui/`, 6 écrans) ; page web compétiteur servie localement
-  (`http.server`) *(pas encore codée, v0.2)*.
+- **Deux vues, un seul outil** : GUI organisateur (customtkinter) codée
+  (`gui/`, 10 écrans) ; page web compétiteur servie localement
+  (`http.server`) codée aussi (`api/competiteur.py`, v0.2 -- lecture
+  seule, demande de rattachement, confirmation de code, messagerie).
 - **Couche `scoring/`** : implémenté (`scoring/classement.py`) --
   classement par catégorie, départage au X, rangs avec égalités, podium.
   Isolée de la GUI et du stockage, testable unitairement.
@@ -569,7 +570,7 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   propre -- pas seulement les fonctions de génération de page testées
   isolément.
 
-- **v0.3 -- clé secrète serveur stockée hors de la base SQLite.**
+- **v0.2 -- clé secrète serveur stockée hors de la base SQLite.**
   `fletchscore/securite.py` génère et persiste une clé HMAC dans
   `config/cle_secrete.txt`, jamais dans le fichier `.db`. Raisonnement :
   le fichier `.db` est ce qui circule le plus facilement par accident
@@ -719,11 +720,11 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   pouvoir taper son code à la main sans avoir à recopier le secret
   complet (peu pratique) -- mais un code à 6 caractères depuis un
   alphabet de 32 (~30 bits) est en théorie devinable par force brute,
-  ce que le HMAC du token complet empêche. Acceptable maintenant : v0.3
+  ce que le HMAC du token complet empêche. Acceptable maintenant : v0.2
   n'a encore aucune donnée sensible derrière ce chemin (juste une
   confirmation d'identité, pas un score). Le docstring de la fonction
   prévient explicitement qu'il faudra revoir ce compromis avant que la
-  v0.4 (proposition de score) n'y transite -- plutôt que de découvrir
+  v0.3 (proposition de score) n'y transite -- plutôt que de découvrir
   le problème après coup.
 
 - **Rattachement accessible directement depuis l'accueil, pas

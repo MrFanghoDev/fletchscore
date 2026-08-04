@@ -4,17 +4,16 @@
 Sécurité & vue compétiteur
 =================================
 
-.. admonition:: v0.2 lecture seule + fondation Token/rattachement construites
-   :class: warning
+.. admonition:: v0.2 construite en presque totalité -- HTTPS reste en v0.3
+   :class: note
 
-   La vue compétiteur en **lecture seule** (``api/competiteur.py``,
-   consultation du classement live, v0.2) est construite. Le backend de
-   cette page (génération/vérification de token, demande et validation
-   de rattachement -- ``services.py``) l'est aussi -- voir
-   :doc:`roadmap`. Restent à faire : génération de QR code, écrans GUI
-   organisateur pour valider les demandes, endpoint web pour que le
-   compétiteur soumette sa demande, authentification organisateur,
-   HTTPS local (repoussé après la v0.4, voir :doc:`roadmap`).
+   Tout ce que décrit cette page est construit, sauf HTTPS : vue
+   compétiteur en lecture seule (classement live), génération/
+   vérification de token (QR code + code court, backend et GUI),
+   demande et validation de rattachement (organisateur comme
+   compétiteur), authentification organisateur (mot de passe optionnel).
+   Voir :doc:`roadmap` pour le détail. HTTPS local reste repoussé après
+   la v0.3 -- voir "Points tranchés" dans :doc:`roadmap`.
 
 Principe général
 ====================

@@ -1,9 +1,17 @@
 # Roadmap FletchScore
 
-**État actuel : v0.1, v0.2 et v0.3 complètes (hors HTTPS, repoussé par
+**État actuel : v0.1 et v0.2 complètes (hors HTTPS, repoussé par
 choix) -- 387 tests, tous verts, confirmés par la CI sans aucun
 `skipped`** (y compris les tests fpdf2/qrcode, jamais exécutables dans
 l'environnement de dev utilisé ici).
+
+> **Note de renumérotation** (demande de l'utilisateur) : la v0.2
+> d'origine (vue compétiteur lecture seule) était trop petite pour
+> justifier une version à part -- fusionnée avec l'ancienne v0.3
+> (tokens/sécurité). Ce qui suivait est décalé d'un cran : l'ancienne
+> v0.4 (proposition de score) devient v0.3, l'ancienne v0.5 (finition)
+> devient v0.4. Renumérotation de documentation uniquement -- aucun
+> changement de code, aucun tag git existant retouché.
 
 - **v0.1** : `models/`, `storage/`, `referentiels/`, `io/import_csv.py`
   (import + export CSV clubs/compétiteurs), `scoring/`, `gui/`
@@ -15,12 +23,12 @@ l'environnement de dev utilisé ici).
   et cahier des charges recalé sur l'état réel.
 - **v0.2** : `api/competiteur.py`, vue compétiteur en lecture seule
   (classement live), identité visuelle FletchTime, bilingue FR/EN.
-- **v0.3** : fondation Token/DemandeRattachement, QR code, GUI
-  organisateur ("Demandes d'accès" -- valider/rejeter/révoquer/envoyer
-  un message), endpoint web de rattachement, page "Mes messages"
-  compétiteur (cookie de session signé HMAC), et authentification
-  organisateur (mot de passe optionnel, PBKDF2). HTTPS repoussé après la
-  v0.4, voir "Points tranchés" du cahier des charges.
+  Fondation Token/DemandeRattachement, QR code, GUI organisateur
+  ("Demandes d'accès" -- valider/rejeter/révoquer/envoyer un message),
+  endpoint web de rattachement, page "Mes messages" compétiteur (cookie
+  de session signé HMAC), et authentification organisateur (mot de
+  passe optionnel, PBKDF2). HTTPS repoussé après la v0.3, voir "Points
+  tranchés" du cahier des charges.
 
 Détail incrément par incrément ci-dessous.
 
@@ -114,7 +122,7 @@ poussée (ex. champs de date en texte libre) ; les formulaires d'ajout
 manuel de club/compétiteur, ajoutés juste après ce test, n'ont pas
 encore été essayés.
 
-## v0.2 -- Vue compétiteur, lecture seule
+## v0.2 -- Vue compétiteur (lecture seule) + Token et sécurité
 
 - [x] `api/competiteur.py` (lecture uniquement) -- serveur HTTP stdlib
       (`http.server`), zéro dépendance ajoutée. Chaque requête ouvre sa
@@ -157,12 +165,12 @@ encore été essayés.
 Zéro écriture, donc zéro risque de sécurité nouveau -- rapide à sortir et
 à faire tester par de vrais archers en salle.
 
-## v0.3 -- Token et sécurité
+### Token et sécurité (fusionné dans la v0.2 -- initialement prévu v0.3)
 
 Ordre retenu (proposé, confirmé par l'utilisateur) : 1) Token/QR +
 rattachement (fondation) 2) authentification organisateur 3) HTTPS
-local. HTTPS repoussé à la v0.4 (voir "Points tranchés" dans le cahier
-des charges) -- v0.3 n'a encore qu'une écriture à faible enjeu (une
+local. HTTPS repoussé à la v0.3 (voir "Points tranchés" dans le cahier
+des charges) -- v0.2 n'a encore qu'une écriture à faible enjeu (une
 demande de rattachement, pas un score), pas de raison de durcir avant
 la vraie donnée sensible.
 
@@ -223,7 +231,7 @@ la vraie donnée sensible.
       supprimer) **vérifié réellement**, pas seulement en tests
       unitaires isolés.
 - [ ] HTTPS local, limitation de débit par token -- repoussé après la
-      v0.4 (voir ci-dessus)
+      v0.3 (voir ci-dessus)
 - [x] Port du serveur web fixe et paramétrable -- demande de
       l'utilisateur. `ConfigGui.http_port` (persisté dans
       `config/gui.toml`, comme le thème), `--http-port` en CLI
@@ -266,7 +274,7 @@ la vraie donnée sensible.
       fonction `services.verifier_code_court()`, **volontairement plus
       faible que `verifier_token()`** (ne demande pas le secret complet)
       -- acceptable maintenant (aucune donnée sensible en jeu), à
-      revoir avant la v0.4 si ce chemin sert un jour à transmettre un
+      revoir avant la v0.3 si ce chemin sert un jour à transmettre un
       score. 8 tests, dont un vrai `POST /code` avec un vrai token
       généré, vérifié de bout en bout.
 - [x] Révocation d'accès depuis la GUI -- demande de l'utilisateur.
@@ -304,9 +312,9 @@ la vraie donnée sensible.
       les fonctions testées isolément.
 
 Prérequis technique avant d'ouvrir la moindre écriture externe -- pas de
-fonctionnalité visible en soi, mais indispensable avant la v0.4.
+fonctionnalité visible en soi, mais indispensable avant la v0.3.
 
-## v0.4 -- Proposition de score compétiteur
+## v0.3 -- Proposition de score compétiteur
 
 - [ ] `api/competiteur.py` (écriture -- proposition de score)
 - [ ] File de validation côté organisateur (`api/organisateur.py`)
@@ -461,13 +469,13 @@ une colonne total.
       non vérifié** -- signalé par l'utilisateur ("sur quel bouton
       appuyer ?") qui a eu raison de demander, il n'existait pas encore
 
-## v0.5 -- Finition
+## v0.4 -- Finition
 
 - [ ] Format d'export fédération figé (dépend du modèle Excel imposé ou
       non -- point ouvert, voir cahier des charges)
 - [x] Doc "premier club" façon onboarding FletchTime -- avancée avant
       l'heure (demande de l'utilisateur, "avant que ça ne dérive")
-      plutôt que d'attendre v0.5. `docs/guide-utilisateur/` : 4 pages
+      plutôt que d'attendre v0.4. `docs/guide-utilisateur/` : 4 pages
       (installation, premiers pas, écrans, dépannage), toctree déjà
       scaffoldé mais 4 fichiers manquaient encore (le build Sphinx
       aurait échoué avec des liens vers des pages inexistantes). Contenu
