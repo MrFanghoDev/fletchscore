@@ -1,6 +1,6 @@
 # Roadmap FletchScore
 
-**État actuel : v0.1 et v0.2 complètes, v0.3 en cours -- 422 tests,
+**État actuel : v0.1 et v0.2 complètes, v0.3 en cours -- 429 tests,
 tous verts, confirmés par la CI sans aucun `skipped`** (y compris les
 tests fpdf2/qrcode, jamais exécutables dans l'environnement de dev
 utilisé ici).
@@ -376,6 +376,19 @@ fonctionnalité visible en soi, mais indispensable avant la v0.3.
       inutile. 11 nouveaux tests. **Vérifié réellement** : demande →
       validation → nouvelle tentative de demande, refusée avec le bon
       message.
+- [x] Trois améliorations de l'accueil compétiteur -- signalées par
+      l'utilisateur après un test réel. (1) Le formulaire "J'ai un
+      code" disparaît désormais si une session est déjà identifiée
+      (même logique que le lien de rattachement masqué juste avant --
+      cohérence). (2) Message de bienvenue personnalisé ("Bonjour
+      Prénom Nom !") une fois identifié. (3) Statut par épreuve affiché
+      à côté de chaque lien quand identifié pour la bonne compétition :
+      "pas inscrit·e" / "inscrit·e" / "score en attente de validation"
+      / "score validé : N pts" (`_statut_epreuve_pour()`, nouveau).
+      13 nouveaux tests, **vérifié réellement** sur une page complète
+      générée avec un compétiteur inscrit à une épreuve (score en
+      attente) et non inscrit à une autre -- les deux statuts corrects
+      côte à côte.
 
 Jalon le plus sensible (premières écritures externes en compétition
 réelle) -- à tester d'abord en interne/amical avant un vrai concours

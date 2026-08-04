@@ -864,3 +864,21 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   "Accès déjà confirmé". Le backend reste la garde réelle (protège même
   si l'UI est contournée ou en cache), l'UI n'est qu'un confort pour ne
   pas laisser cliquer sur une action vouée à échouer.
+
+- **Accueil : formulaire "code" masqué, bienvenue personnalisée, statut
+  par épreuve.** Trois demandes de l'utilisateur après un test réel, sur
+  le même principe déjà établi pour le lien de rattachement : ne pas
+  proposer une action qui n'a plus lieu d'être une fois identifié.
+  `_statut_epreuve_pour()` fait une requête par épreuve listée
+  (inscription puis score) -- volontairement pas optimisé en une seule
+  requête groupée, la volumétrie club (quelques dizaines d'épreuves par
+  compétition tout au plus) ne le justifie pas, et la lisibilité du
+  code (une fonction qui répond à une question précise) prime tant que
+  ça reste largement assez rapide. Statut affiché uniquement pour la
+  compétition à laquelle la session est identifiée (`identifie_ici`,
+  recalculé par compétition dans la boucle) -- jamais le statut de
+  quelqu'un d'autre, ni celui d'une compétition à laquelle le
+  compétiteur n'a pas accès. Vérifié réellement sur une page complète
+  générée avec un compétiteur inscrit à une épreuve (score en attente)
+  et non inscrit à une autre -- les deux statuts corrects côte à côte,
+  pas seulement des assertions unitaires isolées.

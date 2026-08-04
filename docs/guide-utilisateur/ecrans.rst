@@ -109,16 +109,20 @@ lien pour demander un accès -- voir "Demandes d'accès" ci-dessous), et
 un champ pour confirmer un code d'accès déjà reçu.
 
 Une fois un code confirmé, le navigateur du compétiteur garde sa
-session pendant 7 jours (le temps d'un week-end de compétition) : le
-lien "Demander un accès" disparaît alors pour cette compétition
-(remplacé par "Accès déjà confirmé", plus la peine de redemander), et
-un bandeau apparaît sur l'accueil dès qu'un message lui a été envoyé,
-avec un lien vers **Mes messages** (l'historique complet, non limité au
-dernier). Sur la page d'une épreuve où il est inscrit, un formulaire
-**Proposer mon score** apparaît aussi (total + nombre de X, même format
-que la saisie organisateur) -- tant que l'organisateur ne l'a pas
-validée (voir "Propositions de score" ci-dessous), la proposition
-n'apparaît dans aucun classement.
+session pendant 7 jours (le temps d'un week-end de compétition) :
+l'accueil l'accueille par son prénom et son nom, le formulaire "J'ai un
+code" et le lien "Demander un accès" disparaissent pour cette
+compétition (remplacé par "Accès déjà confirmé", plus la peine de
+redemander), et chaque épreuve listée affiche son statut personnel
+("pas inscrit·e", "inscrit·e", "score en attente de validation", ou
+"score validé : N pts"). Un bandeau apparaît aussi sur l'accueil dès
+qu'un message lui a été envoyé, avec un lien vers **Mes messages**
+(l'historique complet, non limité au dernier). Sur la page d'une
+épreuve où il est inscrit, un formulaire **Proposer mon score**
+apparaît aussi (total + nombre de X, même format que la saisie
+organisateur) -- tant que l'organisateur ne l'a pas validée (voir
+"Propositions de score" ci-dessous), la proposition n'apparaît dans
+aucun classement.
 
 .. note::
 

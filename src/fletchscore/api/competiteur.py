@@ -122,6 +122,17 @@ _TEXTES: dict[str, dict[str, str]] = {
         "fr": "Accès déjà confirmé pour cette compétition.",
         "en": "Access already confirmed for this competition.",
     },
+    "bienvenue_personnalisee": {"fr": "Bonjour {nom} !", "en": "Hello {nom}!"},
+    "statut_non_inscrit": {"fr": "pas inscrit·e", "en": "not registered"},
+    "statut_inscrit": {"fr": "inscrit·e", "en": "registered"},
+    "statut_score_attente": {
+        "fr": "score en attente de validation",
+        "en": "score awaiting validation",
+    },
+    "statut_score_valide": {
+        "fr": "score validé : {total} pts",
+        "en": "validated score: {total} pts",
+    },
     "rattachement_titre": {"fr": "Demander un accès", "en": "Request access"},
     "rattachement_intro": {
         "fr": 'Cherche ton nom dans la liste, puis clique sur "C\'est moi" -- '
@@ -205,6 +216,27 @@ def _mise_en_page(
 </html>"""
 
 
+def _statut_epreuve_pour(
+    conn: sqlite3.Connection, epreuve_id: str, id_federal: str, lang: str
+) -> str:
+    """Statut du compétiteur identifié pour cette épreuve précise --
+    inscrit ou non, score validé/en attente/pas encore saisi. Affiché à
+    côté de chaque épreuve sur l'accueil quand une session est
+    identifiée pour la compétition correspondante."""
+    inscription = db.get_inscription_par_competiteur_epreuve(conn, id_federal, epreuve_id)
+    if inscription is None:
+        return _t("statut_non_inscrit", lang)
+
+    score = db.get_score_by_inscription(conn, inscription.id)
+    if score is None:
+        return _t("statut_inscrit", lang)
+    if score.statut == StatutScore.VALIDE:
+        return _t("statut_score_valide", lang).format(total=score.total)
+    if score.statut == StatutScore.PROPOSE:
+        return _t("statut_score_attente", lang)
+    return _t("statut_inscrit", lang)  # REJETE -- pas de score actif, comme non saisi
+
+
 def page_accueil(
     conn: sqlite3.Connection,
     lang: str = "fr",
@@ -227,13 +259,19 @@ def page_accueil(
     banniere = ""
     if identite is not None:
         id_federal, competition_id = identite
+        competiteur_identifie = db.get_competiteur(conn, id_federal)
+        if competiteur_identifie is not None:
+            nom_complet = f"{competiteur_identifie.prenom} {competiteur_identifie.nom}"
+            texte_bienvenue = _t("bienvenue_personnalisee", lang).format(nom=nom_complet)
+            banniere += f'<p class="intro">👋 {_echapper(texte_bienvenue)}</p>'
+
         try:
             messages = services.lister_messages_pour(conn, competition_id, id_federal)
         except ErreurMetier:
             messages = []
         if messages:
             dernier = messages[0]
-            banniere = (
+            banniere += (
                 '<div class="section-competition">'
                 f"<p>📬 {_echapper(dernier.contenu)}</p>"
                 f'<p><a href="/mes-messages">{_t("voir_tous_les_messages", lang)}</a></p>'
@@ -245,10 +283,17 @@ def page_accueil(
     else:
         sections = []
         for competition in competitions:
+            identifie_ici = identite is not None and identite[1] == competition.id
             epreuves = db.list_epreuves_by_competition(conn, competition.id)
             liens_epreuves = "".join(
                 f'<li><a href="/epreuve/{epreuve.id}">{_echapper(epreuve.nom)} '
-                f"({epreuve.date})</a></li>"
+                f"({epreuve.date})</a>"
+                + (
+                    f" -- {_echapper(_statut_epreuve_pour(conn, epreuve.id, identite[0], lang))}"
+                    if identifie_ici
+                    else ""
+                )
+                + "</li>"
                 for epreuve in epreuves
             )
             lien_global = (
@@ -257,7 +302,7 @@ def page_accueil(
                 if epreuves
                 else ""
             )
-            if identite is not None and identite[1] == competition.id:
+            if identifie_ici:
                 # Déjà identifié pour cette compétition précise -- proposer
                 # de redemander un accès n'aurait aucun sens (et
                 # services.demander_rattachement le refuserait de toute
@@ -279,18 +324,24 @@ def page_accueil(
             )
         corps_competitions = "".join(sections)
 
-    corps_code = (
-        '<div class="section-competition">'
-        f'<h2>{_t("jai_un_code_titre", lang)}</h2>'
-        '<form method="post" action="/code" class="field">'
-        f'<label for="code">{_t("code_label", lang)}</label>'
-        '<input type="text" id="code" name="code" maxlength="6" '
-        'style="text-transform:uppercase">'
-        f'<button class="btn-primary" type="submit" '
-        f'style="margin-top:0.5rem;width:fit-content;">{_t("confirmer", lang)}</button>'
-        "</form>"
-        "</div>"
-    )
+    if identite is not None:
+        # Déjà une session active -- resaisir un code n'a plus lieu
+        # d'être (voir aussi le masquage du lien "Demander un accès"
+        # ci-dessus, même logique).
+        corps_code = ""
+    else:
+        corps_code = (
+            '<div class="section-competition">'
+            f'<h2>{_t("jai_un_code_titre", lang)}</h2>'
+            '<form method="post" action="/code" class="field">'
+            f'<label for="code">{_t("code_label", lang)}</label>'
+            '<input type="text" id="code" name="code" maxlength="6" '
+            'style="text-transform:uppercase">'
+            f'<button class="btn-primary" type="submit" '
+            f'style="margin-top:0.5rem;width:fit-content;">{_t("confirmer", lang)}</button>'
+            "</form>"
+            "</div>"
+        )
 
     corps = entete + banniere + corps_competitions + corps_code
     return _mise_en_page(_t("titre_accueil", lang), corps, lang, theme, "/")

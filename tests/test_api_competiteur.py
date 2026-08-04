@@ -90,6 +90,109 @@ class TestPageAccueil(unittest.TestCase):
         self.assertNotIn(f"/rattachement/{competition1.id}", page)
         self.assertIn(f"/rattachement/{competition2.id}", page)
 
+    def test_formulaire_de_code_present_sans_identite(self):
+        page = page_accueil(self.conn, identite=None)
+        self.assertIn('action="/code"', page)
+
+    def test_formulaire_de_code_masque_si_deja_identifie(self):
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-1",
+                nom="Dupont",
+                prenom="Marie",
+                code_club="77123",
+                sexe=Sexe.F,
+                date_naissance=date(1995, 3, 14),
+                code_style="BB-R",
+            ),
+        )
+        competition = services.creer_competition(
+            self.conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15)
+        )
+        page = page_accueil(self.conn, identite=("FR-1", competition.id))
+        self.assertNotIn('action="/code"', page)
+
+    def test_message_de_bienvenue_personnalise(self):
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-1",
+                nom="Dupont",
+                prenom="Marie",
+                code_club="77123",
+                sexe=Sexe.F,
+                date_naissance=date(1995, 3, 14),
+                code_style="BB-R",
+            ),
+        )
+        competition = services.creer_competition(
+            self.conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15)
+        )
+        page = page_accueil(self.conn, identite=("FR-1", competition.id))
+        self.assertIn("Marie Dupont", page)
+
+    def test_pas_de_message_personnalise_sans_identite(self):
+        page = page_accueil(self.conn, identite=None)
+        self.assertNotIn("Bonjour", page)
+
+    def test_statut_pas_inscrit_affiche(self):
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-1",
+                nom="Dupont",
+                prenom="Marie",
+                code_club="77123",
+                sexe=Sexe.F,
+                date_naissance=date(1995, 3, 14),
+                code_style="BB-R",
+            ),
+        )
+        competition = services.creer_competition(
+            self.conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15)
+        )
+        services.creer_epreuve(
+            self.conn, competition.id, "Indoor", date(2026, 3, 14), "ifaa-indoor"
+        )
+        page = page_accueil(self.conn, identite=("FR-1", competition.id))
+        self.assertIn("pas inscrit", page)
+
+    def test_statut_score_valide_affiche(self):
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-1",
+                nom="Dupont",
+                prenom="Marie",
+                code_club="77123",
+                sexe=Sexe.F,
+                date_naissance=date(1995, 3, 14),
+                code_style="BB-R",
+            ),
+        )
+        competition = services.creer_competition(
+            self.conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15)
+        )
+        epreuve = services.creer_epreuve(
+            self.conn, competition.id, "Indoor", date(2026, 3, 14), "ifaa-indoor"
+        )
+        inscription = services.inscrire(self.conn, "FR-1", epreuve.id)
+        services.saisir_score_final(self.conn, inscription.id, 270)
+
+        page = page_accueil(self.conn, identite=("FR-1", competition.id))
+        self.assertIn("270", page)
+
+    def test_pas_de_statut_sans_identite(self):
+        competition = services.creer_competition(
+            self.conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15)
+        )
+        services.creer_epreuve(
+            self.conn, competition.id, "Indoor", date(2026, 3, 14), "ifaa-indoor"
+        )
+        page = page_accueil(self.conn, identite=None)
+        self.assertNotIn("pas inscrit", page)
+
     def test_langue_anglaise(self):
         page = page_accueil(self.conn, lang="en")
         self.assertIn("Competitions", page)
