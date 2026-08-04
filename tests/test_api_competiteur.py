@@ -859,6 +859,24 @@ class TestServeurIntegration(unittest.TestCase):
             contenu = reponse.read().decode("utf-8")
         self.assertIn("invalide", contenu.lower())
 
+    def test_limitation_de_debit_sur_code_declenche_reellement(self):
+        # Le vrai test décisif : au-delà de 10 tentatives réelles en 5
+        # minutes depuis la même adresse, la 11e doit recevoir un vrai
+        # 429 -- pas juste vérifier que LimiteurDebit fonctionne en
+        # isolation (déjà fait dans test_limiteur_debit.py), mais que
+        # le serveur HTTP l'applique bien en pratique sur /code.
+        donnees = urllib.parse.urlencode({"code": "ZZZZZZ"}).encode("utf-8")
+
+        for _ in range(10):
+            requete = urllib.request.Request(self._url("/code"), data=donnees, method="POST")
+            with urllib.request.urlopen(requete, timeout=5) as reponse:
+                self.assertEqual(reponse.status, 200)
+
+        requete_onzieme = urllib.request.Request(self._url("/code"), data=donnees, method="POST")
+        with self.assertRaises(urllib.error.HTTPError) as contexte:
+            urllib.request.urlopen(requete_onzieme, timeout=5)
+        self.assertEqual(contexte.exception.code, 429)
+
 
 if __name__ == "__main__":
     unittest.main()

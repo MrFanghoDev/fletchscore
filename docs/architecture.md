@@ -882,3 +882,20 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   générée avec un compétiteur inscrit à une épreuve (score en attente)
   et non inscrit à une autre -- les deux statuts corrects côte à côte,
   pas seulement des assertions unitaires isolées.
+
+- **`LimiteurDebit` : fenêtre glissante en mémoire, horloge injectable
+  pour les tests.** Pas de dépendance externe (pas de Redis ni
+  équivalent -- disproportionné pour un serveur qui tourne le temps
+  d'une compétition sur un poste local), pas de persistance en base
+  (un redémarrage remet les compteurs à zéro, acceptable dans ce
+  contexte). L'horloge est un paramètre injectable
+  (`horloge=time.monotonic` par défaut) précisément pour pouvoir tester
+  une fenêtre glissante de plusieurs minutes sans vraies pauses dans la
+  suite de tests -- une horloge factice avance instantanément le temps
+  simulé. Limite plus stricte sur `POST /code` (10/5 min) que sur les
+  autres écritures (30/5 min) : `/code` devine un secret (le code
+  court, ~30 bits, voir `services.verifier_code_court`), les autres
+  écritures ne devinent rien, une limite anti-spam plus large suffit.
+  Vérifié réellement avec un vrai serveur : 10 vraies requêtes passent,
+  la 11e reçoit un vrai HTTP 429 -- pas seulement `LimiteurDebit` testé
+  en isolation.

@@ -1,6 +1,6 @@
 # Roadmap FletchScore
 
-**État actuel : v0.1 et v0.2 complètes, v0.3 en cours -- 429 tests,
+**État actuel : v0.1 et v0.2 complètes, v0.3 en cours -- 435 tests,
 tous verts, confirmés par la CI sans aucun `skipped`** (y compris les
 tests fpdf2/qrcode, jamais exécutables dans l'environnement de dev
 utilisé ici).
@@ -326,7 +326,19 @@ fonctionnalité visible en soi, mais indispensable avant la v0.3.
       inchangée depuis la v0.2 : c'est cette version qui fait
       transiter la vraie donnée sensible (un score), pas de raison de
       durcir le transport avant.
-- [ ] Limitation de débit par token
+- [x] Limitation de débit -- `fletchscore/limiteur_debit.py` (nouveau
+      module, fenêtre glissante en mémoire, aucune dépendance). Plus
+      stricte sur `POST /code` (10 tentatives / 5 min par IP) que sur
+      les autres écritures (`POST /rattachement`, `POST
+      /proposer-score`, 30 / 5 min) -- `/code` devine un secret (le
+      code court, ~30 bits), pas juste une action à limiter par
+      confort. Réponse HTTP 429 standard, avec en-tête `Retry-After`.
+      5 tests avec une horloge factice (fenêtre glissante testée
+      instantanément, sans vraies pauses de plusieurs minutes) + **1
+      test d'intégration décisif** : 10 vraies requêtes `POST /code`
+      passent, la 11e reçoit un vrai 429 -- pas seulement que
+      `LimiteurDebit` fonctionne en isolation, mais que le serveur
+      l'applique réellement.
 - [x] `api/competiteur.py` (écriture -- proposition de score) --
       cadré avec l'utilisateur avant de coder (3 questions : format
       identique à la saisie organisateur -- total + X ; nécessite le

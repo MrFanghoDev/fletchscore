@@ -41,6 +41,7 @@ from pathlib import Path
 from urllib.parse import ParseResult, parse_qs, urlparse
 
 from fletchscore import services
+from fletchscore.limiteur_debit import LimiteurDebit
 from fletchscore.models import Competiteur, StatutScore
 from fletchscore.services import ErreurMetier
 from fletchscore.storage import db
@@ -114,6 +115,10 @@ _TEXTES: dict[str, dict[str, str]] = {
     "erreur": {"fr": "Erreur", "en": "Error"},
     "classement_global_titre": {"fr": "classement global", "en": "overall ranking"},
     "page_introuvable": {"fr": "Page introuvable.", "en": "Page not found."},
+    "trop_de_tentatives": {
+        "fr": "Trop de tentatives -- réessaie dans quelques minutes.",
+        "en": "Too many attempts -- try again in a few minutes.",
+    },
     "demander_rattachement_lien": {
         "fr": "Pas encore d'accès à cette compétition ? Demander un rattachement",
         "en": "No access to this competition yet? Request access",
@@ -685,6 +690,14 @@ class ServeurCompetiteur(HTTPServer):
     def __init__(self, adresse: tuple[str, int], chemin_base: str) -> None:
         super().__init__(adresse, GestionnaireRequetesCompetiteur)
         self.chemin_base = chemin_base
+        # Plus stricte sur /code : c'est la porte d'entrée qui devine un
+        # secret (le code court, ~30 bits -- voir
+        # services.verifier_code_court), pas une simple action limitée
+        # en fréquence par confort. Les autres écritures (rattachement,
+        # proposition de score) ne devinent rien de secret, une limite
+        # plus large suffit à écarter un script qui spammerait.
+        self.limiteur_code = LimiteurDebit(max_requetes=10, fenetre_secondes=300)
+        self.limiteur_ecriture = LimiteurDebit(max_requetes=30, fenetre_secondes=300)
 
 
 class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
@@ -838,6 +851,28 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(corps_octets)
 
+    def _repondre_trop_de_requetes(self, lang: str, theme: str) -> None:
+        """429 Too Many Requests -- voir ``fletchscore.limiteur_debit``.
+        Code HTTP standard pour ce cas précis, pas un simple 403 :
+        signale explicitement au client (et à quiconque lit les journaux
+        d'un éventuel proxy) qu'il s'agit d'une limite temporaire, pas
+        d'un refus définitif."""
+        corps = _mise_en_page(
+            _t("erreur", lang),
+            f'<p>{_t("trop_de_tentatives", lang)}</p>',
+            lang,
+            theme,
+            "/",
+            rafraichir=False,
+        )
+        corps_octets = corps.encode("utf-8")
+        self.send_response(429)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(corps_octets)))
+        self.send_header("Retry-After", "300")
+        self.end_headers()
+        self.wfile.write(corps_octets)
+
     def log_message(self, format: str, *args) -> None:  # noqa: A002
         pass  # pas besoin des logs de requêtes HTTP dans le terminal de l'organisateur
 
@@ -845,22 +880,32 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
         url = urlparse(self.path)
         chemin = url.path
         lang, theme = self._lire_preferences()
+        adresse_client = self.client_address[0]
 
         longueur = int(self.headers.get("Content-Length", 0))
         corps_requete = self.rfile.read(longueur).decode("utf-8") if longueur else ""
         champs = parse_qs(corps_requete)
 
         if chemin.startswith("/rattachement/"):
+            if not self.server.limiteur_ecriture.autorise(adresse_client):
+                self._repondre_trop_de_requetes(lang, theme)
+                return
             corps = self._traiter_rattachement(chemin, champs, lang, theme)
             self._repondre_html(corps)
             return
 
         if chemin == "/code":
+            if not self.server.limiteur_code.autorise(adresse_client):
+                self._repondre_trop_de_requetes(lang, theme)
+                return
             corps, cookie_identite = self._traiter_code(champs, lang, theme)
             self._repondre_html(corps, cookie_identite)
             return
 
         if chemin.startswith("/proposer-score/"):
+            if not self.server.limiteur_ecriture.autorise(adresse_client):
+                self._repondre_trop_de_requetes(lang, theme)
+                return
             corps = self._traiter_proposition_score(chemin, champs, lang, theme)
             self._repondre_html(corps)
             return
