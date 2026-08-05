@@ -53,7 +53,7 @@ def generer_certificat(
     cle_privee = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
     nom = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "FletchScore (local)")])
-    maintenant = datetime.datetime.now(datetime.timezone.utc)
+    maintenant = datetime.datetime.now(datetime.UTC)
 
     certificat = (
         x509.CertificateBuilder()
