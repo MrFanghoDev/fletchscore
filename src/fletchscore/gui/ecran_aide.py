@@ -27,11 +27,16 @@ _SECTIONS_AIDE = (
         "dédiés. Un rapport détaille les lignes rejetées à l'import.",
     ),
     (
-        "Saisie des scores",
-        "Choisis une épreuve, inscris les compétiteurs présents, puis "
-        "saisis le score final de chacun (total + nombre de X si le "
-        "barème l'utilise) tel que totalisé sur la feuille de match. Un "
-        "score déjà saisi peut être corrigé en le ressaisissant.",
+        "Saisie",
+        "Deux onglets. Saisie manuelle : choisis une épreuve, inscris "
+        "les compétiteurs présents, puis saisis le score final de "
+        "chacun (total + nombre de X si le barème l'utilise) tel que "
+        "totalisé sur la feuille de match -- un score déjà saisi peut "
+        "être corrigé en le ressaisissant. Propositions en attente : un "
+        "compétiteur identifié depuis la vue web peut proposer son "
+        "propre score ; ça n'apparaît dans aucun classement tant que tu "
+        "ne l'as pas validé ici -- recoupe avec la feuille de match "
+        "papier avant de valider.",
     ),
     (
         "Classement",
@@ -42,33 +47,20 @@ _SECTIONS_AIDE = (
         "épreuve, un total).",
     ),
     (
-        "Vue compétiteur",
+        "Connexions compétiteurs",
         "Démarre un petit serveur web (bouton, port fixe ou automatique, "
         "HTTPS optionnel si la bibliothèque cryptography est installée) "
         "pour que les compétiteurs consultent le classement live depuis "
-        "leur téléphone, sur le wifi du club -- surtout en lecture "
-        "seule, à part une demande d'accès et une proposition de score "
-        "(voir « Demandes d'accès » et « Propositions de score »).",
+        "leur téléphone, sur le wifi du club. En dessous, trois onglets : "
+        "Demandes en attente (valide seulement après avoir vérifié "
+        "l'identité de visu -- un code, et un QR code si disponible, "
+        "s'affiche alors une seule fois, à transmettre immédiatement) ; "
+        "Accès actifs (révoquer un accès déjà donné) ; Messages "
+        "(envoyer à un compétiteur précis ou à tous, historique des "
+        "envois).",
     ),
     (
-        "Demandes d'accès",
-        "Quand un compétiteur demande un accès depuis la vue web, sa "
-        "demande apparaît ici par compétition. Valide seulement après "
-        "avoir vérifié son identité de visu -- un code (et un QR code, "
-        "si disponible) s'affiche alors une seule fois : à transmettre "
-        "immédiatement, il ne sera plus jamais récupérable ensuite. "
-        "Un onglet permet aussi de révoquer un accès déjà donné, et un "
-        "autre d'envoyer un message à un compétiteur précis ou à tous.",
-    ),
-    (
-        "Propositions de score",
-        "Un compétiteur identifié (code confirmé) peut proposer son "
-        "score final depuis la page de son épreuve. Ça n'apparaît dans "
-        "aucun classement tant que tu ne l'as pas validé ici -- "
-        "recoupe avec la feuille de match papier avant de valider.",
-    ),
-    (
-        "Sécurité",
+        "Mot de passe",
         "Optionnel : définis un mot de passe pour protéger l'ouverture "
         "de FletchScore. Sans mot de passe défini, l'application "
         "s'ouvre directement. Une fois défini, tu peux le changer ou "

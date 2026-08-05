@@ -4,7 +4,7 @@
 Les écrans
 ===========================================
 
-FletchScore s'organise en 6 écrans, accessibles depuis la barre
+FletchScore s'organise en 8 écrans, accessibles depuis la barre
 latérale. Le thème (clair/sombre) et la version installée sont affichés
 en bas de cette barre.
 
@@ -13,7 +13,7 @@ Accueil
 
 Écran par défaut à l'ouverture : un résumé chiffré (nombre de
 compétitions, de compétiteurs, d'épreuves, et l'épreuve la plus
-récente) et 4 raccourcis vers les autres écrans.
+récente) et des raccourcis vers les autres écrans.
 
 .. note::
 
@@ -61,20 +61,30 @@ pour en charger un existant à modifier) et **Ajouter un compétiteur**.
 Enfin, la liste de tous les compétiteurs enregistrés, avec un bouton
 **Modifier** sur chacun.
 
-Saisie des scores
-=====================
+Saisie
+=========
 
-Un sélecteur d'épreuve en haut, puis deux colonnes :
+Deux onglets -- un score entre dans le système par l'un ou par l'autre,
+peu importe lequel : les deux se retrouvent au même endroit ensuite
+(l'écran Classement).
 
-**Colonne de gauche -- Inscriptions**
-   Un menu déroulant des compétiteurs pas encore inscrits à l'épreuve
-   choisie, un bouton **Inscrire**, et la liste des inscrit·e·s (avec
-   leur score s'il est déjà saisi).
+**Saisie manuelle**
+   Un sélecteur d'épreuve en haut, puis deux colonnes : à gauche un
+   menu déroulant des compétiteurs pas encore inscrits, un bouton
+   **Inscrire**, et la liste des inscrit·e·s (avec leur score s'il est
+   déjà saisi) ; à droite, une fois un·e inscrit·e sélectionné·e, deux
+   champs (score total, nombre de X) et un bouton **Enregistrer**. Le
+   score actuellement enregistré s'affiche en dessous.
 
-**Colonne de droite -- Score final**
-   Une fois un·e inscrit·e sélectionné·e à gauche : deux champs (score
-   total, nombre de X) et un bouton **Enregistrer**. Le score actuellement
-   enregistré s'affiche en dessous.
+**Propositions en attente**
+   Un sélecteur d'épreuve, puis la liste des scores proposés par des
+   compétiteurs identifiés depuis la vue web (voir "Connexions
+   compétiteurs" ci-dessous) -- compétiteur, total, nombre de X. Un
+   score proposé n'apparaît dans aucun classement tant qu'il n'est pas
+   validé ici. **Recoupe-le avec la feuille de match papier avant de
+   valider** : FletchScore ne vérifie que les bornes du barème (le
+   total ne dépasse pas le maximum possible), rien d'autre. Le bouton
+   **Rejeter** écarte une proposition sans rien valider.
 
 Classement
 =============
@@ -90,58 +100,40 @@ boutons d'export -- une colonne par épreuve, plus un total cumulé.
 La liste du classement s'affiche en dessous, groupée par catégorie
 (sexe + tranche d'âge + style), triée par total décroissant.
 
-Vue compétiteur
-==================
+Connexions compétiteurs
+===========================
 
-Un champ **Port** (laisse-le vide pour un port différent à chaque
-démarrage, ou fixe-en un pour garder toujours la même adresse d'une
-session à l'autre -- mémorisé automatiquement pour la prochaine fois),
-une case **Activer HTTPS** (certificat auto-signé généré
-automatiquement -- le navigateur du compétiteur affichera un
-avertissement "connexion non sécurisée" à accepter manuellement une
-fois, normal pour ce type de certificat), et un bouton **Démarrer le
-serveur** / **Arrêter le serveur**. Une fois démarré, l'adresse à
-donner aux compétiteurs s'affiche (à taper dans le navigateur de leur
-téléphone, sur le même wifi que le club).
+Tout ce qui touche au lien en ligne avec les compétiteurs, regroupé sur
+un seul écran.
+
+En haut, les contrôles du serveur web : un champ **Port** (laisse-le
+vide pour un port différent à chaque démarrage, ou fixe-en un pour
+garder toujours la même adresse d'une session à l'autre -- mémorisé
+automatiquement pour la prochaine fois), une case **Activer HTTPS**
+(certificat auto-signé généré automatiquement -- le navigateur du
+compétiteur affichera un avertissement "connexion non sécurisée" à
+accepter manuellement une fois, normal pour ce type de certificat), et
+un bouton **Démarrer le serveur** / **Arrêter le serveur**. Une fois
+démarré, l'adresse à donner aux compétiteurs s'affiche (à taper dans le
+navigateur de leur téléphone, sur le même wifi que le club).
 
 La page qu'ils voient reprend l'identité visuelle de FletchTime (thème
 sombre par défaut, bascule vers un thème clair possible) et est
-bilingue français/anglais (boutons FR/EN et 🌙/☀ en haut à droite).
-L'accueil affiche un message de bienvenue, la liste des compétitions et
-épreuves en cours (avec un lien vers le classement de chacune et un
-lien pour demander un accès -- voir "Demandes d'accès" ci-dessous), et
-un champ pour confirmer un code d'accès déjà reçu.
+bilingue français/anglais. L'accueil affiche un message de bienvenue,
+la liste des compétitions et épreuves en cours (avec un lien vers le
+classement de chacune et un lien pour demander un accès), et un champ
+pour confirmer un code d'accès déjà reçu. Une fois un code confirmé, la
+session dure 7 jours : l'accueil accueille par prénom et nom, le
+formulaire de code et le lien de demande d'accès disparaissent pour
+cette compétition, chaque épreuve affiche un statut personnel ("pas
+inscrit·e", "inscrit·e", "score en attente de validation", "score
+validé : N pts"), un bandeau signale un nouveau message, et un
+formulaire **Proposer mon score** apparaît sur la page de chaque
+épreuve où le compétiteur est inscrit (voir l'onglet "Propositions en
+attente" de l'écran Saisie).
 
-Une fois un code confirmé, le navigateur du compétiteur garde sa
-session pendant 7 jours (le temps d'un week-end de compétition) :
-l'accueil l'accueille par son prénom et son nom, le formulaire "J'ai un
-code" et le lien "Demander un accès" disparaissent pour cette
-compétition (remplacé par "Accès déjà confirmé", plus la peine de
-redemander), et chaque épreuve listée affiche son statut personnel
-("pas inscrit·e", "inscrit·e", "score en attente de validation", ou
-"score validé : N pts"). Un bandeau apparaît aussi sur l'accueil dès
-qu'un message lui a été envoyé, avec un lien vers **Mes messages**
-(l'historique complet, non limité au dernier). Sur la page d'une
-épreuve où il est inscrit, un formulaire **Proposer mon score**
-apparaît aussi (total + nombre de X, même format que la saisie
-organisateur) -- tant que l'organisateur ne l'a pas validée (voir
-"Propositions de score" ci-dessous), la proposition n'apparaît dans
-aucun classement.
-
-.. note::
-
-   Consultation en lecture seule pour la plupart des visiteurs. Trois
-   écritures possibles depuis cette page, jamais sur les données d'un
-   autre compétiteur : la *demande* d'accès (« je pense être telle
-   personne » -- sans aucun effet tant qu'un organisateur ne l'a pas
-   validée après vérification de visu), la confirmation d'un code déjà
-   attribué, et la proposition d'un score (réservée à un compétiteur
-   identifié, inscrit à l'épreuve, sans score officiel existant).
-
-Demandes d'accès
-====================
-
-Un sélecteur de compétition, puis trois onglets.
+En dessous des contrôles serveur, un sélecteur de compétition puis
+trois onglets :
 
 **Demandes en attente**
    Nom, prénom, id fédéral, date de naissance et club, pour recouper
@@ -161,27 +153,27 @@ Un sélecteur de compétition, puis trois onglets.
    accès a été donné par erreur, ou si un compétiteur ne doit plus
    pouvoir se connecter.
 
-**Envoyer un message**
+**Messages**
    Choisis un destinataire (un compétiteur avec un accès actif, ou
    "Tous les compétiteurs"), écris ton message, clique **Envoyer**. Le
    compétiteur le voit dès sa prochaine visite (bandeau sur l'accueil +
-   page "Mes messages", voir ci-dessus) -- FletchScore ne te dit pas
-   qui l'a lu, seulement qu'il a été envoyé. L'historique de tous les
-   messages envoyés pour cette compétition s'affiche en dessous.
+   page "Mes messages") -- FletchScore ne te dit pas qui l'a lu,
+   seulement qu'il a été envoyé. L'historique de tous les messages
+   envoyés pour cette compétition s'affiche en dessous.
 
-Propositions de score
-=========================
+.. note::
 
-Un sélecteur d'épreuve, puis la liste des scores proposés en attente --
-compétiteur, total, nombre de X. Un score proposé n'apparaît dans aucun
-classement tant qu'il n'est pas validé ici. **Recoupe-le avec la
-feuille de match papier avant de valider** : FletchScore ne vérifie que
-les bornes du barème (le total ne dépasse pas le maximum possible),
-rien d'autre. Le bouton **Rejeter** écarte une proposition sans rien
-valider.
+   Consultation en lecture seule pour la plupart des visiteurs. Trois
+   écritures possibles depuis la page compétiteur, jamais sur les
+   données d'un autre compétiteur : la *demande* d'accès (« je pense
+   être telle personne » -- sans aucun effet tant qu'un organisateur ne
+   l'a pas validée après vérification de visu), la confirmation d'un
+   code déjà attribué, et la proposition d'un score (réservée à un
+   compétiteur identifié, inscrit à l'épreuve, sans score officiel
+   existant).
 
-Sécurité
-===========
+Mot de passe
+===============
 
 Optionnel : définis un mot de passe pour protéger l'ouverture de
 FletchScore. Sans mot de passe défini, l'application s'ouvre

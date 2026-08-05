@@ -25,11 +25,9 @@ from fletchscore.gui.ecran_aide import EcranAide
 from fletchscore.gui.ecran_classement import EcranClassement
 from fletchscore.gui.ecran_competiteurs import EcranCompetiteurs
 from fletchscore.gui.ecran_competitions import EcranCompetitions
-from fletchscore.gui.ecran_propositions import EcranPropositions
-from fletchscore.gui.ecran_rattachement import EcranRattachement
+from fletchscore.gui.ecran_connexions import EcranConnexions
+from fletchscore.gui.ecran_mot_de_passe import EcranMotDePasse
 from fletchscore.gui.ecran_saisie import EcranSaisie
-from fletchscore.gui.ecran_securite import EcranSecurite
-from fletchscore.gui.ecran_vue_competiteur import EcranVueCompetiteur
 from fletchscore.gui.robustesse import (
     ErreurAffichageIndisponible,
     construire_fenetre,
@@ -43,12 +41,10 @@ LIBELLES_SECTIONS = {
     "accueil": "Accueil",
     "competitions": "Compétitions",
     "competiteurs": "Compétiteurs",
-    "saisie": "Saisie des scores",
+    "saisie": "Saisie",
     "classement": "Classement",
-    "vue_competiteur": "Vue compétiteur",
-    "rattachement": "Demandes d'accès",
-    "propositions": "Propositions de score",
-    "securite": "Sécurité",
+    "connexions": "Connexions compétiteurs",
+    "mot_de_passe": "Mot de passe",
     "aide": "Aide",
 }
 
@@ -86,7 +82,7 @@ class FenetrePrincipale(ctk.CTk):
     def _demander_mot_de_passe(self) -> bool:
         """Fenêtre de connexion bloquante -- affichée avant le reste de
         l'interface si un mot de passe organisateur est configuré (voir
-        gui/ecran_securite.py pour le définir/changer/supprimer)."""
+        gui/ecran_mot_de_passe.py pour le définir/changer/supprimer)."""
         self.withdraw()  # cache la fenêtre principale pendant la saisie
         resultat = {"ok": False}
 
@@ -219,23 +215,13 @@ class FenetrePrincipale(ctk.CTk):
             ecran.grid(row=0, column=0, sticky="nsew")
             return
 
-        if cle == "vue_competiteur":
-            ecran = EcranVueCompetiteur(self.cadre_section, self)
+        if cle == "connexions":
+            ecran = EcranConnexions(self.cadre_section, self)
             ecran.grid(row=0, column=0, sticky="nsew")
             return
 
-        if cle == "rattachement":
-            ecran = EcranRattachement(self.cadre_section, self.conn)
-            ecran.grid(row=0, column=0, sticky="nsew")
-            return
-
-        if cle == "propositions":
-            ecran = EcranPropositions(self.cadre_section, self.conn)
-            ecran.grid(row=0, column=0, sticky="nsew")
-            return
-
-        if cle == "securite":
-            ecran = EcranSecurite(self.cadre_section)
+        if cle == "mot_de_passe":
+            ecran = EcranMotDePasse(self.cadre_section)
             ecran.grid(row=0, column=0, sticky="nsew")
             return
 
@@ -309,7 +295,7 @@ def lancer(chemin_base: Path | str = CHEMIN_BASE_PAR_DEFAUT, http_port: int | No
     serveur web tout seul -- il ne fait que préremplir le port proposé
     sur l'écran "Vue compétiteur" : démarrer le serveur reste toujours
     une action explicite de l'organisateur (voir
-    ``gui/ecran_vue_competiteur.py`` et la décision v0.2 dans
+    ``gui/ecran_connexions.py`` et la décision v0.2 dans
     docs/architecture.md -- jamais de démarrage automatique).
     """
     conn = ouvrir_base(chemin_base)

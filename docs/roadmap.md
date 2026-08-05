@@ -16,7 +16,8 @@ disponible, voir la v0.3 ci-dessous).
 
 - **v0.1** : `models/`, `storage/`, `referentiels/`, `io/import_csv.py`
   (import + export CSV clubs/compétiteurs), `scoring/`, `gui/`
-  (11 écrans), `io/export/` (CSV/Excel/PDF, classement par épreuve et
+  (8 écrans après réorganisation, voir plus bas), `io/export/`
+  (CSV/Excel/PDF, classement par épreuve et
   global). Modification de compétitions/épreuves/clubs/compétiteurs
   existants. 6 barèmes préconfigurés (Flint Indoor, IFAA Indoor, Field,
   Hunter, International, Expert Field). Modèles d'épreuve réutilisables.
@@ -610,6 +611,46 @@ une colonne total.
       l'état actuel.
 - [ ] Durcissement suite aux retours terrain
 
+## Réorganisation GUI (chantier esthétique)
+
+Demande de l'utilisateur, une fois la v0.3 quasiment close : 10 écrans
+étaient devenus trop nombreux et se chevauchaient par endroits.
+Cadré avant de coder (plusieurs allers-retours sur le regroupement
+exact) plutôt que de deviner -- voir la conversation pour le
+raisonnement complet.
+
+- [x] `gui/ecran_saisie.py` fusionné avec l'ancien
+      `gui/ecran_propositions.py` -- deux onglets ("Saisie manuelle",
+      "Propositions en attente") : un score entre dans le système par
+      l'un ou par l'autre, décision de l'utilisateur ("les propositions
+      de score devraient être dans la saisie").
+- [x] Nouveau `gui/ecran_connexions.py` -- fusion des anciens
+      `gui/ecran_vue_competiteur.py` (contrôles serveur) et
+      `gui/ecran_rattachement.py` (demandes/accès/messages) en un seul
+      écran "Connexions compétiteurs" : contrôles serveur en haut, puis
+      trois onglets (Demandes en attente, Accès actifs, Messages).
+      Décision explicite de l'utilisateur de fusionner le contrôle du
+      serveur avec la messagerie plutôt que de les séparer ("le serveur
+      et les messages vont ensemble").
+- [x] `gui/ecran_securite.py` renommé `gui/ecran_mot_de_passe.py`
+      (classe `EcranMotDePasse`) -- "Sécurité" prêtait à confusion une
+      fois "Connexions compétiteurs" en place (on pourrait croire que
+      ça parle de la sécurité de la vue web, pas du mot de passe de
+      l'appli).
+- [x] `ecran_accueil.py` (raccourcis) et `ecran_aide.py` (mode
+      d'emploi intégré) mis à jour en conséquence. **Bug repéré et
+      corrigé en relisant** : une fausse syntaxe markdown (`**gras**`)
+      s'était glissée dans le nouveau texte d'aide -- `CTkLabel`
+      n'interprète aucun texte enrichi, ça se serait affiché en toutes
+      lettres avec les astérisques.
+- [x] Guide utilisateur (`docs/guide-utilisateur/ecrans.rst`) réécrit
+      pour les 8 écrans finaux.
+
+Résultat : 10 écrans -> 8, chacun avec une frontière claire (qui a
+accès / qu'est-ce qu'on leur dit / quels scores valider ne se marchent
+plus dessus). ⚠️ **Rendu GUI non vérifié**, comme toujours -- à
+confirmer par un vrai lancement.
+
 ## Points ouverts transverses
 
 Voir le [cahier des charges](cahier-des-charges/roadmap.rst) pour le
@@ -625,11 +666,18 @@ tranchés" dans le cahier des charges.
       standard" pour ces quatre-là (contrairement à Flint/IFAA Indoor,
       explicites) -- `nb_series=1` retenu par prudence, à corriger si
       l'usage du club en dit autrement.
-- [ ] **Animal Round et rounds 3-D** -- hors périmètre, système de
-      score fondamentalement différent (zones kill/wound, arrêt au
-      premier impact, nombre de flèches variable par cible). Demande un
-      moteur de score distinct de `scoring/volee.py`, pas seulement un
-      nouveau `Bareme` -- gros chantier séparé, pas commencé.
+- [x] **Animal Round et rounds 3-D -- plus hors périmètre**, corrigé
+      (l'entrée ci-dessous le disait encore bloquant, en contradiction
+      avec la note plus haut sur la simplification du score -- signalé
+      par l'utilisateur). Le blocage venait de `scoring/volee.py`
+      (normalisation flèche par flèche, zones kill/wound, arrêt au
+      premier impact) -- supprimé depuis la révision au score final.
+      FletchScore n'a plus besoin de modéliser le détail du système de
+      score de ces rounds, juste de connaître le `score_max` possible
+      pour borner la saisie, exactement comme les autres barèmes. Reste
+      seulement à ajouter les entrées `Bareme` correspondantes
+      (`nb_series`/`fleches_par_volee` adaptés, ou approximés comme pour
+      Field/Hunter -- voir plus haut) -- pas un nouveau moteur.
 - [ ] **Templates PDF personnalisables (logo de club, en-tête)** --
       demande de l'utilisateur, notée pour plus tard ("à un moment
       donné"), pas commencée. La place existe déjà : `web/assets/club/`

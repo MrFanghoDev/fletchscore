@@ -1,5 +1,5 @@
 """Génération d'image QR code -- pour l'affichage du token compétiteur
-une fois un rattachement validé (voir gui/ecran_rattachement.py).
+une fois un rattachement validé (voir gui/ecran_connexions.py).
 
 ⚠️ Non exécuté dans l'environnement de développement utilisé ici :
 ``qrcode`` n'est pas installable (pas d'accès réseau), même situation
@@ -28,7 +28,7 @@ def generer_image_qr(contenu: str):
 
     Lève ``ImportError`` si la bibliothèque n'est pas installée --
     à l'appelant de le gérer proprement (voir
-    ``gui/ecran_rattachement.py``, qui affiche le code court seul dans
+    ``gui/ecran_connexions.py``, qui affiche le code court seul dans
     ce cas plutôt que de planter tout l'écran).
     """
     if not QRCODE_DISPONIBLE:

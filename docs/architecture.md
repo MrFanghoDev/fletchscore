@@ -932,3 +932,27 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   chemin par défaut -- confirmé propre sur 5 relances après coup. Le
   risque réel restait de toute façon nul (ces chemins sont gitignorés,
   jamais committables), mais autant nettoyer que laisser un mystère.
+
+- **Réorganisation GUI : 10 écrans -> 8, cadrée en plusieurs
+  allers-retours avant de coder.** Demande de l'utilisateur, la v0.3
+  quasiment close. Trois décisions affinées au fil de la discussion
+  (pas devinées d'un coup) : (1) fusionner Vue compétiteur + Demandes
+  d'accès + Propositions de score, proposé par l'assistant ; (2)
+  l'utilisateur a voulu séparer messages et demandes d'accès ("ce ne
+  sont pas les mêmes principes") ; (3) l'utilisateur a ensuite recollé
+  messages et serveur ensemble ("le serveur et les messages vont
+  ensemble"), et déplacé les propositions de score vers l'écran de
+  saisie plutôt que de les garder avec les demandes d'accès. Résultat
+  final : `gui/ecran_saisie.py` gagne un onglet "Propositions en
+  attente" (fusion avec l'ancien `ecran_propositions.py`) ; nouveau
+  `gui/ecran_connexions.py` fusionne les anciens
+  `ecran_vue_competiteur.py` et `ecran_rattachement.py` (contrôles
+  serveur + demandes/accès/messages) ; `ecran_securite.py` renommé
+  `ecran_mot_de_passe.py` (le nom "Sécurité" prêtait à confusion une
+  fois "Connexions compétiteurs" en place). **Bug repéré et corrigé en
+  relisant** : une fausse syntaxe markdown (`**gras**`) s'était glissée
+  dans le texte de l'écran Aide -- `CTkLabel` n'interprète aucun texte
+  enrichi, elle se serait affichée en toutes lettres avec les
+  astérisques. Les anciens fichiers fusionnés ont été supprimés plutôt
+  que laissés en doublons morts. Comme toujours pour la GUI, rendu non
+  vérifié -- à confirmer par un vrai lancement.

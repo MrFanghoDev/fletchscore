@@ -1,16 +1,19 @@
-"""Écran « Saisie des scores ».
+"""Écran « Saisie » : deux onglets, saisie manuelle et propositions de
+score reçues en ligne -- les deux font finalement la même chose (un
+score entre dans le système), qu'il vienne de l'organisateur ou d'un
+compétiteur identifié depuis la vue web (v0.3).
 
 ⚠️ Non vérifié dans l'environnement de développement (pas d'affichage
 disponible). Toute la validation vit dans ``fletchscore.services``
 (déjà testée) -- ce module ne fait qu'agencer des widgets.
 
-Saisie simplifiée au score final (+ nombre de X) plutôt que volée par
-volée : les scores sont déjà totalisés à la main sur la feuille de match
-pendant le tir, FletchScore enregistre ce résultat et classe, il ne
-rejoue pas le calcul flèche par flèche. Voir docs/architecture.md. Ce
-choix a aussi l'avantage de rendre n'importe quel type d'épreuve
-saisissable (Animal Round, 3-D...) sans avoir à modéliser leurs règles
-de score internes.
+Saisie manuelle simplifiée au score final (+ nombre de X) plutôt que
+volée par volée : les scores sont déjà totalisés à la main sur la
+feuille de match pendant le tir, FletchScore enregistre ce résultat et
+classe, il ne rejoue pas le calcul flèche par flèche. Voir
+docs/architecture.md. Ce choix a aussi l'avantage de rendre n'importe
+quel type d'épreuve saisissable (Animal Round, 3-D...) sans avoir à
+modéliser leurs règles de score internes.
 """
 
 from __future__ import annotations
@@ -30,6 +33,20 @@ class EcranSaisie(ctk.CTkFrame):
         super().__init__(parent, fg_color="transparent")
         self.conn = conn
 
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+
+        self.onglets = ctk.CTkTabview(self)
+        self.onglets.grid(row=0, column=0, sticky="nsew")
+        self.onglets.add("Saisie manuelle")
+        self.onglets.add("Propositions en attente")
+
+        self._construire_onglet_saisie(self.onglets.tab("Saisie manuelle"))
+        self._construire_onglet_propositions(self.onglets.tab("Propositions en attente"))
+
+    # ===================================================== Saisie manuelle ==
+
+    def _construire_onglet_saisie(self, onglet: ctk.CTkBaseClass) -> None:
         self.competition_courante: Competition | None = None
         self.epreuve_courante: Epreuve | None = None
         self.bareme_courant: Bareme | None = None
@@ -37,19 +54,19 @@ class EcranSaisie(ctk.CTkFrame):
         self._epreuves_par_libelle: dict[str, tuple[Competition, Epreuve]] = {}
         self._non_inscrits_par_libelle: dict[str, Competiteur] = {}
 
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=1)
-        self.grid_rowconfigure(1, weight=1)
+        onglet.grid_columnconfigure(0, weight=1)
+        onglet.grid_columnconfigure(1, weight=1)
+        onglet.grid_rowconfigure(1, weight=1)
 
-        self._construire_selecteur_epreuve()
-        self._construire_colonne_inscrits()
-        self._construire_colonne_saisie()
+        self._construire_selecteur_epreuve(onglet)
+        self._construire_colonne_inscrits(onglet)
+        self._construire_colonne_saisie(onglet)
         self._rafraichir_epreuves()
 
     # -- Sélecteur d'épreuve -------------------------------------------------
 
-    def _construire_selecteur_epreuve(self) -> None:
-        cadre = ctk.CTkFrame(self, fg_color="transparent")
+    def _construire_selecteur_epreuve(self, onglet: ctk.CTkBaseClass) -> None:
+        cadre = ctk.CTkFrame(onglet, fg_color="transparent")
         cadre.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 10))
 
         ctk.CTkLabel(cadre, text="Épreuve :").grid(row=0, column=0, padx=(0, 10))
@@ -93,8 +110,8 @@ class EcranSaisie(ctk.CTkFrame):
 
     # -- Colonne de gauche : inscription + liste des inscrits ------------
 
-    def _construire_colonne_inscrits(self) -> None:
-        colonne = ctk.CTkFrame(self)
+    def _construire_colonne_inscrits(self, onglet: ctk.CTkBaseClass) -> None:
+        colonne = ctk.CTkFrame(onglet)
         colonne.grid(row=1, column=0, sticky="nsew", padx=(0, 10))
         colonne.grid_columnconfigure(0, weight=1)
 
@@ -201,8 +218,8 @@ class EcranSaisie(ctk.CTkFrame):
 
     # -- Colonne de droite : saisie du score final -----------------------
 
-    def _construire_colonne_saisie(self) -> None:
-        colonne = ctk.CTkFrame(self)
+    def _construire_colonne_saisie(self, onglet: ctk.CTkBaseClass) -> None:
+        colonne = ctk.CTkFrame(onglet)
         colonne.grid(row=1, column=1, sticky="nsew")
         colonne.grid_columnconfigure(0, weight=1)
         self.colonne_saisie = colonne
@@ -308,3 +325,137 @@ class EcranSaisie(ctk.CTkFrame):
                 f"Score actuel : {score.total} pts, {score.nombre_x} X " f"({score.statut.value})"
             )
         )
+
+    # ================================================ Propositions en ligne ==
+
+    def _construire_onglet_propositions(self, onglet: ctk.CTkBaseClass) -> None:
+        self._epreuves_propositions_par_libelle: dict = {}
+
+        onglet.grid_columnconfigure(0, weight=1)
+        onglet.grid_rowconfigure(3, weight=1)
+
+        ctk.CTkLabel(
+            onglet,
+            text="Un score proposé n'apparaît dans aucun classement tant "
+            "qu'il n'est pas validé ici. Recoupe-le avec la feuille de "
+            "match papier avant de valider -- FletchScore ne vérifie "
+            "rien d'autre que les bornes du barème.",
+            text_color="gray60",
+            wraplength=550,
+            justify="left",
+        ).grid(row=0, column=0, sticky="w", pady=(15, 15))
+
+        self._construire_selecteur_epreuve_propositions(onglet)
+        self._construire_zone_erreur_propositions(onglet)
+        self._construire_liste_propositions(onglet)
+        self._rafraichir_epreuves_propositions()
+
+    def _construire_selecteur_epreuve_propositions(self, onglet: ctk.CTkBaseClass) -> None:
+        cadre = ctk.CTkFrame(onglet, fg_color="transparent")
+        cadre.grid(row=1, column=0, sticky="ew", pady=(0, 10))
+        cadre.grid_columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(cadre, text="Épreuve :").grid(row=0, column=0, padx=(0, 10))
+        self.menu_epreuve_propositions = ctk.CTkOptionMenu(
+            cadre,
+            values=["(aucune épreuve)"],
+            command=lambda _libelle: self._rafraichir_propositions(),
+        )
+        self.menu_epreuve_propositions.grid(row=0, column=1, sticky="ew", padx=(0, 10))
+
+        ctk.CTkButton(cadre, text="Actualiser", command=self._rafraichir_propositions).grid(
+            row=0, column=2
+        )
+
+    def _rafraichir_epreuves_propositions(self) -> None:
+        paires = services.lister_epreuves_toutes(self.conn)
+        self._epreuves_propositions_par_libelle = {
+            libelle_epreuve(competition, epreuve): epreuve for competition, epreuve in paires
+        }
+        if not self._epreuves_propositions_par_libelle:
+            self.menu_epreuve_propositions.configure(values=["(aucune épreuve)"])
+            self.menu_epreuve_propositions.set("(aucune épreuve)")
+            self._rafraichir_propositions()
+            return
+
+        libelles = list(self._epreuves_propositions_par_libelle.keys())
+        self.menu_epreuve_propositions.configure(values=libelles)
+        self.menu_epreuve_propositions.set(libelles[0])
+        self._rafraichir_propositions()
+
+    def _construire_zone_erreur_propositions(self, onglet: ctk.CTkBaseClass) -> None:
+        self.erreur_propositions = ctk.CTkLabel(onglet, text="", text_color="red", wraplength=550)
+        self.erreur_propositions.grid(row=2, column=0, sticky="w", pady=(0, 10))
+
+    def _afficher_erreur_propositions(self, message: str) -> None:
+        self.erreur_propositions.configure(text=message, text_color="red")
+
+    def _afficher_info_propositions(self, message: str) -> None:
+        self.erreur_propositions.configure(text=message, text_color="green")
+
+    def _construire_liste_propositions(self, onglet: ctk.CTkBaseClass) -> None:
+        self.liste_propositions = ctk.CTkScrollableFrame(onglet, fg_color="transparent")
+        self.liste_propositions.grid(row=3, column=0, sticky="nsew")
+        self.liste_propositions.grid_columnconfigure(0, weight=1)
+
+    def _rafraichir_propositions(self) -> None:
+        for widget in self.liste_propositions.winfo_children():
+            widget.destroy()
+
+        cle = self.menu_epreuve_propositions.get()
+        epreuve = self._epreuves_propositions_par_libelle.get(cle)
+        if epreuve is None:
+            return
+
+        propositions = services.lister_propositions_en_attente(self.conn, epreuve.id)
+        if not propositions:
+            ctk.CTkLabel(self.liste_propositions, text="Aucune proposition en attente.").grid(
+                row=0, column=0, sticky="w", pady=10
+            )
+            return
+
+        for index, (competiteur, score) in enumerate(propositions):
+            ligne = ctk.CTkFrame(self.liste_propositions, fg_color="transparent")
+            ligne.grid(row=index, column=0, sticky="ew", pady=3)
+            ligne.grid_columnconfigure(0, weight=1)
+
+            texte = (
+                f"{competiteur.prenom} {competiteur.nom} ({competiteur.id_federal}) -- "
+                f"{score.total} pts, {score.nombre_x} X"
+            )
+            ctk.CTkLabel(ligne, text=texte, anchor="w").grid(row=0, column=0, sticky="ew")
+            ctk.CTkButton(
+                ligne,
+                text="Valider",
+                width=80,
+                command=lambda s=score: self._valider_proposition(s),
+            ).grid(row=0, column=1, padx=(6, 0))
+            ctk.CTkButton(
+                ligne,
+                text="Rejeter",
+                width=80,
+                fg_color="gray40",
+                command=lambda s=score: self._rejeter_proposition(s),
+            ).grid(row=0, column=2, padx=(6, 0))
+
+    def _valider_proposition(self, score) -> None:
+        self._afficher_erreur_propositions("")
+        try:
+            services.valider_score_propose(self.conn, score.inscription_id)
+        except ErreurMetier as erreur:
+            self._afficher_erreur_propositions(str(erreur))
+            return
+
+        self._rafraichir_propositions()
+        self._afficher_info_propositions(f"Score validé -- {score.total} pts officiels.")
+
+    def _rejeter_proposition(self, score) -> None:
+        self._afficher_erreur_propositions("")
+        try:
+            services.rejeter_score_propose(self.conn, score.inscription_id)
+        except ErreurMetier as erreur:
+            self._afficher_erreur_propositions(str(erreur))
+            return
+
+        self._rafraichir_propositions()
+        self._afficher_info_propositions("Proposition rejetée.")

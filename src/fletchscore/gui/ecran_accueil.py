@@ -19,11 +19,9 @@ from fletchscore.services import libelle_epreuve
 _RACCOURCIS = (
     ("competitions", "Compétitions", "Créer ou consulter une compétition et ses épreuves"),
     ("competiteurs", "Compétiteurs", "Importer un CSV ou ajouter un compétiteur"),
-    ("saisie", "Saisie des scores", "Inscrire et saisir le score final d'une épreuve"),
+    ("saisie", "Saisie", "Saisir un score, ou valider une proposition reçue en ligne"),
     ("classement", "Classement", "Consulter le classement live d'une épreuve"),
-    ("vue_competiteur", "Vue compétiteur", "Démarrer le serveur web pour les compétiteurs"),
-    ("rattachement", "Demandes d'accès", "Valider ou rejeter les demandes de rattachement"),
-    ("propositions", "Propositions de score", "Valider ou rejeter les scores proposés en ligne"),
+    ("connexions", "Connexions compétiteurs", "Serveur web, demandes d'accès, messages"),
 )
 
 
