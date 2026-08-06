@@ -51,13 +51,15 @@ _SECTIONS_AIDE = (
         "Démarre un petit serveur web (bouton, port fixe ou automatique, "
         "HTTPS optionnel si la bibliothèque cryptography est installée) "
         "pour que les compétiteurs consultent le classement live depuis "
-        "leur téléphone, sur le wifi du club. En dessous, trois onglets : "
+        "leur téléphone, sur le wifi du club. En dessous, quatre onglets : "
         "Demandes en attente (valide seulement après avoir vérifié "
         "l'identité de visu -- un code, et un QR code si disponible, "
         "s'affiche alors une seule fois, à transmettre immédiatement) ; "
-        "Accès actifs (révoquer un accès déjà donné) ; Messages "
-        "(envoyer à un compétiteur précis ou à tous, historique des "
-        "envois).",
+        "Accès actifs (révoquer un accès déjà donné) ; Procurations "
+        "(autoriser un compétiteur à proposer des scores au nom d'un "
+        "autre, utile si une seule personne note pour tout un groupe) ; "
+        "Messages (envoyer à un compétiteur précis ou à tous, historique "
+        "des envois).",
     ),
     (
         "Mot de passe",

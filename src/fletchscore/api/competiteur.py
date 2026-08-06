@@ -130,6 +130,31 @@ _TEXTES: dict[str, dict[str, str]] = {
     },
     "bienvenue_personnalisee": {"fr": "Bonjour {nom} !", "en": "Hello {nom}!"},
     "se_deconnecter": {"fr": "Se déconnecter", "en": "Log out"},
+    "demander_procuration_lien": {
+        "fr": "Proposer les scores d'un·e autre compétiteur·rice ?",
+        "en": "Propose another competitor's scores?",
+    },
+    "procuration_titre": {"fr": "Demander une procuration", "en": "Request a proxy"},
+    "procuration_intro": {
+        "fr": "Utile si tu notes les scores de tout ton groupe. Cherche la "
+        'personne, clique "Demander" -- l\'organisateur validera avant '
+        "que tu puisses proposer un score en son nom.",
+        "en": "Useful if you score for your whole group. Find the person, "
+        'click "Request" -- the organiser will approve it before you '
+        "can propose a score on their behalf.",
+    },
+    "demander_procuration_bouton": {"fr": "Demander", "en": "Request"},
+    "procuration_envoyee_titre": {"fr": "Demande envoyée", "en": "Request sent"},
+    "procuration_envoyee": {
+        "fr": "Ta demande de procuration a bien été envoyée. "
+        "L'organisateur la validera avant que tu puisses proposer un "
+        "score au nom de cette personne.",
+        "en": "Your proxy request has been sent. The organiser will "
+        "approve it before you can propose a score on this person's "
+        "behalf.",
+    },
+    "proposer_pour_label": {"fr": "Proposer le score de :", "en": "Propose the score of:"},
+    "moi_meme": {"fr": "Moi-même", "en": "Myself"},
     "statut_non_inscrit": {"fr": "pas inscrit·e", "en": "not registered"},
     "statut_inscrit": {"fr": "inscrit·e", "en": "registered"},
     "statut_score_attente": {
@@ -318,7 +343,11 @@ def page_accueil(
                 # services.demander_rattachement le refuserait de toute
                 # façon, voir services.py -- mais autant ne pas l'afficher
                 # du tout plutôt que de laisser cliquer pour rien).
-                ligne_acces = f'<p>✅ {_t("acces_deja_confirme", lang)}</p>'
+                ligne_acces = (
+                    f'<p>✅ {_t("acces_deja_confirme", lang)}</p>'
+                    f'<p><a href="/procuration/{competition.id}">'
+                    f'{_t("demander_procuration_lien", lang)}</a></p>'
+                )
             else:
                 ligne_acces = (
                     f'<p><a href="/rattachement/{competition.id}">'
@@ -385,44 +414,79 @@ def _section_proposer_score(
 ) -> str:
     """Formulaire de proposition de score -- affiché seulement si le
     visiteur est identifié (cookie de session signé, voir
-    ``services.verifier_identite_signee``) pour la bonne compétition ET
-    inscrit à cette épreuve précise. Jamais de champ caché portant
-    l'id_federal dans le formulaire : c'est le cookie, vérifié
-    côté serveur, qui détermine qui propose -- un champ de formulaire
-    modifiable à la main permettrait à quiconque de proposer un score
-    pour quelqu'un d'autre."""
+    ``services.verifier_identite_signee``) pour la bonne compétition, et
+    seulement pour les personnes inscrites à cette épreuve précise :
+    lui-même, et chaque mandant pour qui il a une procuration
+    **validée** et qui est inscrit ici. Jamais de champ caché portant
+    l'id_federal du proposant dans le formulaire : c'est le cookie,
+    vérifié côté serveur, qui détermine qui propose -- seul l'id de la
+    cible (pour qui) peut venir du formulaire, revérifié côté serveur
+    par ``services.proposer_score`` avant d'avoir le moindre effet."""
     if identite is None:
         return ""
     id_federal, competition_id = identite
     if competition_id != epreuve.competition_id:
         return ""
 
-    inscription = db.get_inscription_par_competiteur_epreuve(conn, id_federal, epreuve.id)
-    if inscription is None:
+    candidats: list[tuple[str, str, object]] = []  # (id_federal, nom_affiche, inscription)
+    inscription_self = db.get_inscription_par_competiteur_epreuve(conn, id_federal, epreuve.id)
+    if inscription_self is not None:
+        candidats.append((id_federal, _t("moi_meme", lang), inscription_self))
+
+    for mandant in services.lister_mandants_pour(conn, id_federal, competition_id):
+        inscription_mandant = db.get_inscription_par_competiteur_epreuve(
+            conn, mandant.id_federal, epreuve.id
+        )
+        if inscription_mandant is not None:
+            candidats.append(
+                (mandant.id_federal, f"{mandant.prenom} {mandant.nom}", inscription_mandant)
+            )
+
+    if not candidats:
         return ""
 
-    score = db.get_score_by_inscription(conn, inscription.id)
-    if score is not None and score.statut == StatutScore.VALIDE:
-        texte = _t("score_deja_officiel", lang).format(total=score.total)
-        return f'<div class="section-competition"><p>✅ {_echapper(texte)}</p></div>'
+    lignes_statut = []
+    options_cible = []
+    for cible_id, nom_affiche, inscription in candidats:
+        score = db.get_score_by_inscription(conn, inscription.id)
+        if score is not None and score.statut == StatutScore.VALIDE:
+            texte = _t("score_deja_officiel", lang).format(total=score.total)
+            lignes_statut.append(f"<p>✅ {_echapper(nom_affiche)} -- {_echapper(texte)}</p>")
+            continue
+        if score is not None and score.statut == StatutScore.PROPOSE:
+            texte = _t("proposition_en_attente", lang).format(total=score.total)
+            lignes_statut.append(f"<p>⏳ {_echapper(nom_affiche)} -- {_echapper(texte)}</p>")
+        options_cible.append((cible_id, nom_affiche))
 
-    message_attente = ""
-    if score is not None and score.statut == StatutScore.PROPOSE:
-        texte = _t("proposition_en_attente", lang).format(total=score.total)
-        message_attente = f"<p>⏳ {_echapper(texte)}</p>"
+    corps_statut = "".join(lignes_statut)
+    if not options_cible:
+        # Tout le monde a déjà un score officiel -- rien à proposer.
+        return f'<div class="section-competition">{corps_statut}</div>' if corps_statut else ""
 
-    valeur_total = score.total if score is not None else ""
-    valeur_x = score.nombre_x if score is not None else ""
+    if len(options_cible) == 1:
+        # Un seul candidat possible -- pas la peine d'un menu à un choix.
+        cible_unique = _echapper(options_cible[0][0])
+        champ_cible = f'<input type="hidden" name="id_federal_cible" value="{cible_unique}">'
+    else:
+        options_html = "".join(
+            f'<option value="{_echapper(cible_id)}">{_echapper(nom)}</option>'
+            for cible_id, nom in options_cible
+        )
+        champ_cible = (
+            f'<label for="id_federal_cible">{_t("proposer_pour_label", lang)}</label>'
+            f'<select id="id_federal_cible" name="id_federal_cible">{options_html}</select>'
+        )
 
     return (
         '<div class="section-competition">'
         f'<h2>{_t("proposer_score_titre", lang)}</h2>'
-        f"{message_attente}"
+        f"{corps_statut}"
         f'<form method="post" action="/proposer-score/{epreuve.id}" class="field">'
+        f"{champ_cible}"
         f'<label for="total">{_t("score_total_label", lang)}</label>'
-        f'<input type="number" id="total" name="total" min="0" value="{valeur_total}">'
+        f'<input type="number" id="total" name="total" min="0">'
         f'<label for="nombre_x">{_t("nombre_x_label", lang)}</label>'
-        f'<input type="number" id="nombre_x" name="nombre_x" min="0" value="{valeur_x}">'
+        f'<input type="number" id="nombre_x" name="nombre_x" min="0">'
         f'<button class="btn-primary" type="submit" '
         f'style="margin-top:0.5rem;width:fit-content;">{_t("proposer_bouton", lang)}</button>'
         "</form>"
@@ -515,7 +579,11 @@ def page_competition(
         corps_classement = "".join(morceaux)
 
     if identite is not None and identite[1] == competition_id:
-        ligne_acces = f'<p>✅ {_t("acces_deja_confirme", lang)}</p>'
+        ligne_acces = (
+            f'<p>✅ {_t("acces_deja_confirme", lang)}</p>'
+            f'<p><a href="/procuration/{competition_id}">'
+            f'{_t("demander_procuration_lien", lang)}</a></p>'
+        )
     else:
         ligne_acces = (
             f'<p><a href="/rattachement/{competition_id}">'
@@ -631,6 +699,93 @@ def page_confirmation_rattachement(
     )
     return _mise_en_page(
         _t("demande_envoyee_titre", lang), corps, lang, theme, chemin_retour, rafraichir=False
+    )
+
+
+def page_procuration(
+    conn: sqlite3.Connection,
+    competition_id: str,
+    lang: str = "fr",
+    theme: str = "dark",
+    recherche: str = "",
+    identite: tuple[str, str] | None = None,
+) -> str:
+    """Recherche + formulaire de demande de procuration -- réservée à un
+    compétiteur déjà identifié pour cette compétition (voir
+    ``_lire_identite``) : impossible de savoir pour quel mandataire
+    demander sans ça. Pas de rechargement automatique, même raison que
+    ``page_rattachement``."""
+    chemin_retour = f"/procuration/{competition_id}"
+    competition = db.get_competition(conn, competition_id)
+    if competition is None:
+        corps = f'<p>{_t("introuvable_competition", lang)}</p>'
+        return _mise_en_page(
+            _t("introuvable", lang), corps, lang, theme, chemin_retour, rafraichir=False
+        )
+
+    if identite is None or identite[1] != competition_id:
+        corps = f'<p>{_t("introuvable_competition", lang)}</p>'
+        return _mise_en_page(
+            _t("introuvable", lang), corps, lang, theme, chemin_retour, rafraichir=False
+        )
+
+    id_federal_demandeur = identite[0]
+    tous = _competiteurs_de_la_competition(conn, competition_id)
+    autres = [c for c in tous if c.id_federal != id_federal_demandeur]
+
+    recherche_normalisee = recherche.strip().lower()
+    if recherche_normalisee:
+        resultats = [c for c in autres if recherche_normalisee in f"{c.prenom} {c.nom}".lower()]
+    else:
+        resultats = autres
+
+    if not resultats:
+        liste_html = f'<p>{_t("aucun_resultat", lang)}</p>'
+    else:
+        lignes = "".join(
+            "<li>"
+            f"{_echapper(competiteur.prenom)} {_echapper(competiteur.nom)} "
+            f'<form method="post" action="/procuration/{competition_id}" '
+            'style="display:inline">'
+            f'<input type="hidden" name="id_federal_mandant" '
+            f'value="{_echapper(competiteur.id_federal)}">'
+            f'<button class="btn-primary" type="submit">'
+            f'{_t("demander_procuration_bouton", lang)}</button>'
+            "</form></li>"
+            for competiteur in resultats
+        )
+        liste_html = f'<ul class="liste-epreuves">{lignes}</ul>'
+
+    corps = (
+        f'<p><a class="back" href="/competition/{competition_id}">'
+        f'{_t("retour_competition", lang)}</a></p>'
+        f'<h1>{_t("procuration_titre", lang)}</h1>'
+        f'<p class="intro">{_t("procuration_intro", lang)}</p>'
+        f'<form method="get" action="/procuration/{competition_id}" class="field">'
+        f'<label for="recherche">{_t("rechercher", lang)}</label>'
+        f'<input type="text" id="recherche" name="recherche" value="{_echapper(recherche)}">'
+        f'<button class="btn-primary" type="submit" '
+        f'style="margin-top:0.5rem;width:fit-content;">{_t("chercher", lang)}</button>'
+        "</form>"
+        f"{liste_html}"
+    )
+    return _mise_en_page(
+        _t("procuration_titre", lang), corps, lang, theme, chemin_retour, rafraichir=False
+    )
+
+
+def page_confirmation_procuration(
+    competition_id: str, lang: str = "fr", theme: str = "dark"
+) -> str:
+    chemin_retour = f"/competition/{competition_id}"
+    corps = (
+        f'<h1>{_t("procuration_envoyee_titre", lang)}</h1>'
+        f'<p>{_t("procuration_envoyee", lang)}</p>'
+        f'<p><a class="back" href="/competition/{competition_id}">'
+        f'{_t("retour_competition", lang)}</a></p>'
+    )
+    return _mise_en_page(
+        _t("procuration_envoyee_titre", lang), corps, lang, theme, chemin_retour, rafraichir=False
     )
 
 
@@ -831,6 +986,28 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
             self._repondre_html(corps)
             return
 
+        if chemin.startswith("/procuration/"):
+            competition_id_url = chemin.removeprefix("/procuration/")
+            identite = self._lire_identite()
+            if identite is None or identite[1] != competition_id_url:
+                # Pas identifié pour cette compétition précise -- retour
+                # à l'accueil, impossible de savoir pour quel mandataire
+                # demander sans ça.
+                self.send_response(302)
+                self.send_header("Location", "/")
+                self.end_headers()
+                return
+            recherche = parse_qs(url.query).get("recherche", [""])[0]
+            conn = self._connexion_lecture_seule()
+            try:
+                corps = page_procuration(
+                    conn, competition_id_url, lang, theme, recherche, identite=identite
+                )
+            finally:
+                conn.close()
+            self._repondre_html(corps)
+            return
+
         conn = self._connexion_lecture_seule()
         try:
             identite = self._lire_identite()
@@ -914,6 +1091,14 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
             self._repondre_html(corps)
             return
 
+        if chemin.startswith("/procuration/"):
+            if not self.server.limiteur_ecriture.autorise(adresse_client):
+                self._repondre_trop_de_requetes(lang, theme)
+                return
+            corps = self._traiter_procuration(chemin, champs, lang, theme)
+            self._repondre_html(corps)
+            return
+
         if chemin == "/code":
             if not self.server.limiteur_code.autorise(adresse_client):
                 self._repondre_trop_de_requetes(lang, theme)
@@ -936,16 +1121,21 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
         self.wfile.write(_t("page_introuvable", lang).encode("utf-8"))
 
     def _traiter_proposition_score(self, chemin: str, champs: dict, lang: str, theme: str) -> str:
-        """L'id_federal vient exclusivement du cookie de session signé,
-        jamais d'un champ de formulaire -- voir le docstring de
-        ``_section_proposer_score``. Sans session valide, refus
-        immédiat plutôt qu'une tentative de deviner qui propose."""
+        """L'id_federal du proposant vient exclusivement du cookie de
+        session signé, jamais d'un champ de formulaire -- voir le
+        docstring de ``_section_proposer_score``. Sans session valide,
+        refus immédiat plutôt qu'une tentative de deviner qui propose.
+        ``id_federal_cible`` (pour qui), en revanche, peut venir du
+        formulaire : sa légitimité (soi-même, ou une procuration
+        validée) est revérifiée côté serveur par
+        ``services.proposer_score`` avant d'avoir le moindre effet."""
         epreuve_id = chemin.removeprefix("/proposer-score/")
 
         identite = self._lire_identite()
         if identite is None:
             return page_code_invalide(lang, theme)
         id_federal, _competition_id = identite
+        id_federal_cible = champs.get("id_federal_cible", [""])[0] or None
 
         try:
             total = int(champs.get("total", [""])[0])
@@ -959,7 +1149,14 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
         conn = self._connexion_ecriture()
         try:
             try:
-                services.proposer_score(conn, id_federal, epreuve_id, total, nombre_x=nombre_x)
+                services.proposer_score(
+                    conn,
+                    id_federal,
+                    epreuve_id,
+                    total,
+                    nombre_x=nombre_x,
+                    id_federal_cible=id_federal_cible,
+                )
             except ErreurMetier as erreur:
                 return _mise_en_page(
                     _t("erreur", lang),
@@ -1003,6 +1200,39 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
                     lang,
                     theme,
                     f"/rattachement/{competition_id}",
+                    rafraichir=False,
+                )
+        finally:
+            conn.close()
+
+    def _traiter_procuration(self, chemin: str, champs: dict, lang: str, theme: str) -> str:
+        """L'id_federal du mandataire vient exclusivement du cookie de
+        session signé, jamais d'un champ de formulaire -- même principe
+        que ``_traiter_proposition_score`` : personne ne peut demander
+        une procuration au nom de quelqu'un d'autre en modifiant du
+        HTML. Seul l'id du mandant (pour qui) vient du formulaire."""
+        competition_id = chemin.removeprefix("/procuration/")
+
+        identite = self._lire_identite()
+        if identite is None or identite[1] != competition_id:
+            return page_code_invalide(lang, theme)
+        id_federal_mandataire = identite[0]
+        id_federal_mandant = champs.get("id_federal_mandant", [""])[0]
+
+        conn = self._connexion_ecriture()
+        try:
+            try:
+                services.demander_procuration(
+                    conn, id_federal_mandataire, id_federal_mandant, competition_id
+                )
+                return page_confirmation_procuration(competition_id, lang, theme)
+            except ErreurMetier as erreur:
+                return _mise_en_page(
+                    _t("erreur", lang),
+                    f"<p>{_echapper(str(erreur))}</p>",
+                    lang,
+                    theme,
+                    f"/procuration/{competition_id}",
                     rafraichir=False,
                 )
         finally:

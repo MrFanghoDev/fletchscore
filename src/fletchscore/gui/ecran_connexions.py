@@ -1,7 +1,8 @@
 """Écran « Connexions compétiteurs » : tout ce qui touche au lien en
 ligne avec les compétiteurs -- démarrer/arrêter le serveur web,
-valider/rejeter les demandes d'accès, révoquer un accès, envoyer des
-messages (v0.2/v0.3).
+valider/rejeter les demandes d'accès, révoquer un accès,
+valider/rejeter les demandes de procuration, envoyer des messages
+(v0.2/v0.3).
 
 ⚠️ Non vérifié dans l'environnement de développement (pas d'affichage
 disponible). Toute la validation vit dans ``fletchscore.services``
@@ -218,6 +219,7 @@ class EcranConnexions(ctk.CTkFrame):
         self.onglets.grid(row=4, column=0, sticky="nsew")
         self.onglets.add("Demandes en attente")
         self.onglets.add("Accès actifs")
+        self.onglets.add("Procurations")
         self.onglets.add("Messages")
 
         onglet_demandes = self.onglets.tab("Demandes en attente")
@@ -234,11 +236,30 @@ class EcranConnexions(ctk.CTkFrame):
         self.liste_actifs.grid(row=0, column=0, sticky="nsew")
         self.liste_actifs.grid_columnconfigure(0, weight=1)
 
+        onglet_procurations = self.onglets.tab("Procurations")
+        onglet_procurations.grid_columnconfigure(0, weight=1)
+        onglet_procurations.grid_rowconfigure(1, weight=1)
+        ctk.CTkLabel(
+            onglet_procurations,
+            text="Autorise un compétiteur (le mandataire) à proposer des "
+            "scores au nom d'un autre (le mandant) -- utile si une seule "
+            "personne note les scores de tout un groupe.",
+            text_color="gray60",
+            wraplength=520,
+            justify="left",
+        ).grid(row=0, column=0, sticky="w", pady=(10, 10))
+        self.liste_procurations = ctk.CTkScrollableFrame(
+            onglet_procurations, fg_color="transparent"
+        )
+        self.liste_procurations.grid(row=1, column=0, sticky="nsew")
+        self.liste_procurations.grid_columnconfigure(0, weight=1)
+
         self._construire_onglet_message(self.onglets.tab("Messages"))
 
     def _rafraichir_tout(self) -> None:
         self._rafraichir_demandes()
         self._rafraichir_actifs()
+        self._rafraichir_procurations()
         self._rafraichir_destinataires()
         self._rafraichir_historique_messages()
 
@@ -346,6 +367,71 @@ class EcranConnexions(ctk.CTkFrame):
         services.revoquer_acces(self.conn, competiteur.id_federal, competition.id)
         self._rafraichir_actifs()
         self._afficher_info(f"Accès de {competiteur.prenom} {competiteur.nom} révoqué.")
+
+    # -- Procurations ---------------------------------------------------
+
+    def _rafraichir_procurations(self) -> None:
+        for widget in self.liste_procurations.winfo_children():
+            widget.destroy()
+
+        competition = self._competitions_par_libelle.get(self.menu_competition.get())
+        if competition is None:
+            return
+
+        procurations = services.lister_procurations_en_attente(self.conn, competition.id)
+        if not procurations:
+            ctk.CTkLabel(
+                self.liste_procurations, text="Aucune demande de procuration en attente."
+            ).grid(row=0, column=0, sticky="w", pady=10)
+            return
+
+        for index, (mandataire, mandant, procuration) in enumerate(procurations):
+            ligne = ctk.CTkFrame(self.liste_procurations, fg_color="transparent")
+            ligne.grid(row=index, column=0, sticky="ew", pady=3)
+            ligne.grid_columnconfigure(0, weight=1)
+
+            texte = (
+                f"{mandataire.prenom} {mandataire.nom} veut proposer des scores "
+                f"pour {mandant.prenom} {mandant.nom}"
+            )
+            ctk.CTkLabel(ligne, text=texte, anchor="w", wraplength=380).grid(
+                row=0, column=0, sticky="ew"
+            )
+            ctk.CTkButton(
+                ligne,
+                text="Valider",
+                width=80,
+                command=lambda p=procuration: self._valider_procuration(p),
+            ).grid(row=0, column=1, padx=(6, 0))
+            ctk.CTkButton(
+                ligne,
+                text="Rejeter",
+                width=80,
+                fg_color="gray40",
+                command=lambda p=procuration: self._rejeter_procuration(p),
+            ).grid(row=0, column=2, padx=(6, 0))
+
+    def _valider_procuration(self, procuration) -> None:
+        self._afficher_erreur("")
+        try:
+            services.valider_procuration(self.conn, procuration.id)
+        except ErreurMetier as erreur:
+            self._afficher_erreur(str(erreur))
+            return
+
+        self._rafraichir_procurations()
+        self._afficher_info("Procuration validée.")
+
+    def _rejeter_procuration(self, procuration) -> None:
+        self._afficher_erreur("")
+        try:
+            services.rejeter_procuration(self.conn, procuration.id)
+        except ErreurMetier as erreur:
+            self._afficher_erreur(str(erreur))
+            return
+
+        self._rafraichir_procurations()
+        self._afficher_info("Procuration rejetée.")
 
     # -- Messages -------------------------------------------------------
 

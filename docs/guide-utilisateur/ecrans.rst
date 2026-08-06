@@ -79,11 +79,13 @@ peu importe lequel : les deux se retrouvent au même endroit ensuite
 **Propositions en attente**
    Un sélecteur d'épreuve, puis la liste des scores proposés par des
    compétiteurs identifiés depuis la vue web (voir "Connexions
-   compétiteurs" ci-dessous) -- compétiteur, total, nombre de X. Un
-   score proposé n'apparaît dans aucun classement tant qu'il n'est pas
-   validé ici. **Recoupe-le avec la feuille de match papier avant de
-   valider** : FletchScore ne vérifie que les bornes du barème (le
-   total ne dépasse pas le maximum possible), rien d'autre. Le bouton
+   compétiteurs" ci-dessous) -- compétiteur, total, nombre de X, et
+   "proposé par [nom]" si ce n'est pas la personne elle-même qui a
+   soumis (procuration validée, voir plus bas). Un score proposé
+   n'apparaît dans aucun classement tant qu'il n'est pas validé ici.
+   **Recoupe-le avec la feuille de match papier avant de valider** :
+   FletchScore ne vérifie que les bornes du barème (le total ne
+   dépasse pas le maximum possible), rien d'autre. Le bouton
    **Rejeter** écarte une proposition sans rien valider.
 
 Classement
@@ -121,21 +123,23 @@ La page qu'ils voient reprend l'identité visuelle de FletchTime (thème
 sombre par défaut, bascule vers un thème clair possible) et est
 bilingue français/anglais. L'accueil affiche un message de bienvenue,
 la liste des compétitions et épreuves en cours (avec un lien vers le
-classement de chacune et un lien pour demander un accès), et un champ
-pour confirmer un code d'accès déjà reçu. Une fois un code confirmé, la
+classement de chacune, un lien pour demander un accès, et -- une fois
+identifié -- un lien pour demander une procuration), et un champ pour
+confirmer un code d'accès déjà reçu. Une fois un code confirmé, la
 session dure 7 jours (un lien "Se déconnecter" à côté du message de
 bienvenue permet de l'oublier avant) : l'accueil accueille par prénom
-et nom, le
-formulaire de code et le lien de demande d'accès disparaissent pour
-cette compétition, chaque épreuve affiche un statut personnel ("pas
-inscrit·e", "inscrit·e", "score en attente de validation", "score
-validé : N pts"), un bandeau signale un nouveau message, et un
-formulaire **Proposer mon score** apparaît sur la page de chaque
-épreuve où le compétiteur est inscrit (voir l'onglet "Propositions en
-attente" de l'écran Saisie).
+et nom, le formulaire de code et le lien de demande d'accès
+disparaissent pour cette compétition, chaque épreuve affiche un statut
+personnel ("pas inscrit·e", "inscrit·e", "score en attente de
+validation", "score validé : N pts"), un bandeau signale un nouveau
+message, et un formulaire **Proposer mon score** apparaît sur la page
+de chaque épreuve où le compétiteur (ou l'un de ses mandants, si une
+procuration a été validée -- un menu déroulant permet alors de choisir
+pour qui) est inscrit (voir l'onglet "Propositions en attente" de
+l'écran Saisie).
 
 En dessous des contrôles serveur, un sélecteur de compétition puis
-trois onglets :
+quatre onglets :
 
 **Demandes en attente**
    Nom, prénom, id fédéral, date de naissance et club, pour recouper
@@ -155,6 +159,14 @@ trois onglets :
    accès a été donné par erreur, ou si un compétiteur ne doit plus
    pouvoir se connecter.
 
+**Procurations**
+   Un compétiteur (le mandataire) peut demander à proposer les scores
+   d'un autre (le mandant) -- utile si une seule personne note pour
+   tout un groupe. La demande apparaît ici ; **Valider** l'autorise
+   réellement (le mandataire peut alors choisir le mandant dans le
+   menu déroulant de son propre formulaire de proposition de score),
+   **Rejeter** l'écarte sans rien autoriser.
+
 **Messages**
    Choisis un destinataire (un compétiteur avec un accès actif, ou
    "Tous les compétiteurs"), écris ton message, clique **Envoyer**. Le
@@ -165,14 +177,14 @@ trois onglets :
 
 .. note::
 
-   Consultation en lecture seule pour la plupart des visiteurs. Trois
-   écritures possibles depuis la page compétiteur, jamais sur les
-   données d'un autre compétiteur : la *demande* d'accès (« je pense
-   être telle personne » -- sans aucun effet tant qu'un organisateur ne
-   l'a pas validée après vérification de visu), la confirmation d'un
-   code déjà attribué, et la proposition d'un score (réservée à un
-   compétiteur identifié, inscrit à l'épreuve, sans score officiel
-   existant).
+   Consultation en lecture seule pour la plupart des visiteurs.
+   Écritures possibles depuis la page compétiteur, jamais sur les
+   données d'un autre compétiteur sans validation préalable de
+   l'organisateur : la *demande* d'accès et la *demande* de procuration
+   (sans aucun effet tant qu'un organisateur ne les a pas validées), la
+   confirmation d'un code déjà attribué, et la proposition d'un score
+   (réservée à un compétiteur identifié -- pour lui-même s'il est
+   inscrit, ou pour un mandant si une procuration a été validée).
 
 Mot de passe
 ===============

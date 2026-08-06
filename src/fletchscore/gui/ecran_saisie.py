@@ -423,6 +423,21 @@ class EcranSaisie(ctk.CTkFrame):
                 f"{competiteur.prenom} {competiteur.nom} ({competiteur.id_federal}) -- "
                 f"{score.total} pts, {score.nombre_x} X"
             )
+            if (
+                score.propose_par_id_federal is not None
+                and score.propose_par_id_federal != competiteur.id_federal
+            ):
+                # Proposé par quelqu'un d'autre (procuration validée,
+                # voir services.proposer_score) -- affiché explicitement
+                # pour que l'organisateur puisse juger la fiabilité,
+                # c'est tout l'intérêt d'avoir tracé ce champ.
+                proposant = db.get_competiteur(self.conn, score.propose_par_id_federal)
+                nom_proposant = (
+                    f"{proposant.prenom} {proposant.nom}"
+                    if proposant
+                    else score.propose_par_id_federal
+                )
+                texte += f" -- proposé par {nom_proposant}"
             ctk.CTkLabel(ligne, text=texte, anchor="w").grid(row=0, column=0, sticky="ew")
             ctk.CTkButton(
                 ligne,

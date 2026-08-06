@@ -1,6 +1,6 @@
 # Roadmap FletchScore
 
-**État actuel : v0.1, v0.2 et v0.3 complètes -- 489 tests,
+**État actuel : v0.1, v0.2 et v0.3 complètes -- 502 tests,
 tous verts, confirmés par la CI sans aucun `skipped`** (y compris les
 tests fpdf2/qrcode, jamais exécutables dans l'environnement de dev
 utilisé ici -- `cryptography`, en revanche, s'y est révélée
@@ -653,16 +653,24 @@ confirmer par un vrai lancement.
 
 ## Compléments post-v0.3
 
-- [ ] **Procuration -- proposer un score au nom d'un autre compétiteur**
-      (backend fait, web/GUI à suivre). Demandé par l'utilisateur : sur
-      un pas de tir, une seule personne note souvent les scores de tout
-      le groupe. Cadré avant de coder (2 questions) : ouvert à
-      n'importe qui inscrit à la compétition (pas restreint à la même
-      épreuve), mais **toujours soumis à validation par l'organisateur**
-      avant de produire le moindre effet (même principe que
-      `DemandeRattachement`) ; et le proposant réel doit être tracé et
-      affiché, pas seulement pour qui, pour que l'organisateur puisse
-      juger la fiabilité en validant.
+- [x] **Bug trouvé en vérifiant la doc** : `Score.propose_par_id_federal`
+      existait depuis le chantier procuration précédent mais n'était
+      affiché nulle part dans l'écran organisateur -- tout l'intérêt de
+      ce champ était pourtant de laisser l'organisateur juger la
+      fiabilité d'une proposition avant de la valider. `gui/
+      ecran_saisie.py` affiche maintenant "proposé par [nom]" quand ce
+      n'est pas la personne cible elle-même qui a soumis.
+
+- [x] **Procuration -- proposer un score au nom d'un autre compétiteur**.
+      Demandé par l'utilisateur : sur un pas de tir, une seule personne
+      note souvent les scores de tout le groupe. Cadré avant de coder
+      (2 questions) : ouvert à n'importe qui inscrit à la compétition
+      (pas restreint à la même épreuve), mais **toujours soumis à
+      validation par l'organisateur** avant de produire le moindre
+      effet (même principe que `DemandeRattachement`) ; et le
+      proposant réel doit être tracé et affiché, pas seulement pour
+      qui, pour que l'organisateur puisse juger la fiabilité en
+      validant.
       `models/procuration.py` (nouveau) : entité `Procuration`, enum
       `StatutProcuration` (EN_ATTENTE/VALIDEE/REJETEE/REVOQUEE).
       `Score.propose_par_id_federal` (nouveau champ) : qui a réellement
@@ -679,14 +687,26 @@ confirmer par un vrai lancement.
       sur ce projet, pas de migration automatique : supprimer
       `fletchscore.db` et relancer si la base existante date d'avant ce
       changement.
-      26 nouveaux tests, et **vérifié réellement de bout en bout** :
-      demande de procuration → refus tant qu'elle n'est pas validée →
-      validation → proposition acceptée avec traçabilité correcte →
-      validation par l'organisateur → le compétiteur mandant apparaît
-      bien au classement dans sa propre catégorie, avec le bon total.
-      Reste : formulaire web (demande de procuration + sélecteur "pour
-      qui" sur la page d'épreuve) et écran GUI organisateur (nouvel
-      onglet, probablement dans "Connexions compétiteurs").
+      Côté web : `page_procuration()` (recherche + demande, exclut le
+      demandeur de la liste), formulaire de proposition de score
+      (`_section_proposer_score()`) réécrit pour lister tous les
+      candidats possibles (soi-même + chaque mandant inscrit à cette
+      épreuve précise) -- un `<select>` si plusieurs, un champ caché
+      sinon. Comme pour la proposition de score elle-même, **l'id du
+      mandataire vient exclusivement du cookie de session**, jamais
+      d'un champ de formulaire ; seul l'id de la cible peut venir du
+      formulaire, revérifié côté serveur avant tout effet. Côté GUI :
+      4ᵉ onglet "Procurations" dans "Connexions compétiteurs".
+      34 nouveaux tests, et **vérifié réellement de bout en bout à
+      deux niveaux** : (1) services purs (demande → refus tant qu'elle
+      n'est pas validée → validation → proposition acceptée avec
+      traçabilité correcte → validation organisateur → le mandant
+      apparaît bien au classement, dans sa propre catégorie, avec le
+      bon total) et (2) un vrai flux HTTP complet (`POST /code` → vrai
+      cookie → vrai `POST /procuration` → vraie demande en base →
+      validée côté service → vrai `POST /proposer-score` avec
+      `id_federal_cible` → vrai `Score` en base avec le bon
+      `propose_par_id_federal`).
 
 - [x] Déconnexion sur la page compétiteur -- signalé par l'utilisateur
       (le cookie de session dure 7 jours, sans aucun moyen de l'oublier

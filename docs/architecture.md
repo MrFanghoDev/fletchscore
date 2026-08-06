@@ -982,3 +982,26 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   traçabilité correcte → validation organisateur → le compétiteur
   mandant apparaît bien au classement, dans sa propre catégorie, avec
   le bon total.
+
+- **Procuration côté web : la cible peut venir du formulaire, le
+  mandataire jamais.** Même distinction que pour la proposition de
+  score simple : `id_federal_cible` (pour qui) est un choix légitime
+  côté client puisque `services.proposer_score()` revérifie
+  systématiquement l'autorisation avant tout effet -- un client
+  malveillant qui forcerait une autre valeur se ferait juste refuser
+  côté serveur. L'id du mandataire (qui demande/qui propose), lui,
+  vient exclusivement du cookie de session signé -- jamais un champ de
+  formulaire, qui serait modifiable par n'importe qui avant l'envoi.
+  `_section_proposer_score()` construit la liste des candidats
+  proposables (soi-même si inscrit, chaque mandant avec une procuration
+  validée ET inscrit à cette épreuve précise) puis choisit entre un
+  champ caché (un seul candidat, pas la peine d'un menu) et un
+  `<select>` (plusieurs) -- pas de pré-remplissage du total/X selon la
+  cible choisie, impossible sans JavaScript (choix déjà fait pour toute
+  cette page) ; les lignes de statut au-dessus du formulaire montrent
+  déjà la valeur actuellement proposée pour chacun. Vérifié réellement
+  par un vrai flux HTTP complet : `POST /code` → cookie → `POST
+  /procuration` → demande en base → validée côté service → `POST
+  /proposer-score` avec `id_federal_cible` → `Score` en base avec le
+  bon `propose_par_id_federal` -- pas seulement les fonctions de
+  génération de page testées isolément.

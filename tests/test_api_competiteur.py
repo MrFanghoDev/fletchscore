@@ -19,9 +19,11 @@ from fletchscore.api.competiteur import (
     page_code_invalide,
     page_competition,
     page_confirmation_code,
+    page_confirmation_procuration,
     page_confirmation_rattachement,
     page_epreuve,
     page_mes_messages,
+    page_procuration,
     page_rattachement,
 )
 from fletchscore.models import Club, Competiteur, Sexe
@@ -393,6 +395,59 @@ class TestPageEpreuve(unittest.TestCase):
         self.assertIn("260", page)
         self.assertIn(f"/proposer-score/{self.epreuve.id}", page)  # peut encore reproposer
 
+    def test_formulaire_absent_si_ni_inscrit_ni_mandataire(self):
+        self._inserer_fr2()
+        page = page_epreuve(self.conn, self.epreuve.id, identite=("FR-1", self.competition.id))
+        self.assertNotIn("proposer-score", page)
+
+    def test_formulaire_present_pour_un_mandant_inscrit(self):
+        self._inserer_fr2()
+        services.inscrire(self.conn, "FR-2", self.epreuve.id)
+        demande = services.demander_procuration(self.conn, "FR-1", "FR-2", self.competition.id)
+        services.valider_procuration(self.conn, demande.id)
+
+        page = page_epreuve(self.conn, self.epreuve.id, identite=("FR-1", self.competition.id))
+
+        self.assertIn(f"/proposer-score/{self.epreuve.id}", page)
+        self.assertIn("Léo", page)
+
+    def test_selecteur_de_cible_si_plusieurs_candidats(self):
+        self._inserer_fr2()
+        services.inscrire(self.conn, "FR-1", self.epreuve.id)
+        services.inscrire(self.conn, "FR-2", self.epreuve.id)
+        demande = services.demander_procuration(self.conn, "FR-1", "FR-2", self.competition.id)
+        services.valider_procuration(self.conn, demande.id)
+
+        page = page_epreuve(self.conn, self.epreuve.id, identite=("FR-1", self.competition.id))
+
+        self.assertIn('name="id_federal_cible"', page)
+        self.assertIn("<select", page)
+        self.assertIn("Moi-même", page)
+        self.assertIn("Léo", page)
+
+    def test_mandant_absent_si_procuration_en_attente(self):
+        self._inserer_fr2()
+        services.inscrire(self.conn, "FR-2", self.epreuve.id)
+        services.demander_procuration(self.conn, "FR-1", "FR-2", self.competition.id)
+
+        page = page_epreuve(self.conn, self.epreuve.id, identite=("FR-1", self.competition.id))
+
+        self.assertNotIn("proposer-score", page)
+
+    def _inserer_fr2(self):
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-2",
+                nom="Martin",
+                prenom="Léo",
+                code_club="77123",
+                sexe=Sexe.M,
+                date_naissance=date(1995, 3, 14),
+                code_style="BB-R",
+            ),
+        )
+
 
 class TestPageCompetition(unittest.TestCase):
     def setUp(self):
@@ -544,6 +599,96 @@ class TestPageRattachement(unittest.TestCase):
 class TestPageConfirmationRattachement(unittest.TestCase):
     def test_contient_le_lien_de_retour(self):
         page = page_confirmation_rattachement("comp-1")
+        self.assertIn("/competition/comp-1", page)
+        self.assertIn("Demande envoyée", page)
+
+
+class TestPageProcuration(unittest.TestCase):
+    def setUp(self):
+        self.conn = db.connect(":memory:")
+        db.init_schema(self.conn)
+        db.seed_baremes_preconfigures(self.conn)
+        db.insert_club(self.conn, Club("77123", "Archers Libres de FLP"))
+        db.seed_referentiel_styles(self.conn)
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-1",
+                nom="Dupont",
+                prenom="Marie",
+                code_club="77123",
+                sexe=Sexe.F,
+                date_naissance=date(1995, 3, 14),
+                code_style="BB-R",
+            ),
+        )
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-2",
+                nom="Martin",
+                prenom="Léo",
+                code_club="77123",
+                sexe=Sexe.M,
+                date_naissance=date(1995, 3, 14),
+                code_style="BB-R",
+            ),
+        )
+        self.competition = services.creer_competition(
+            self.conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15)
+        )
+        epreuve = services.creer_epreuve(
+            self.conn, self.competition.id, "Indoor", date(2026, 3, 14), "ifaa-indoor"
+        )
+        services.inscrire(self.conn, "FR-1", epreuve.id)
+        services.inscrire(self.conn, "FR-2", epreuve.id)
+
+    def tearDown(self):
+        self.conn.close()
+
+    def test_competition_introuvable(self):
+        page = page_procuration(self.conn, "competition-fantome")
+        self.assertIn("introuvable", page.lower())
+
+    def test_sans_identite_donne_une_erreur(self):
+        page = page_procuration(self.conn, self.competition.id, identite=None)
+        self.assertIn("introuvable", page.lower())
+
+    def test_identite_pour_une_autre_competition_donne_une_erreur(self):
+        page = page_procuration(
+            self.conn, self.competition.id, identite=("FR-1", "autre-competition")
+        )
+        self.assertIn("introuvable", page.lower())
+
+    def test_exclut_le_demandeur_de_la_liste(self):
+        page = page_procuration(
+            self.conn, self.competition.id, identite=("FR-1", self.competition.id)
+        )
+        self.assertNotIn("Marie", page)
+        self.assertIn("Léo", page)
+
+    def test_recherche_filtre(self):
+        page = page_procuration(
+            self.conn, self.competition.id, recherche="Léo", identite=("FR-1", self.competition.id)
+        )
+        self.assertIn("Léo", page)
+
+    def test_pas_de_rafraichissement_automatique(self):
+        page = page_procuration(
+            self.conn, self.competition.id, identite=("FR-1", self.competition.id)
+        )
+        self.assertNotIn('http-equiv="refresh"', page)
+
+    def test_formulaire_contient_lid_du_mandant(self):
+        page = page_procuration(
+            self.conn, self.competition.id, identite=("FR-1", self.competition.id)
+        )
+        self.assertIn('name="id_federal_mandant" value="FR-2"', page)
+
+
+class TestPageConfirmationProcuration(unittest.TestCase):
+    def test_contient_le_lien_de_retour(self):
+        page = page_confirmation_procuration("comp-1")
         self.assertIn("/competition/comp-1", page)
         self.assertIn("Demande envoyée", page)
 
@@ -916,6 +1061,96 @@ class TestServeurIntegration(unittest.TestCase):
         with self.assertRaises(urllib.error.HTTPError) as contexte:
             urllib.request.urlopen(requete_onzieme, timeout=5)
         self.assertEqual(contexte.exception.code, 429)
+
+    def test_flux_complet_procuration_puis_proposition_pour_autrui(self):
+        # Le test décisif de ce chantier : un vrai POST /code pose un
+        # vrai cookie pour FR-1, un vrai POST /procuration crée une
+        # vraie demande, validée côté service, puis un vrai POST
+        # /proposer-score avec id_federal_cible=FR-2 doit vraiment créer
+        # un Score pour FR-2 avec propose_par_id_federal=FR-1 -- pas
+        # seulement que les fonctions isolées fonctionnent.
+        with tempfile.TemporaryDirectory() as dossier_cle:
+            with mock.patch.object(
+                securite, "CHEMIN_CLE_PAR_DEFAUT", Path(dossier_cle) / "cle.txt"
+            ):
+                conn = db.connect(self.chemin_base)
+                db.insert_competiteur(
+                    conn,
+                    Competiteur(
+                        id_federal="FR-2",
+                        nom="Martin",
+                        prenom="Léo",
+                        code_club="77123",
+                        sexe=Sexe.M,
+                        date_naissance=date(1995, 3, 14),
+                        code_style="BB-R",
+                    ),
+                )
+                services.inscrire(conn, "FR-2", self.epreuve.id)
+                token, _secret = services.generer_token(conn, "FR-1", self.competition_id)
+                conn.close()
+
+                donnees_code = urllib.parse.urlencode({"code": token.code_court}).encode("utf-8")
+                requete_code = urllib.request.Request(
+                    self._url("/code"), data=donnees_code, method="POST"
+                )
+                with urllib.request.urlopen(requete_code, timeout=5) as reponse:
+                    cookies_recus = reponse.headers.get_all("Set-Cookie") or []
+                cookie_identite = next(
+                    (c for c in cookies_recus if c.startswith("identite=")), None
+                )
+                valeur_cookie = cookie_identite.split(";")[0]
+
+                # 1. Vraie demande de procuration via POST /procuration.
+                donnees_proc = urllib.parse.urlencode({"id_federal_mandant": "FR-2"})
+                requete_proc = urllib.request.Request(
+                    self._url(f"/procuration/{self.competition_id}"),
+                    data=donnees_proc.encode("utf-8"),
+                    method="POST",
+                )
+                requete_proc.add_header("Cookie", valeur_cookie)
+                with urllib.request.urlopen(requete_proc, timeout=5) as reponse:
+                    self.assertEqual(reponse.status, 200)
+                    contenu_proc = reponse.read().decode("utf-8")
+                self.assertIn("envoyée", contenu_proc.lower())
+
+                # 2. Vérifie que la demande existe bien en base, puis la
+                # valide côté service (l'écran GUI organisateur n'existe
+                # pas encore, voir docs/roadmap.md).
+                conn_verif = db.connect(self.chemin_base)
+                procurations = services.lister_procurations_en_attente(
+                    conn_verif, self.competition_id
+                )
+                self.assertEqual(len(procurations), 1)
+                _mandataire, _mandant, procuration = procurations[0]
+                services.valider_procuration(conn_verif, procuration.id)
+                conn_verif.close()
+
+                # 3. Vrai POST /proposer-score avec id_federal_cible=FR-2.
+                donnees_score = urllib.parse.urlencode(
+                    {"total": "270", "nombre_x": "12", "id_federal_cible": "FR-2"}
+                )
+                requete_score = urllib.request.Request(
+                    self._url(f"/proposer-score/{self.epreuve.id}"),
+                    data=donnees_score.encode("utf-8"),
+                    method="POST",
+                )
+                requete_score.add_header("Cookie", valeur_cookie)
+                with urllib.request.urlopen(requete_score, timeout=5) as reponse:
+                    self.assertEqual(reponse.status, 200)
+                    contenu_score = reponse.read().decode("utf-8")
+
+        self.assertIn("envoyée", contenu_score.lower())
+
+        conn_verif = db.connect(self.chemin_base)
+        inscription_fr2 = db.get_inscription_par_competiteur_epreuve(
+            conn_verif, "FR-2", self.epreuve.id
+        )
+        score = db.get_score_by_inscription(conn_verif, inscription_fr2.id)
+        conn_verif.close()
+        self.assertEqual(score.total, 270)
+        self.assertEqual(score.statut.value, "propose")
+        self.assertEqual(score.propose_par_id_federal, "FR-1")
 
 
 @unittest.skipUnless(
