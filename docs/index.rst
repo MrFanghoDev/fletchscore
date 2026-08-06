@@ -6,6 +6,7 @@ FletchScore
    :maxdepth: 2
    :caption: Pour les utilisateurs
 
+   premier-club
    guide-utilisateur/index
    cahier-des-charges/index
 
@@ -15,3 +16,9 @@ FletchScore
 
    roadmap
    architecture
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Référence développeur
+
+   api-reference
