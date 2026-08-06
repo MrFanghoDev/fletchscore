@@ -956,3 +956,29 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   astérisques. Les anciens fichiers fusionnés ont été supprimés plutôt
   que laissés en doublons morts. Comme toujours pour la GUI, rendu non
   vérifié -- à confirmer par un vrai lancement.
+
+- **Procuration : cadrée avec l'utilisateur avant de coder, pas
+  devinée.** Deux questions posées et tranchées : (1) portée -- ouvert
+  à n'importe qui inscrit à la compétition, pas restreint à la même
+  épreuve, mais toujours soumis à validation organisateur avant effet
+  ; (2) traçabilité -- indispensable, sinon l'organisateur validerait
+  un score sans savoir qui l'a réellement soumis. D'où
+  `Score.propose_par_id_federal`, distinct de l'inscription ciblée :
+  une proposition porte toujours deux identités, celle du score (via
+  l'inscription) et celle du proposant réel, jamais confondues. Table
+  `procurations` sans contrainte UNIQUE en base -- une contrainte
+  aurait empêché de redemander après un rejet ; la détection de
+  doublon (déjà en attente, déjà validée) vit dans `services.py`,
+  cohérent avec `demander_rattachement()`. `proposer_score()` garde une
+  signature rétrocompatible (`id_federal_cible` optionnel, absent =
+  soi-même) plutôt que de forcer tous les appelants existants à changer.
+  **Changement de schéma sur `scores`** (nouvelle colonne) : pas de
+  système de migration sur ce projet, seule option pour une base déjà
+  existante est de la supprimer et relancer -- déjà le cas pour les
+  changements de schéma précédents, documenté à nouveau ici plutôt que
+  supposé connu. Vérifié réellement de bout en bout, pas seulement par
+  les tests unitaires : demande de procuration → refus tant qu'elle
+  n'est pas validée → validation → proposition acceptée avec
+  traçabilité correcte → validation organisateur → le compétiteur
+  mandant apparaît bien au classement, dans sa propre catégorie, avec
+  le bon total.

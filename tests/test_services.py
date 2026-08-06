@@ -12,6 +12,7 @@ from fletchscore.models import (
     Sexe,
     StatutCompetition,
     StatutDemandeRattachement,
+    StatutProcuration,
     StatutScore,
     StatutToken,
 )
@@ -458,6 +459,61 @@ class TestProposerScore(ServiceTestCase):
         self.assertEqual(score.total, 270)
         self.assertEqual(score.statut, StatutScore.VALIDE)
 
+    def test_trace_qui_a_reellement_propose(self):
+        score = services.proposer_score(self.conn, "FR-1", self.epreuve.id, 260)
+        self.assertEqual(score.propose_par_id_federal, "FR-1")
+
+    def test_propose_pour_autrui_sans_procuration_refuse(self):
+        self._inserer_fr2()
+        services.inscrire(self.conn, "FR-2", self.epreuve.id)
+        with self.assertRaises(ErreurMetier) as contexte:
+            services.proposer_score(
+                self.conn, "FR-1", self.epreuve.id, 260, id_federal_cible="FR-2"
+            )
+        self.assertIn("procuration", str(contexte.exception))
+
+    def test_propose_pour_autrui_avec_procuration_validee(self):
+        self._inserer_fr2()
+        services.inscrire(self.conn, "FR-2", self.epreuve.id)
+        demande = services.demander_procuration(self.conn, "FR-1", "FR-2", self.competition.id)
+        services.valider_procuration(self.conn, demande.id)
+
+        score = services.proposer_score(
+            self.conn, "FR-1", self.epreuve.id, 260, id_federal_cible="FR-2"
+        )
+
+        self.assertEqual(score.total, 260)
+        self.assertEqual(score.propose_par_id_federal, "FR-1")
+        inscription_fr2 = db.get_inscription_par_competiteur_epreuve(
+            self.conn, "FR-2", self.epreuve.id
+        )
+        self.assertEqual(score.inscription_id, inscription_fr2.id)
+
+    def test_propose_pour_autrui_cible_non_inscrite_refuse(self):
+        self._inserer_fr2()
+        demande = services.demander_procuration(self.conn, "FR-1", "FR-2", self.competition.id)
+        services.valider_procuration(self.conn, demande.id)
+
+        with self.assertRaises(ErreurMetier) as contexte:
+            services.proposer_score(
+                self.conn, "FR-1", self.epreuve.id, 260, id_federal_cible="FR-2"
+            )
+        self.assertIn("inscrite", str(contexte.exception))
+
+    def _inserer_fr2(self):
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-2",
+                nom="Martin",
+                prenom="Léo",
+                code_club="77123",
+                sexe=Sexe.M,
+                date_naissance=date(1995, 3, 14),
+                code_style="BB-R",
+            ),
+        )
+
 
 class TestListerPropositionsEnAttente(ServiceTestCase):
     def setUp(self):
@@ -546,6 +602,163 @@ class TestRejeterScorePropose(ServiceTestCase):
     def test_aucune_proposition_en_attente_refuse(self):
         with self.assertRaises(ErreurMetier):
             services.rejeter_score_propose(self.conn, self.inscription.id)
+
+
+class ProcurationTestCase(ServiceTestCase):
+    def setUp(self):
+        super().setUp()
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-2",
+                nom="Martin",
+                prenom="Léo",
+                code_club="77123",
+                sexe=Sexe.M,
+                date_naissance=date(1995, 3, 14),
+                code_style="BB-R",
+            ),
+        )
+        self.competition = self._competition()
+
+
+class TestDemanderProcuration(ProcurationTestCase):
+    def test_demande_valide(self):
+        procuration = services.demander_procuration(self.conn, "FR-1", "FR-2", self.competition.id)
+        self.assertEqual(procuration.statut, StatutProcuration.EN_ATTENTE)
+        self.assertEqual(procuration.id_federal_mandataire, "FR-1")
+        self.assertEqual(procuration.id_federal_mandant, "FR-2")
+
+    def test_pour_soi_meme_refuse(self):
+        with self.assertRaises(ErreurMetier):
+            services.demander_procuration(self.conn, "FR-1", "FR-1", self.competition.id)
+
+    def test_mandataire_inconnu_refuse(self):
+        with self.assertRaises(ErreurMetier):
+            services.demander_procuration(self.conn, "FR-FANTOME", "FR-2", self.competition.id)
+
+    def test_mandant_inconnu_refuse(self):
+        with self.assertRaises(ErreurMetier):
+            services.demander_procuration(self.conn, "FR-1", "FR-FANTOME", self.competition.id)
+
+    def test_competition_inconnue_refusee(self):
+        with self.assertRaises(ErreurMetier):
+            services.demander_procuration(self.conn, "FR-1", "FR-2", "competition-fantome")
+
+    def test_refuse_si_deja_validee(self):
+        demande = services.demander_procuration(self.conn, "FR-1", "FR-2", self.competition.id)
+        services.valider_procuration(self.conn, demande.id)
+
+        with self.assertRaises(ErreurMetier) as contexte:
+            services.demander_procuration(self.conn, "FR-1", "FR-2", self.competition.id)
+        self.assertIn("existe déjà", str(contexte.exception))
+
+    def test_refuse_si_deja_en_attente(self):
+        services.demander_procuration(self.conn, "FR-1", "FR-2", self.competition.id)
+        with self.assertRaises(ErreurMetier) as contexte:
+            services.demander_procuration(self.conn, "FR-1", "FR-2", self.competition.id)
+        self.assertIn("déjà en attente", str(contexte.exception))
+
+    def test_accepte_de_nouveau_apres_rejet(self):
+        premiere = services.demander_procuration(self.conn, "FR-1", "FR-2", self.competition.id)
+        services.rejeter_procuration(self.conn, premiere.id)
+
+        seconde = services.demander_procuration(self.conn, "FR-1", "FR-2", self.competition.id)
+        self.assertEqual(seconde.statut, StatutProcuration.EN_ATTENTE)
+
+
+class TestListerProcurationsEnAttente(ProcurationTestCase):
+    def test_associe_les_deux_competiteurs(self):
+        services.demander_procuration(self.conn, "FR-1", "FR-2", self.competition.id)
+
+        procurations = services.lister_procurations_en_attente(self.conn, self.competition.id)
+
+        self.assertEqual(len(procurations), 1)
+        mandataire, mandant, procuration = procurations[0]
+        self.assertEqual(mandataire.id_federal, "FR-1")
+        self.assertEqual(mandant.id_federal, "FR-2")
+        self.assertEqual(procuration.statut, StatutProcuration.EN_ATTENTE)
+
+    def test_liste_vide_si_aucune_demande(self):
+        self.assertEqual(
+            services.lister_procurations_en_attente(self.conn, self.competition.id), []
+        )
+
+
+class TestValiderProcuration(ProcurationTestCase):
+    def test_validation_change_le_statut(self):
+        demande = services.demander_procuration(self.conn, "FR-1", "FR-2", self.competition.id)
+        procuration = services.valider_procuration(self.conn, demande.id)
+        self.assertEqual(procuration.statut, StatutProcuration.VALIDEE)
+
+    def test_retire_de_la_liste_en_attente(self):
+        demande = services.demander_procuration(self.conn, "FR-1", "FR-2", self.competition.id)
+        services.valider_procuration(self.conn, demande.id)
+        self.assertEqual(
+            services.lister_procurations_en_attente(self.conn, self.competition.id), []
+        )
+
+    def test_procuration_inexistante_refusee(self):
+        with self.assertRaises(ErreurMetier):
+            services.valider_procuration(self.conn, "procuration-fantome")
+
+    def test_deja_traitee_refusee(self):
+        demande = services.demander_procuration(self.conn, "FR-1", "FR-2", self.competition.id)
+        services.valider_procuration(self.conn, demande.id)
+        with self.assertRaises(ErreurMetier):
+            services.valider_procuration(self.conn, demande.id)
+
+
+class TestRejeterProcuration(ProcurationTestCase):
+    def test_rejet_change_le_statut(self):
+        demande = services.demander_procuration(self.conn, "FR-1", "FR-2", self.competition.id)
+        services.rejeter_procuration(self.conn, demande.id)
+        procuration = db.get_procuration(self.conn, demande.id)
+        self.assertEqual(procuration.statut, StatutProcuration.REJETEE)
+
+    def test_procuration_inexistante_refusee(self):
+        with self.assertRaises(ErreurMetier):
+            services.rejeter_procuration(self.conn, "procuration-fantome")
+
+
+class TestRevoquerProcuration(ProcurationTestCase):
+    def test_revocation_change_le_statut(self):
+        demande = services.demander_procuration(self.conn, "FR-1", "FR-2", self.competition.id)
+        services.valider_procuration(self.conn, demande.id)
+        services.revoquer_procuration(self.conn, demande.id)
+        procuration = db.get_procuration(self.conn, demande.id)
+        self.assertEqual(procuration.statut, StatutProcuration.REVOQUEE)
+
+    def test_bloque_les_propositions_futures(self):
+        epreuve = self._epreuve(self.competition)
+        services.inscrire(self.conn, "FR-2", epreuve.id)
+        demande = services.demander_procuration(self.conn, "FR-1", "FR-2", self.competition.id)
+        services.valider_procuration(self.conn, demande.id)
+        services.revoquer_procuration(self.conn, demande.id)
+
+        with self.assertRaises(ErreurMetier):
+            services.proposer_score(self.conn, "FR-1", epreuve.id, 260, id_federal_cible="FR-2")
+
+    def test_procuration_inexistante_refusee(self):
+        with self.assertRaises(ErreurMetier):
+            services.revoquer_procuration(self.conn, "procuration-fantome")
+
+
+class TestListerMandantsPour(ProcurationTestCase):
+    def test_liste_les_mandants_valides(self):
+        demande = services.demander_procuration(self.conn, "FR-1", "FR-2", self.competition.id)
+        services.valider_procuration(self.conn, demande.id)
+
+        mandants = services.lister_mandants_pour(self.conn, "FR-1", self.competition.id)
+
+        self.assertEqual([m.id_federal for m in mandants], ["FR-2"])
+
+    def test_exclut_les_demandes_en_attente(self):
+        services.demander_procuration(self.conn, "FR-1", "FR-2", self.competition.id)
+        self.assertEqual(services.lister_mandants_pour(self.conn, "FR-1", self.competition.id), [])
+
+    def test_liste_vide_si_aucune_procuration(self):
+        self.assertEqual(services.lister_mandants_pour(self.conn, "FR-1", self.competition.id), [])
 
 
 class TestClassementEpreuve(ServiceTestCase):

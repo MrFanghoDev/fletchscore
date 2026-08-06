@@ -11,9 +11,11 @@ from fletchscore.models import (
     Epreuve,
     Inscription,
     Message,
+    Procuration,
     Score,
     Sexe,
     StatutDemandeRattachement,
+    StatutProcuration,
     StatutScore,
     StatutToken,
     Style,
@@ -566,6 +568,124 @@ class TestMessage(StorageTestCase):
         )
         messages = db.list_messages_by_competition(self.conn, "comp-1")
         self.assertEqual(len(messages), 2)
+
+
+class TestProcuration(StorageTestCase):
+    def setUp(self):
+        super().setUp()
+        db.insert_club(self.conn, Club("77123", "Archers Libres de FLP"))
+        db.seed_referentiel_styles(self.conn)
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-1",
+                nom="Dupont",
+                prenom="Marie",
+                code_club="77123",
+                sexe=Sexe.F,
+                date_naissance=date(1995, 3, 14),
+                code_style="BB-R",
+            ),
+        )
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-2",
+                nom="Martin",
+                prenom="Léo",
+                code_club="77123",
+                sexe=Sexe.M,
+                date_naissance=date(1995, 3, 14),
+                code_style="BB-R",
+            ),
+        )
+
+    def test_insert_et_get_roundtrip(self):
+        procuration = Procuration(
+            id="proc-1",
+            competition_id="comp-1",
+            id_federal_mandataire="FR-1",
+            id_federal_mandant="FR-2",
+            statut=StatutProcuration.EN_ATTENTE,
+            demandee_le=datetime(2026, 3, 14, 9, 0),
+        )
+        db.insert_procuration(self.conn, procuration)
+        self.assertEqual(db.get_procuration(self.conn, "proc-1"), procuration)
+
+    def test_get_procuration_inexistante_retourne_none(self):
+        self.assertIsNone(db.get_procuration(self.conn, "procuration-fantome"))
+
+    def test_get_procuration_validee_trouve_seulement_les_validees(self):
+        db.insert_procuration(
+            self.conn,
+            Procuration(
+                id="proc-1",
+                competition_id="comp-1",
+                id_federal_mandataire="FR-1",
+                id_federal_mandant="FR-2",
+                statut=StatutProcuration.EN_ATTENTE,
+            ),
+        )
+        self.assertIsNone(db.get_procuration_validee(self.conn, "comp-1", "FR-1", "FR-2"))
+
+        db.update_statut_procuration(self.conn, "proc-1", StatutProcuration.VALIDEE)
+        trouvee = db.get_procuration_validee(self.conn, "comp-1", "FR-1", "FR-2")
+        self.assertEqual(trouvee.id, "proc-1")
+
+    def test_list_procurations_en_attente(self):
+        db.insert_procuration(
+            self.conn,
+            Procuration(
+                id="proc-1",
+                competition_id="comp-1",
+                id_federal_mandataire="FR-1",
+                id_federal_mandant="FR-2",
+                statut=StatutProcuration.EN_ATTENTE,
+            ),
+        )
+        en_attente = db.list_procurations_en_attente(self.conn, "comp-1")
+        self.assertEqual([p.id for p in en_attente], ["proc-1"])
+
+    def test_list_procurations_en_attente_exclut_les_traitees(self):
+        db.insert_procuration(
+            self.conn,
+            Procuration(
+                id="proc-1",
+                competition_id="comp-1",
+                id_federal_mandataire="FR-1",
+                id_federal_mandant="FR-2",
+                statut=StatutProcuration.VALIDEE,
+            ),
+        )
+        self.assertEqual(db.list_procurations_en_attente(self.conn, "comp-1"), [])
+
+    def test_list_procurations_validees_par_mandataire(self):
+        db.insert_procuration(
+            self.conn,
+            Procuration(
+                id="proc-1",
+                competition_id="comp-1",
+                id_federal_mandataire="FR-1",
+                id_federal_mandant="FR-2",
+                statut=StatutProcuration.VALIDEE,
+            ),
+        )
+        validees = db.list_procurations_validees_par_mandataire(self.conn, "comp-1", "FR-1")
+        self.assertEqual([p.id for p in validees], ["proc-1"])
+
+    def test_update_statut_procuration_persiste(self):
+        db.insert_procuration(
+            self.conn,
+            Procuration(
+                id="proc-1",
+                competition_id="comp-1",
+                id_federal_mandataire="FR-1",
+                id_federal_mandant="FR-2",
+                statut=StatutProcuration.EN_ATTENTE,
+            ),
+        )
+        db.update_statut_procuration(self.conn, "proc-1", StatutProcuration.REVOQUEE)
+        self.assertEqual(db.get_procuration(self.conn, "proc-1").statut, StatutProcuration.REVOQUEE)
 
 
 if __name__ == "__main__":

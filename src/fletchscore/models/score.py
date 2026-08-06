@@ -27,3 +27,12 @@ class Score:
     critère de départage uniquement, jamais ajouté au total (voir
     Bareme.departage_par_x)."""
     statut: StatutScore = StatutScore.PROPOSE
+    propose_par_id_federal: str | None = None
+    """Qui a réellement soumis la proposition -- absent (``None``) pour
+    une saisie organisateur, égal à l'id fédéral de l'inscription pour
+    une auto-proposition, ou l'id d'un mandataire agissant via une
+    ``Procuration`` validée (voir models/procuration.py). Ne jamais
+    confondre avec l'identité DU SCORE (portée par l'inscription) --
+    c'est la traçabilité de QUI a tapé les chiffres, pour que
+    l'organisateur puisse juger la fiabilité d'une proposition avant de
+    la valider."""

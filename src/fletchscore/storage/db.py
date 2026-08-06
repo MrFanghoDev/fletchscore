@@ -25,10 +25,12 @@ from fletchscore.models import (
     EpreuveTemplate,
     Inscription,
     Message,
+    Procuration,
     Score,
     Sexe,
     StatutCompetition,
     StatutDemandeRattachement,
+    StatutProcuration,
     StatutScore,
     StatutToken,
     Style,
@@ -105,7 +107,17 @@ CREATE TABLE IF NOT EXISTS scores (
     inscription_id TEXT NOT NULL UNIQUE REFERENCES inscriptions(id),
     total INTEGER NOT NULL,
     nombre_x INTEGER NOT NULL DEFAULT 0,
-    statut TEXT NOT NULL DEFAULT 'propose'
+    statut TEXT NOT NULL DEFAULT 'propose',
+    propose_par_id_federal TEXT
+);
+
+CREATE TABLE IF NOT EXISTS procurations (
+    id TEXT PRIMARY KEY,
+    competition_id TEXT NOT NULL,
+    id_federal_mandataire TEXT NOT NULL,
+    id_federal_mandant TEXT NOT NULL,
+    statut TEXT NOT NULL DEFAULT 'en_attente',
+    demandee_le TEXT
 );
 
 CREATE TABLE IF NOT EXISTS tokens (
@@ -548,13 +560,22 @@ def upsert_score(conn: sqlite3.Connection, score: Score) -> None:
     corrige un score déjà saisi plutôt que d'en créer un nouveau en
     doublon (au plus un Score par Inscription, contrainte UNIQUE)."""
     conn.execute(
-        """INSERT INTO scores (id, inscription_id, total, nombre_x, statut)
-           VALUES (?, ?, ?, ?, ?)
+        """INSERT INTO scores
+           (id, inscription_id, total, nombre_x, statut, propose_par_id_federal)
+           VALUES (?, ?, ?, ?, ?, ?)
            ON CONFLICT (inscription_id) DO UPDATE SET
                total = excluded.total,
                nombre_x = excluded.nombre_x,
-               statut = excluded.statut""",
-        (score.id, score.inscription_id, score.total, score.nombre_x, score.statut.value),
+               statut = excluded.statut,
+               propose_par_id_federal = excluded.propose_par_id_federal""",
+        (
+            score.id,
+            score.inscription_id,
+            score.total,
+            score.nombre_x,
+            score.statut.value,
+            score.propose_par_id_federal,
+        ),
     )
     conn.commit()
 
@@ -566,6 +587,7 @@ def _row_to_score(row: sqlite3.Row) -> Score:
         total=row["total"],
         nombre_x=row["nombre_x"],
         statut=StatutScore(row["statut"]),
+        propose_par_id_federal=row["propose_par_id_federal"],
     )
 
 
@@ -693,6 +715,90 @@ def update_statut_demande(
         "UPDATE demandes_rattachement SET statut = ? WHERE id = ?",
         (statut.value, demande_id),
     )
+    conn.commit()
+
+
+# ------------------------------------------------------------ Procuration --
+
+
+def insert_procuration(conn: sqlite3.Connection, procuration: Procuration) -> None:
+    conn.execute(
+        """INSERT INTO procurations
+           (id, competition_id, id_federal_mandataire, id_federal_mandant, statut, demandee_le)
+           VALUES (?, ?, ?, ?, ?, ?)""",
+        (
+            procuration.id,
+            procuration.competition_id,
+            procuration.id_federal_mandataire,
+            procuration.id_federal_mandant,
+            procuration.statut.value,
+            procuration.demandee_le.isoformat() if procuration.demandee_le else None,
+        ),
+    )
+    conn.commit()
+
+
+def _row_to_procuration(row: sqlite3.Row) -> Procuration:
+    return Procuration(
+        id=row["id"],
+        competition_id=row["competition_id"],
+        id_federal_mandataire=row["id_federal_mandataire"],
+        id_federal_mandant=row["id_federal_mandant"],
+        statut=StatutProcuration(row["statut"]),
+        demandee_le=datetime.fromisoformat(row["demandee_le"]) if row["demandee_le"] else None,
+    )
+
+
+def get_procuration(conn: sqlite3.Connection, procuration_id: str) -> Procuration | None:
+    row = conn.execute("SELECT * FROM procurations WHERE id = ?", (procuration_id,)).fetchone()
+    return _row_to_procuration(row) if row else None
+
+
+def get_procuration_validee(
+    conn: sqlite3.Connection,
+    competition_id: str,
+    id_federal_mandataire: str,
+    id_federal_mandant: str,
+) -> Procuration | None:
+    row = conn.execute(
+        """SELECT * FROM procurations
+           WHERE competition_id = ? AND id_federal_mandataire = ?
+           AND id_federal_mandant = ? AND statut = ?""",
+        (
+            competition_id,
+            id_federal_mandataire,
+            id_federal_mandant,
+            StatutProcuration.VALIDEE.value,
+        ),
+    ).fetchone()
+    return _row_to_procuration(row) if row else None
+
+
+def list_procurations_en_attente(
+    conn: sqlite3.Connection, competition_id: str
+) -> list[Procuration]:
+    rows = conn.execute(
+        "SELECT * FROM procurations WHERE competition_id = ? AND statut = ?",
+        (competition_id, StatutProcuration.EN_ATTENTE.value),
+    ).fetchall()
+    return [_row_to_procuration(r) for r in rows]
+
+
+def list_procurations_validees_par_mandataire(
+    conn: sqlite3.Connection, competition_id: str, id_federal_mandataire: str
+) -> list[Procuration]:
+    rows = conn.execute(
+        """SELECT * FROM procurations
+           WHERE competition_id = ? AND id_federal_mandataire = ? AND statut = ?""",
+        (competition_id, id_federal_mandataire, StatutProcuration.VALIDEE.value),
+    ).fetchall()
+    return [_row_to_procuration(r) for r in rows]
+
+
+def update_statut_procuration(
+    conn: sqlite3.Connection, procuration_id: str, statut: StatutProcuration
+) -> None:
+    conn.execute("UPDATE procurations SET statut = ? WHERE id = ?", (statut.value, procuration_id))
     conn.commit()
 
 

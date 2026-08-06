@@ -17,6 +17,7 @@ from fletchscore.models.enums import (
     Sexe,
     StatutCompetition,
     StatutDemandeRattachement,
+    StatutProcuration,
     StatutScore,
     StatutToken,
 )
@@ -24,6 +25,7 @@ from fletchscore.models.epreuve import Epreuve
 from fletchscore.models.epreuve_template import EpreuveTemplate
 from fletchscore.models.inscription import Inscription
 from fletchscore.models.message import Message
+from fletchscore.models.procuration import Procuration
 from fletchscore.models.score import Score
 from fletchscore.models.style import STYLES_IFAA, Style
 from fletchscore.models.token import Token
@@ -46,12 +48,14 @@ __all__ = [
     "Sexe",
     "StatutCompetition",
     "StatutDemandeRattachement",
+    "StatutProcuration",
     "StatutScore",
     "StatutToken",
     "Epreuve",
     "EpreuveTemplate",
     "Inscription",
     "Message",
+    "Procuration",
     "Score",
     "STYLES_IFAA",
     "Style",

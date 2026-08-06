@@ -277,6 +277,29 @@ class TestPageAccueil(unittest.TestCase):
         self.assertIn("Retard de 30 minutes", page)
         self.assertIn("/mes-messages", page)
 
+    def test_lien_de_deconnexion_present_si_identifie(self):
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-1",
+                nom="Dupont",
+                prenom="Marie",
+                code_club="77123",
+                sexe=Sexe.F,
+                date_naissance=date(1995, 3, 14),
+                code_style="BB-R",
+            ),
+        )
+        competition = services.creer_competition(
+            self.conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15)
+        )
+        page = page_accueil(self.conn, identite=("FR-1", competition.id))
+        self.assertIn("/deconnexion", page)
+
+    def test_pas_de_lien_de_deconnexion_sans_identite(self):
+        page = page_accueil(self.conn, identite=None)
+        self.assertNotIn("/deconnexion", page)
+
 
 class TestPageEpreuve(unittest.TestCase):
     def setUp(self):
@@ -850,6 +873,22 @@ class TestServeurIntegration(unittest.TestCase):
         conn_verif.close()
         self.assertEqual(score.total, 270)
         self.assertEqual(score.statut.value, "propose")
+
+    def test_deconnexion_efface_reellement_le_cookie(self):
+        connexion = http.client.HTTPConnection("127.0.0.1", self.serveur.server_port, timeout=5)
+        try:
+            connexion.request("GET", "/deconnexion")
+            reponse = connexion.getresponse()
+            self.assertEqual(reponse.status, 302)
+            self.assertEqual(reponse.getheader("Location"), "/")
+            cookies = reponse.msg.get_all("Set-Cookie") or []
+            reponse.read()
+        finally:
+            connexion.close()
+
+        cookie_identite = next((c for c in cookies if c.startswith("identite=")), None)
+        self.assertIsNotNone(cookie_identite)
+        self.assertIn("Max-Age=0", cookie_identite)
 
     def test_proposer_score_sans_cookie_refuse(self):
         donnees = urllib.parse.urlencode({"total": "270", "nombre_x": "0"}).encode("utf-8")

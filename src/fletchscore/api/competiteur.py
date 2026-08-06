@@ -129,6 +129,7 @@ _TEXTES: dict[str, dict[str, str]] = {
         "en": "Access already confirmed for this competition.",
     },
     "bienvenue_personnalisee": {"fr": "Bonjour {nom} !", "en": "Hello {nom}!"},
+    "se_deconnecter": {"fr": "Se déconnecter", "en": "Log out"},
     "statut_non_inscrit": {"fr": "pas inscrit·e", "en": "not registered"},
     "statut_inscrit": {"fr": "inscrit·e", "en": "registered"},
     "statut_score_attente": {
@@ -269,7 +270,10 @@ def page_accueil(
         if competiteur_identifie is not None:
             nom_complet = f"{competiteur_identifie.prenom} {competiteur_identifie.nom}"
             texte_bienvenue = _t("bienvenue_personnalisee", lang).format(nom=nom_complet)
-            banniere += f'<p class="intro">👋 {_echapper(texte_bienvenue)}</p>'
+            banniere += (
+                f'<p class="intro">👋 {_echapper(texte_bienvenue)} '
+                f'<a href="/deconnexion">({_t("se_deconnecter", lang)})</a></p>'
+            )
 
         try:
             messages = services.lister_messages_pour(conn, competition_id, id_federal)
@@ -766,6 +770,17 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
         self.send_header("Set-Cookie", f"theme={theme}; Path=/; Max-Age=31536000")
         self.end_headers()
 
+    def _deconnecter(self) -> None:
+        """Efface le cookie de session (``Max-Age=0``, valeur vidée) et
+        redirige vers l'accueil -- oublie l'identité tant que le
+        compétiteur n'a pas retapé son code, sans quoi la session
+        durerait 7 jours quoi qu'il arrive (voir
+        ``services.signer_identite_competiteur``)."""
+        self.send_response(302)
+        self.send_header("Location", "/")
+        self.send_header("Set-Cookie", "identite=; Path=/; Max-Age=0")
+        self.end_headers()
+
     def _lire_identite(self) -> tuple[str, str] | None:
         """Lit et vérifie le cookie de session posé après confirmation
         d'un code -- ``None`` si absent ou invalide (voir
@@ -790,6 +805,9 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
             return
         if chemin == "/preference":
             self._definir_preference(url)
+            return
+        if chemin == "/deconnexion":
+            self._deconnecter()
             return
 
         lang, theme = self._lire_preferences()

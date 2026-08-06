@@ -30,10 +30,12 @@ from fletchscore.models import (
     EpreuveTemplate,
     Inscription,
     Message,
+    Procuration,
     Score,
     Sexe,
     StatutCompetition,
     StatutDemandeRattachement,
+    StatutProcuration,
     StatutScore,
     StatutToken,
     Token,
@@ -495,6 +497,7 @@ def saisir_score_final(
     *,
     nombre_x: int = 0,
     statut: StatutScore = StatutScore.VALIDE,
+    propose_par_id_federal: str | None = None,
 ) -> Score:
     """Enregistre (ou corrige) le score final d'une inscription, tel que
     totalisé sur la feuille de match -- pas une saisie flèche par flèche
@@ -507,6 +510,11 @@ def saisir_score_final(
     Le statut par défaut est ``VALIDE`` : une saisie faite par
     l'organisateur lui-même n'a pas à repasser par une file de validation
     (voir docs/cahier-des-charges/securite.rst §7.2).
+
+    ``propose_par_id_federal`` : qui a réellement soumis ce score, pour
+    une proposition en ligne (voir ``proposer_score``) -- laissé à
+    ``None`` pour une saisie organisateur, sans lien avec une soumission
+    en ligne.
     """
     epreuve, bareme = _epreuve_et_bareme_de(conn, inscription_id)
 
@@ -535,6 +543,7 @@ def saisir_score_final(
         total=total,
         nombre_x=nombre_x,
         statut=statut,
+        propose_par_id_federal=propose_par_id_federal,
     )
     db.upsert_score(conn, score)
     return score
@@ -564,14 +573,42 @@ def _epreuve_et_bareme_de(conn: sqlite3.Connection, inscription_id: str):
     return epreuve, bareme
 
 
+def _a_une_procuration_valide(
+    conn: sqlite3.Connection, id_federal_mandataire: str, id_federal_mandant: str, epreuve_id: str
+) -> bool:
+    epreuve = db.get_epreuve(conn, epreuve_id)
+    if epreuve is None:
+        return False
+    return (
+        db.get_procuration_validee(
+            conn, epreuve.competition_id, id_federal_mandataire, id_federal_mandant
+        )
+        is not None
+    )
+
+
 def proposer_score(
-    conn: sqlite3.Connection, id_federal: str, epreuve_id: str, total: int, *, nombre_x: int = 0
+    conn: sqlite3.Connection,
+    id_federal_proposant: str,
+    epreuve_id: str,
+    total: int,
+    *,
+    nombre_x: int = 0,
+    id_federal_cible: str | None = None,
 ) -> Score:
-    """Le compétiteur propose son score final pour une épreuve à
-    laquelle il est inscrit -- mêmes bornes que la saisie organisateur
-    (``saisir_score_final``), statut ``PROPOSE`` : n'apparaît dans aucun
-    classement tant qu'un organisateur ne l'a pas validé
-    (``valider_score_propose``), voir ``scoring.total_scores``.
+    """Propose un score final pour une épreuve -- pour soi-même par
+    défaut (``id_federal_cible`` omis), ou pour quelqu'un d'autre via
+    une ``Procuration`` déjà **validée** par l'organisateur
+    (``id_federal_cible`` fourni). Mêmes bornes que la saisie
+    organisateur (``saisir_score_final``), statut ``PROPOSE`` :
+    n'apparaît dans aucun classement tant qu'un organisateur ne l'a pas
+    validé (``valider_score_propose``), voir ``scoring.total_scores``.
+
+    Le proposant réel est toujours enregistré
+    (``Score.propose_par_id_federal``), même en cas d'auto-proposition
+    -- pour que l'organisateur puisse juger la fiabilité d'une
+    proposition avant de la valider, plutôt que de voir un total sans
+    savoir qui l'a réellement soumis (voir models/score.py).
 
     Refuse d'écraser un score déjà **validé** -- une nouvelle
     proposition ne doit jamais rouvrir silencieusement un score
@@ -580,9 +617,20 @@ def proposer_score(
     la proposition précédente sans problème (une correction avant
     revue, cas normal).
     """
-    inscription = db.get_inscription_par_competiteur_epreuve(conn, id_federal, epreuve_id)
+    id_federal_cible = id_federal_cible or id_federal_proposant
+
+    inscription = db.get_inscription_par_competiteur_epreuve(conn, id_federal_cible, epreuve_id)
     if inscription is None:
-        raise ErreurMetier("Tu n'es pas inscrit·e à cette épreuve.")
+        if id_federal_cible == id_federal_proposant:
+            raise ErreurMetier("Tu n'es pas inscrit·e à cette épreuve.")
+        raise ErreurMetier("Cette personne n'est pas inscrite à cette épreuve.")
+
+    if id_federal_cible != id_federal_proposant and not _a_une_procuration_valide(
+        conn, id_federal_proposant, id_federal_cible, epreuve_id
+    ):
+        raise ErreurMetier(
+            "Aucune procuration validée ne t'autorise à proposer un " "score pour cette personne."
+        )
 
     score_existant = db.get_score_by_inscription(conn, inscription.id)
     if score_existant is not None and score_existant.statut == StatutScore.VALIDE:
@@ -592,7 +640,12 @@ def proposer_score(
         )
 
     return saisir_score_final(
-        conn, inscription.id, total, nombre_x=nombre_x, statut=StatutScore.PROPOSE
+        conn,
+        inscription.id,
+        total,
+        nombre_x=nombre_x,
+        statut=StatutScore.PROPOSE,
+        propose_par_id_federal=id_federal_proposant,
     )
 
 
@@ -618,14 +671,24 @@ def valider_score_propose(conn: sqlite3.Connection, inscription_id: str) -> Scor
     dans le classement."""
     score = _obtenir_proposition_en_attente(conn, inscription_id)
     return saisir_score_final(
-        conn, inscription_id, score.total, nombre_x=score.nombre_x, statut=StatutScore.VALIDE
+        conn,
+        inscription_id,
+        score.total,
+        nombre_x=score.nombre_x,
+        statut=StatutScore.VALIDE,
+        propose_par_id_federal=score.propose_par_id_federal,
     )
 
 
 def rejeter_score_propose(conn: sqlite3.Connection, inscription_id: str) -> None:
     score = _obtenir_proposition_en_attente(conn, inscription_id)
     saisir_score_final(
-        conn, inscription_id, score.total, nombre_x=score.nombre_x, statut=StatutScore.REJETE
+        conn,
+        inscription_id,
+        score.total,
+        nombre_x=score.nombre_x,
+        statut=StatutScore.REJETE,
+        propose_par_id_federal=score.propose_par_id_federal,
     )
 
 
@@ -634,6 +697,112 @@ def _obtenir_proposition_en_attente(conn: sqlite3.Connection, inscription_id: st
     if score is None or score.statut != StatutScore.PROPOSE:
         raise ErreurMetier("Aucun score proposé en attente pour cette inscription.")
     return score
+
+
+# --------------------------------------------------------- Procuration --
+
+
+def demander_procuration(
+    conn: sqlite3.Connection,
+    id_federal_mandataire: str,
+    id_federal_mandant: str,
+    competition_id: str,
+) -> Procuration:
+    """Demande le droit de proposer des scores au nom d'un autre
+    compétiteur pour une compétition -- sans effet tant qu'un
+    organisateur ne l'a pas validée (voir ``valider_procuration``), même
+    principe que ``demander_rattachement``.
+    """
+    if id_federal_mandataire == id_federal_mandant:
+        raise ErreurMetier("Impossible de demander une procuration pour toi-même.")
+    if db.get_competiteur(conn, id_federal_mandataire) is None:
+        raise ErreurMetier(f"Compétiteur introuvable : {id_federal_mandataire}")
+    if db.get_competiteur(conn, id_federal_mandant) is None:
+        raise ErreurMetier(f"Compétiteur introuvable : {id_federal_mandant}")
+    if db.get_competition(conn, competition_id) is None:
+        raise ErreurMetier("Compétition introuvable.")
+
+    if db.get_procuration_validee(conn, competition_id, id_federal_mandataire, id_federal_mandant):
+        raise ErreurMetier("Une procuration valide existe déjà pour cette personne.")
+
+    for procuration in db.list_procurations_en_attente(conn, competition_id):
+        if (
+            procuration.id_federal_mandataire == id_federal_mandataire
+            and procuration.id_federal_mandant == id_federal_mandant
+        ):
+            raise ErreurMetier(
+                "Une demande de procuration est déjà en attente pour cette personne."
+            )
+
+    procuration = Procuration(
+        id=_nouvel_id(),
+        competition_id=competition_id,
+        id_federal_mandataire=id_federal_mandataire,
+        id_federal_mandant=id_federal_mandant,
+        statut=StatutProcuration.EN_ATTENTE,
+        demandee_le=datetime.now(),
+    )
+    db.insert_procuration(conn, procuration)
+    return procuration
+
+
+def lister_procurations_en_attente(
+    conn: sqlite3.Connection, competition_id: str
+) -> list[tuple[Competiteur, Competiteur, Procuration]]:
+    """Associe chaque demande en attente à ses deux compétiteurs
+    (mandataire, mandant) -- pour affichage direct dans la GUI."""
+    resultat = []
+    for procuration in db.list_procurations_en_attente(conn, competition_id):
+        mandataire = db.get_competiteur(conn, procuration.id_federal_mandataire)
+        mandant = db.get_competiteur(conn, procuration.id_federal_mandant)
+        if mandataire is not None and mandant is not None:
+            resultat.append((mandataire, mandant, procuration))
+    return resultat
+
+
+def lister_mandants_pour(
+    conn: sqlite3.Connection, id_federal_mandataire: str, competition_id: str
+) -> list[Competiteur]:
+    """Compétiteurs pour lesquels ce mandataire a une procuration
+    validée sur cette compétition -- pour lui proposer, côté web, pour
+    qui il peut soumettre un score."""
+    resultat = []
+    for procuration in db.list_procurations_validees_par_mandataire(
+        conn, competition_id, id_federal_mandataire
+    ):
+        mandant = db.get_competiteur(conn, procuration.id_federal_mandant)
+        if mandant is not None:
+            resultat.append(mandant)
+    return resultat
+
+
+def _obtenir_procuration_en_attente(conn: sqlite3.Connection, procuration_id: str) -> Procuration:
+    procuration = db.get_procuration(conn, procuration_id)
+    if procuration is None:
+        raise ErreurMetier("Procuration introuvable.")
+    if procuration.statut != StatutProcuration.EN_ATTENTE:
+        raise ErreurMetier("Cette demande de procuration a déjà été traitée.")
+    return procuration
+
+
+def valider_procuration(conn: sqlite3.Connection, procuration_id: str) -> Procuration:
+    _obtenir_procuration_en_attente(conn, procuration_id)
+    db.update_statut_procuration(conn, procuration_id, StatutProcuration.VALIDEE)
+    return db.get_procuration(conn, procuration_id)
+
+
+def rejeter_procuration(conn: sqlite3.Connection, procuration_id: str) -> None:
+    _obtenir_procuration_en_attente(conn, procuration_id)
+    db.update_statut_procuration(conn, procuration_id, StatutProcuration.REJETEE)
+
+
+def revoquer_procuration(conn: sqlite3.Connection, procuration_id: str) -> None:
+    """Révoque une procuration déjà validée -- le mandataire ne peut
+    plus proposer de score pour ce mandant à partir de maintenant (les
+    scores déjà proposés ne sont pas affectés rétroactivement)."""
+    if db.get_procuration(conn, procuration_id) is None:
+        raise ErreurMetier("Procuration introuvable.")
+    db.update_statut_procuration(conn, procuration_id, StatutProcuration.REVOQUEE)
 
 
 # -------------------------------------------------------- Classement --

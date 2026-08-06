@@ -123,7 +123,9 @@ bilingue français/anglais. L'accueil affiche un message de bienvenue,
 la liste des compétitions et épreuves en cours (avec un lien vers le
 classement de chacune et un lien pour demander un accès), et un champ
 pour confirmer un code d'accès déjà reçu. Une fois un code confirmé, la
-session dure 7 jours : l'accueil accueille par prénom et nom, le
+session dure 7 jours (un lien "Se déconnecter" à côté du message de
+bienvenue permet de l'oublier avant) : l'accueil accueille par prénom
+et nom, le
 formulaire de code et le lien de demande d'accès disparaissent pour
 cette compétition, chaque épreuve affiche un statut personnel ("pas
 inscrit·e", "inscrit·e", "score en attente de validation", "score

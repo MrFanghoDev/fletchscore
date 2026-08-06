@@ -1,6 +1,6 @@
 # Roadmap FletchScore
 
-**État actuel : v0.1, v0.2 et v0.3 complètes -- 453 tests,
+**État actuel : v0.1, v0.2 et v0.3 complètes -- 489 tests,
 tous verts, confirmés par la CI sans aucun `skipped`** (y compris les
 tests fpdf2/qrcode, jamais exécutables dans l'environnement de dev
 utilisé ici -- `cryptography`, en revanche, s'y est révélée
@@ -650,6 +650,51 @@ Résultat : 10 écrans -> 8, chacun avec une frontière claire (qui a
 accès / qu'est-ce qu'on leur dit / quels scores valider ne se marchent
 plus dessus). ⚠️ **Rendu GUI non vérifié**, comme toujours -- à
 confirmer par un vrai lancement.
+
+## Compléments post-v0.3
+
+- [ ] **Procuration -- proposer un score au nom d'un autre compétiteur**
+      (backend fait, web/GUI à suivre). Demandé par l'utilisateur : sur
+      un pas de tir, une seule personne note souvent les scores de tout
+      le groupe. Cadré avant de coder (2 questions) : ouvert à
+      n'importe qui inscrit à la compétition (pas restreint à la même
+      épreuve), mais **toujours soumis à validation par l'organisateur**
+      avant de produire le moindre effet (même principe que
+      `DemandeRattachement`) ; et le proposant réel doit être tracé et
+      affiché, pas seulement pour qui, pour que l'organisateur puisse
+      juger la fiabilité en validant.
+      `models/procuration.py` (nouveau) : entité `Procuration`, enum
+      `StatutProcuration` (EN_ATTENTE/VALIDEE/REJETEE/REVOQUEE).
+      `Score.propose_par_id_federal` (nouveau champ) : qui a réellement
+      soumis, distinct de pour qui (l'inscription). `services.py` :
+      `demander_procuration()`/`valider_procuration()`/
+      `rejeter_procuration()`/`revoquer_procuration()`, et
+      `proposer_score()` réécrite pour accepter un `id_federal_cible`
+      optionnel (soi-même par défaut). Table `procurations`
+      **volontairement sans contrainte UNIQUE stricte** en base -- une
+      contrainte aurait bloqué une nouvelle demande après un rejet ; la
+      logique de doublon vit dans `services.py`, comme pour
+      `DemandeRattachement`. ⚠️ **Changement de schéma sur `scores`**
+      (nouvelle colonne `propose_par_id_federal`) -- comme d'habitude
+      sur ce projet, pas de migration automatique : supprimer
+      `fletchscore.db` et relancer si la base existante date d'avant ce
+      changement.
+      26 nouveaux tests, et **vérifié réellement de bout en bout** :
+      demande de procuration → refus tant qu'elle n'est pas validée →
+      validation → proposition acceptée avec traçabilité correcte →
+      validation par l'organisateur → le compétiteur mandant apparaît
+      bien au classement dans sa propre catégorie, avec le bon total.
+      Reste : formulaire web (demande de procuration + sélecteur "pour
+      qui" sur la page d'épreuve) et écran GUI organisateur (nouvel
+      onglet, probablement dans "Connexions compétiteurs").
+
+- [x] Déconnexion sur la page compétiteur -- signalé par l'utilisateur
+      (le cookie de session dure 7 jours, sans aucun moyen de l'oublier
+      avant). `GET /deconnexion` efface le cookie (`Max-Age=0`) et
+      redirige vers l'accueil. Lien "(Se déconnecter)" à côté du
+      message de bienvenue personnalisé. 3 nouveaux tests, dont un vrai
+      test HTTP qui vérifie l'en-tête `Set-Cookie` renvoyé par le
+      serveur, pas seulement que la fonction s'exécute sans erreur.
 
 ## Points ouverts transverses
 

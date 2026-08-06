@@ -52,3 +52,10 @@ class StatutDemandeRattachement(StrEnum):
     EN_ATTENTE = "en_attente"
     VALIDEE = "validee"
     REJETEE = "rejetee"
+
+
+class StatutProcuration(StrEnum):
+    EN_ATTENTE = "en_attente"
+    VALIDEE = "validee"
+    REJETEE = "rejetee"
+    REVOQUEE = "revoquee"
