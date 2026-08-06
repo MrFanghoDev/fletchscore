@@ -48,6 +48,13 @@ desktop, compétiteur web) sur une base SQLite locale unique.
   la classe de test avec `@unittest.skipUnless(...)` pour les
   dépendances qui pourraient manquer.
 
+## Publication (PyPI/TestPyPI)
+
+Se fait par **trusted publishing** (OIDC GitHub Actions <-> PyPI, pas de
+token API stocké en secret GitHub) -- confirmé par l'utilisateur
+2026-08-06, cohérent avec `gh secret list` qui ne montre aucun secret
+sur ce dépôt.
+
 ## Vérifications spécifiques avant de livrer
 
 En plus de la checklist générique (voir le `CLAUDE.md` global) :
