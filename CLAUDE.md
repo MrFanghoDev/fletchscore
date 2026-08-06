@@ -17,8 +17,13 @@ desktop, compétiteur web) sur une base SQLite locale unique.
 - **Pas de dépendance ajoutée à la légère.** Toute nouvelle dépendance
   doit fonctionner de façon fiable sur Pydroid 3 (Android). En cas de
   doute, privilégier la stdlib ou un repli pur Python.
-- **Docstrings en anglais** dans le code source (`src/`) ; **commentaires
-  utilisateur en français** (fichiers TOML, README destinés au club).
+- **Tout en français** : docstrings dans le code source (`src/`) comme
+  commentaires utilisateur (fichiers TOML, README destinés au club).
+  Ancienne règle "docstrings en anglais" abandonnée le 2026-08-06 --
+  jamais vraiment suivie en pratique (quasi 0 % du code existant), et
+  incohérente avec le reste du projet déjà tout en français (docs
+  utilisateur, `roadmap.md`, `architecture.md`). Décision utilisateur :
+  pas de reprise du code existant, juste la convention pour la suite.
 - **Un test qui échoue avant livraison n'est pas un problème** -- c'est le
   système qui fonctionne. Ne jamais contourner un test qui échoue sans
   comprendre pourquoi.
