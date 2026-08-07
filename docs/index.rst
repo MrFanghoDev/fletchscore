@@ -16,9 +16,11 @@ FletchScore
 
    roadmap
    architecture
+   remerciements
 
 .. toctree::
    :maxdepth: 2
    :caption: Référence développeur
 
+   dev-guide/index
    api-reference
