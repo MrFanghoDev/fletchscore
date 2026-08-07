@@ -40,12 +40,21 @@ desktop, compétiteur web) sur une base SQLite locale unique.
 - Cibles/visuels de scoring : toujours se baser sur de vraies images de
   référence FFTL/IFAA déjà vues plutôt que de reconstruire un visuel
   générique, même standard/bien intentionné.
-- `tkinter` (et donc `customtkinter`) n'est pas installé dans
-  l'environnement de travail habituel -- tout module qui doit rester
-  testable ici ne doit importer ni l'un ni l'autre sans repli, même pour
-  un simple `except tkinter.TclError` (voir `gui/robustesse.py`, qui
-  détecte le cas par nom de classe d'exception plutôt que par
-  `isinstance`).
+- `tkinter` (et donc `customtkinter`) n'est **pas installé par défaut**
+  dans l'environnement de travail habituel -- tout module qui doit
+  rester testable sans lui ne doit l'importer ni l'un ni l'autre sans
+  repli, même pour un simple `except tkinter.TclError` (voir
+  `gui/robustesse.py`, qui détecte le cas par nom de classe d'exception
+  plutôt que par `isinstance`) : cette précaution reste utile même si
+  `tkinter` est installé ponctuellement (voir point suivant), pour ne
+  pas casser un environnement CI/dev qui ne l'a pas.
+- **Vérification GUI réelle possible depuis le 2026-08-07** (voir le
+  `CLAUDE.md` global, section Environnement) : `apk add python3-tkinter
+  tk xvfb xdotool scrot` installe `tkinter` (visible depuis `.venv`) et
+  un écran virtuel pour lancer l'appli et capturer/piloter son rendu
+  sans écran physique. Utilisé pour vérifier l'issue #1 (procurations
+  actives/révocation) -- voir les commentaires de cette issue pour le
+  déroulé complet.
 - Une dépendance non installable dans l'environnement de travail peut
   casser la collecte de toute la suite de tests, pas juste ses propres
   tests (`unittest discover` échoue dès qu'un module lève une exception à
