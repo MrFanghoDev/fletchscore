@@ -760,6 +760,21 @@ def lister_procurations_en_attente(
     return resultat
 
 
+def lister_procurations_validees(
+    conn: sqlite3.Connection, competition_id: str
+) -> list[tuple[Competiteur, Competiteur, Procuration]]:
+    """Associe chaque procuration *validée* de cette compétition à ses
+    deux compétiteurs -- pour l'écran "révoquer une procuration" de la
+    GUI, sur le modèle de ``lister_tokens_actifs``."""
+    resultat = []
+    for procuration in db.list_procurations_validees(conn, competition_id):
+        mandataire = db.get_competiteur(conn, procuration.id_federal_mandataire)
+        mandant = db.get_competiteur(conn, procuration.id_federal_mandant)
+        if mandataire is not None and mandant is not None:
+            resultat.append((mandataire, mandant, procuration))
+    return resultat
+
+
 def lister_mandants_pour(
     conn: sqlite3.Connection, id_federal_mandataire: str, competition_id: str
 ) -> list[Competiteur]:

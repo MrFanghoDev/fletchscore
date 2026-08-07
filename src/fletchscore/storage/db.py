@@ -784,6 +784,14 @@ def list_procurations_en_attente(
     return [_row_to_procuration(r) for r in rows]
 
 
+def list_procurations_validees(conn: sqlite3.Connection, competition_id: str) -> list[Procuration]:
+    rows = conn.execute(
+        "SELECT * FROM procurations WHERE competition_id = ? AND statut = ?",
+        (competition_id, StatutProcuration.VALIDEE.value),
+    ).fetchall()
+    return [_row_to_procuration(r) for r in rows]
+
+
 def list_procurations_validees_par_mandataire(
     conn: sqlite3.Connection, competition_id: str, id_federal_mandataire: str
 ) -> list[Procuration]:

@@ -744,6 +744,33 @@ class TestRevoquerProcuration(ProcurationTestCase):
             services.revoquer_procuration(self.conn, "procuration-fantome")
 
 
+class TestListerProcurationsValidees(ProcurationTestCase):
+    def test_associe_les_deux_competiteurs(self):
+        demande = services.demander_procuration(self.conn, "FR-1", "FR-2", self.competition.id)
+        services.valider_procuration(self.conn, demande.id)
+
+        procurations = services.lister_procurations_validees(self.conn, self.competition.id)
+
+        self.assertEqual(len(procurations), 1)
+        mandataire, mandant, procuration = procurations[0]
+        self.assertEqual(mandataire.id_federal, "FR-1")
+        self.assertEqual(mandant.id_federal, "FR-2")
+        self.assertEqual(procuration.statut, StatutProcuration.VALIDEE)
+
+    def test_exclut_les_demandes_en_attente(self):
+        services.demander_procuration(self.conn, "FR-1", "FR-2", self.competition.id)
+        self.assertEqual(services.lister_procurations_validees(self.conn, self.competition.id), [])
+
+    def test_exclut_les_procurations_revoquees(self):
+        demande = services.demander_procuration(self.conn, "FR-1", "FR-2", self.competition.id)
+        services.valider_procuration(self.conn, demande.id)
+        services.revoquer_procuration(self.conn, demande.id)
+        self.assertEqual(services.lister_procurations_validees(self.conn, self.competition.id), [])
+
+    def test_liste_vide_si_aucune_procuration(self):
+        self.assertEqual(services.lister_procurations_validees(self.conn, self.competition.id), [])
+
+
 class TestListerMandantsPour(ProcurationTestCase):
     def test_liste_les_mandants_valides(self):
         demande = services.demander_procuration(self.conn, "FR-1", "FR-2", self.competition.id)

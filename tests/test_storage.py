@@ -673,6 +673,43 @@ class TestProcuration(StorageTestCase):
         validees = db.list_procurations_validees_par_mandataire(self.conn, "comp-1", "FR-1")
         self.assertEqual([p.id for p in validees], ["proc-1"])
 
+    def test_list_procurations_validees(self):
+        db.insert_procuration(
+            self.conn,
+            Procuration(
+                id="proc-1",
+                competition_id="comp-1",
+                id_federal_mandataire="FR-1",
+                id_federal_mandant="FR-2",
+                statut=StatutProcuration.VALIDEE,
+            ),
+        )
+        validees = db.list_procurations_validees(self.conn, "comp-1")
+        self.assertEqual([p.id for p in validees], ["proc-1"])
+
+    def test_list_procurations_validees_exclut_en_attente_et_revoquees(self):
+        db.insert_procuration(
+            self.conn,
+            Procuration(
+                id="proc-1",
+                competition_id="comp-1",
+                id_federal_mandataire="FR-1",
+                id_federal_mandant="FR-2",
+                statut=StatutProcuration.EN_ATTENTE,
+            ),
+        )
+        db.insert_procuration(
+            self.conn,
+            Procuration(
+                id="proc-2",
+                competition_id="comp-1",
+                id_federal_mandataire="FR-2",
+                id_federal_mandant="FR-1",
+                statut=StatutProcuration.REVOQUEE,
+            ),
+        )
+        self.assertEqual(db.list_procurations_validees(self.conn, "comp-1"), [])
+
     def test_update_statut_procuration_persiste(self):
         db.insert_procuration(
             self.conn,

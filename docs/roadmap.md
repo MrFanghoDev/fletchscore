@@ -708,6 +708,19 @@ confirmer par un vrai lancement.
       `id_federal_cible` → vrai `Score` en base avec le bon
       `propose_par_id_federal`).
 
+- [x] **Procurations validées visibles et révocables côté GUI** (issue
+      [#1](https://github.com/MrFanghoDev/fletchscore/issues/1)).
+      `revoquer_procuration()` existait déjà côté service depuis le
+      chantier initial, mais rien dans la GUI ne l'appelait -- l'onglet
+      "Procurations" n'affichait que les demandes en attente, une
+      procuration validée devenait invisible (et donc impossible à
+      révoquer sans passer par la base directement). Ajout de
+      `db.list_procurations_validees()` et
+      `services.lister_procurations_validees()` (même schéma que
+      `lister_tokens_actifs()`), et d'une seconde liste "Procurations
+      actives" avec bouton Révoquer dans le même onglet, sur le modèle
+      de l'onglet "Accès actifs". 6 nouveaux tests (storage + service).
+
 - [x] Déconnexion sur la page compétiteur -- signalé par l'utilisateur
       (le cookie de session dure 7 jours, sans aucun moyen de l'oublier
       avant). `GET /deconnexion` efface le cookie (`Max-Age=0`) et

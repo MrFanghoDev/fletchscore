@@ -239,6 +239,7 @@ class EcranConnexions(ctk.CTkFrame):
         onglet_procurations = self.onglets.tab("Procurations")
         onglet_procurations.grid_columnconfigure(0, weight=1)
         onglet_procurations.grid_rowconfigure(1, weight=1)
+        onglet_procurations.grid_rowconfigure(3, weight=1)
         ctk.CTkLabel(
             onglet_procurations,
             text="Autorise un compétiteur (le mandataire) à proposer des "
@@ -254,12 +255,24 @@ class EcranConnexions(ctk.CTkFrame):
         self.liste_procurations.grid(row=1, column=0, sticky="nsew")
         self.liste_procurations.grid_columnconfigure(0, weight=1)
 
+        ctk.CTkLabel(
+            onglet_procurations,
+            text="Procurations actives",
+            font=ctk.CTkFont(weight="bold"),
+        ).grid(row=2, column=0, sticky="w", pady=(10, 4))
+        self.liste_procurations_actives = ctk.CTkScrollableFrame(
+            onglet_procurations, fg_color="transparent"
+        )
+        self.liste_procurations_actives.grid(row=3, column=0, sticky="nsew")
+        self.liste_procurations_actives.grid_columnconfigure(0, weight=1)
+
         self._construire_onglet_message(self.onglets.tab("Messages"))
 
     def _rafraichir_tout(self) -> None:
         self._rafraichir_demandes()
         self._rafraichir_actifs()
         self._rafraichir_procurations()
+        self._rafraichir_procurations_actives()
         self._rafraichir_destinataires()
         self._rafraichir_historique_messages()
 
@@ -420,6 +433,7 @@ class EcranConnexions(ctk.CTkFrame):
             return
 
         self._rafraichir_procurations()
+        self._rafraichir_procurations_actives()
         self._afficher_info("Procuration validée.")
 
     def _rejeter_procuration(self, procuration) -> None:
@@ -432,6 +446,52 @@ class EcranConnexions(ctk.CTkFrame):
 
         self._rafraichir_procurations()
         self._afficher_info("Procuration rejetée.")
+
+    def _rafraichir_procurations_actives(self) -> None:
+        for widget in self.liste_procurations_actives.winfo_children():
+            widget.destroy()
+
+        competition = self._competitions_par_libelle.get(self.menu_competition.get())
+        if competition is None:
+            return
+
+        actives = services.lister_procurations_validees(self.conn, competition.id)
+        if not actives:
+            ctk.CTkLabel(
+                self.liste_procurations_actives, text="Aucune procuration active pour l'instant."
+            ).grid(row=0, column=0, sticky="w", pady=10)
+            return
+
+        for index, (mandataire, mandant, procuration) in enumerate(actives):
+            ligne = ctk.CTkFrame(self.liste_procurations_actives, fg_color="transparent")
+            ligne.grid(row=index, column=0, sticky="ew", pady=3)
+            ligne.grid_columnconfigure(0, weight=1)
+
+            texte = (
+                f"{mandataire.prenom} {mandataire.nom} propose des scores "
+                f"pour {mandant.prenom} {mandant.nom}"
+            )
+            ctk.CTkLabel(ligne, text=texte, anchor="w", wraplength=380).grid(
+                row=0, column=0, sticky="ew"
+            )
+            ctk.CTkButton(
+                ligne,
+                text="Révoquer",
+                width=90,
+                fg_color="gray40",
+                command=lambda p=procuration: self._revoquer_procuration(p),
+            ).grid(row=0, column=1, padx=(6, 0))
+
+    def _revoquer_procuration(self, procuration) -> None:
+        self._afficher_erreur("")
+        try:
+            services.revoquer_procuration(self.conn, procuration.id)
+        except ErreurMetier as erreur:
+            self._afficher_erreur(str(erreur))
+            return
+
+        self._rafraichir_procurations_actives()
+        self._afficher_info("Procuration révoquée.")
 
     # -- Messages -------------------------------------------------------
 

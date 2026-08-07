@@ -1005,3 +1005,16 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   /proposer-score` avec `id_federal_cible` → `Score` en base avec le
   bon `propose_par_id_federal` -- pas seulement les fonctions de
   génération de page testées isolément.
+
+- **Procurations validées invisibles côté GUI, corrigé** (issue
+  [#1](https://github.com/MrFanghoDev/fletchscore/issues/1)) --
+  `revoquer_procuration()` existait côté service dès le départ, mais
+  `gui/ecran_connexions.py` n'affichait que
+  `lister_procurations_en_attente()` : une fois validée, une
+  procuration sortait de la vue sans moyen de la révoquer autrement
+  qu'en base directement. `db.list_procurations_validees()` /
+  `services.lister_procurations_validees()` ajoutés sur le même schéma
+  que `list_tokens_by_competition()`/`lister_tokens_actifs()` (déjà
+  utilisé pour l'onglet "Accès actifs"), avec une seconde liste
+  "Procurations actives" + bouton Révoquer dans l'onglet
+  "Procurations".
