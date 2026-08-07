@@ -43,6 +43,13 @@ myst_enable_extensions = ["tasklist"]  # rend les "- [x]"/"- [ ]" en vraies
 # cases à cocher plutôt qu'en texte brut "[x]" -- les deux fichiers en
 # contiennent beaucoup (suivi de roadmap).
 
+# |doc_version| substitution utilisable dans n'importe quel .rst (ex. pied
+# de page de index.rst) -- contrairement à MyST (Markdown), reST n'a pas de
+# substitution {{ version }} intégrée, il faut la définir soi-même.
+rst_epilog = f"""
+.. |doc_version| replace:: {version}
+"""
+
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
