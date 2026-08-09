@@ -75,9 +75,21 @@ class EcranCompetitions(ctk.CTkFrame):
 
         self.champ_date_debut = ctk.CTkEntry(cadre, placeholder_text="Début AAAA-MM-JJ")
         self.champ_date_debut.grid(row=3, column=0, sticky="ew", padx=10, pady=2)
+        self.champ_date_debut.bind(
+            "<FocusOut>",
+            lambda _e: self._valider_date_en_direct(
+                self.champ_date_debut, "Date de début", self._afficher_erreur_competition
+            ),
+        )
 
         self.champ_date_fin = ctk.CTkEntry(cadre, placeholder_text="Fin AAAA-MM-JJ")
         self.champ_date_fin.grid(row=4, column=0, sticky="ew", padx=10, pady=2)
+        self.champ_date_fin.bind(
+            "<FocusOut>",
+            lambda _e: self._valider_date_en_direct(
+                self.champ_date_fin, "Date de fin", self._afficher_erreur_competition
+            ),
+        )
 
         self.case_veteran = ctk.CTkCheckBox(cadre, text="Activer les catégories Veteran/Senior")
         self.case_veteran.grid(row=5, column=0, sticky="w", padx=10, pady=(5, 2))
@@ -108,6 +120,23 @@ class EcranCompetitions(ctk.CTkFrame):
 
     def _afficher_info_competition(self, message: str) -> None:
         self.erreur_competition.configure(text=message, text_color="green")
+
+    @staticmethod
+    def _valider_date_en_direct(champ: ctk.CTkEntry, nom_champ: str, afficher_erreur) -> None:
+        """Validation à la perte de focus (pas à chaque frappe, trop
+        bruyant sur un format AAAA-MM-JJ en cours de saisie) -- ne fait
+        rien sur un champ encore vide, la validation à la soumission
+        (déjà en place) reste l'unique garde-fou pour un champ requis
+        jamais rempli."""
+        texte = champ.get().strip()
+        if not texte:
+            return
+        try:
+            parser_date(texte, nom_champ)
+        except ErreurMetier as erreur:
+            afficher_erreur(str(erreur))
+        else:
+            afficher_erreur("")
 
     def _rafraichir_competitions(self) -> None:
         for widget in self.liste_competitions.winfo_children():
@@ -257,6 +286,12 @@ class EcranCompetitions(ctk.CTkFrame):
 
         self.champ_date_epreuve = ctk.CTkEntry(cadre, placeholder_text="Date AAAA-MM-JJ")
         self.champ_date_epreuve.grid(row=3, column=0, sticky="ew", padx=10, pady=2)
+        self.champ_date_epreuve.bind(
+            "<FocusOut>",
+            lambda _e: self._valider_date_en_direct(
+                self.champ_date_epreuve, "Date de l'épreuve", self._afficher_erreur_epreuve
+            ),
+        )
 
         self.menu_bareme = ctk.CTkOptionMenu(cadre, values=["(aucun barème)"])
         self.menu_bareme.grid(row=4, column=0, sticky="ew", padx=10, pady=2)

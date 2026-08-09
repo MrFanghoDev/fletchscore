@@ -761,6 +761,21 @@ confirmer par un vrai lancement.
       et sombre) : la palette dorée/bleue correspond à celle des pages
       web.
 
+- [x] **Validation des dates à la perte de focus** (issue
+      [#23](https://github.com/MrFanghoDev/fletchscore/issues/23),
+      partie 1 -- le widget de sélection de date reste à faire, voir la
+      partie 2 de l'issue). Les 5 champs date (`champ_date_debut`,
+      `champ_date_fin`, `champ_date_epreuve`, `champ_date_naissance`,
+      `champ_licence`) sont maintenant validés dès qu'on quitte le
+      champ, pas seulement à la soumission -- réutilise le label
+      d'erreur déjà en place sur chaque écran, aucun nouveau mécanisme.
+      Ne valide pas un champ encore vide (la validation à la
+      soumission reste l'unique garde-fou pour un champ requis jamais
+      rempli, pour ne pas harceler l'organisateur qui tabule dans le
+      formulaire). Vérifié réellement (Xvfb + capture d'écran) : erreur
+      affichée immédiatement sur une date invalide sans cliquer sur
+      "Créer", puis effacée dès correction.
+
 ## Points ouverts transverses
 
 Voir le [cahier des charges](cahier-des-charges/roadmap.rst) pour le

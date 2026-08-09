@@ -298,6 +298,12 @@ class EcranCompetiteurs(ctk.CTkFrame):
 
         self.champ_date_naissance = ctk.CTkEntry(cadre, placeholder_text="Naissance AAAA-MM-JJ")
         self.champ_date_naissance.grid(row=6, column=0, sticky="ew", padx=10, pady=2)
+        self.champ_date_naissance.bind(
+            "<FocusOut>",
+            lambda _e: self._valider_date_en_direct(
+                self.champ_date_naissance, "Date de naissance", self._afficher_erreur_competiteur
+            ),
+        )
 
         self.menu_style_competiteur = ctk.CTkOptionMenu(cadre, values=["(aucun style)"])
         self.menu_style_competiteur.grid(row=7, column=0, sticky="ew", padx=10, pady=2)
@@ -306,6 +312,12 @@ class EcranCompetiteurs(ctk.CTkFrame):
             cadre, placeholder_text="Licence valide jusqu'au (optionnel)"
         )
         self.champ_licence.grid(row=8, column=0, sticky="ew", padx=10, pady=2)
+        self.champ_licence.bind(
+            "<FocusOut>",
+            lambda _e: self._valider_date_en_direct(
+                self.champ_licence, "Licence valide jusqu'au", self._afficher_erreur_competiteur
+            ),
+        )
 
         self.erreur_competiteur = ctk.CTkLabel(cadre, text="", text_color="red", wraplength=260)
         self.erreur_competiteur.grid(row=9, column=0, sticky="w", padx=10)
@@ -338,6 +350,23 @@ class EcranCompetiteurs(ctk.CTkFrame):
 
     def _afficher_info_competiteur(self, message: str) -> None:
         self.erreur_competiteur.configure(text=message, text_color="green")
+
+    @staticmethod
+    def _valider_date_en_direct(champ: ctk.CTkEntry, nom_champ: str, afficher_erreur) -> None:
+        """Validation à la perte de focus (pas à chaque frappe, trop
+        bruyant sur un format AAAA-MM-JJ en cours de saisie) -- ne fait
+        rien sur un champ encore vide, la validation à la soumission
+        (déjà en place) reste l'unique garde-fou pour un champ requis
+        jamais rempli."""
+        texte = champ.get().strip()
+        if not texte:
+            return
+        try:
+            parser_date(texte, nom_champ)
+        except ErreurMetier as erreur:
+            afficher_erreur(str(erreur))
+        else:
+            afficher_erreur("")
 
     def _rafraichir_choix_club(self) -> None:
         clubs = db.list_clubs(self.conn)
