@@ -147,6 +147,21 @@ En plus de la checklist générique (voir le `CLAUDE.md` global) :
   l'aveugle une deuxième fois sur un système (déclencheurs GitHub
   Actions + Pages) impossible à tester dans cet environnement.
 
+- **`publish-pypi` ne se déclenchait jamais tout seul -- confirmé côté
+  FletchTime le 2026-08-09 (release v0.3.1), même bug latent ici.**
+  `archive-on-release` crée la Release GitHub automatiquement au push du
+  tag, mais avec le `GITHUB_TOKEN` du workflow -- GitHub ne redéclenche
+  jamais un autre workflow à partir d'un événement produit par ce token
+  (anti-boucle). `release: published` ne se déclenche donc jamais dans
+  ce cas, et `publish-pypi` (condition stricte sur cet événement)
+  restait skip silencieusement. Repéré côté FletchTime ; jamais exercé
+  ici uniquement parce que les Releases FletchScore ont toujours été
+  recréées à la main (compte humain, pas de restriction anti-boucle)
+  plutôt que par le bot. Corrigé en faisant tourner `publish-pypi`
+  directement sur le push de tag, comme `build-executables`/
+  `archive-on-release` -- voir le `CLAUDE.md` de FletchTime pour le
+  détail complet.
+
 *Voir aussi le `CLAUDE.md` de FletchTime pour les leçons équivalentes sur
 le projet frère -- mêmes catégories de risque (référence non vérifiée,
 données réelles non exclues d'une livraison) à surveiller ici aussi.*
