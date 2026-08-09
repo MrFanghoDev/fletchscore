@@ -151,15 +151,22 @@ class FenetrePrincipale(ctk.CTk):
         )
         self.menu_theme.set(self.config_gui.theme)
         self.menu_theme.grid(
-            row=len(LIBELLES_SECTIONS) + 3, column=0, padx=20, pady=(5, 20), sticky="ew"
+            row=len(LIBELLES_SECTIONS) + 3, column=0, padx=20, pady=(5, 10), sticky="ew"
         )
+
+        ctk.CTkButton(
+            self.barre_laterale,
+            text="Quitter",
+            fg_color="gray40",
+            command=self._on_quit,
+        ).grid(row=len(LIBELLES_SECTIONS) + 4, column=0, padx=20, pady=(0, 15), sticky="ew")
 
         ctk.CTkLabel(
             self.barre_laterale,
             text=f"v{__version__}",
             font=ctk.CTkFont(size=11),
             text_color="gray60",
-        ).grid(row=len(LIBELLES_SECTIONS) + 4, column=0, padx=20, pady=(0, 10), sticky="w")
+        ).grid(row=len(LIBELLES_SECTIONS) + 5, column=0, padx=20, pady=(0, 10), sticky="w")
 
     def _construire_zone_contenu(self) -> None:
         self.zone_contenu = ctk.CTkFrame(self, corner_radius=0, fg_color="transparent")
@@ -286,6 +293,10 @@ class FenetrePrincipale(ctk.CTk):
         self.config_gui.theme = theme
         ctk.set_appearance_mode(theme)
         gui_config.sauvegarder(self.config_gui)
+
+    def _on_quit(self) -> None:
+        self.arreter_serveur_web()
+        self.destroy()
 
 
 def lancer(chemin_base: Path | str = CHEMIN_BASE_PAR_DEFAUT, http_port: int | None = None) -> None:

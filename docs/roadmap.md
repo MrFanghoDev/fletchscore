@@ -729,6 +729,16 @@ confirmer par un vrai lancement.
       test HTTP qui vérifie l'en-tête `Set-Cookie` renvoyé par le
       serveur, pas seulement que la fonction s'exécute sans erreur.
 
+- [x] **Bouton "Quitter" dans le panneau latéral** (issue
+      [#14](https://github.com/MrFanghoDev/fletchscore/issues/14)), sous
+      le sélecteur de thème et au-dessus du numéro de version -- même
+      convention que FletchTime (voir CLAUDE.md global, section "Design
+      partagé"). `_on_quit()` arrête proprement le serveur web
+      compétiteur s'il tournait (`arreter_serveur_web()`) avant de
+      fermer la fenêtre. Vérifié réellement (Xvfb + capture d'écran +
+      clic simulé) : le bouton s'affiche au bon endroit et le processus
+      se termine sans trace d'erreur après le clic.
+
 ## Points ouverts transverses
 
 Voir le [cahier des charges](cahier-des-charges/roadmap.rst) pour le
