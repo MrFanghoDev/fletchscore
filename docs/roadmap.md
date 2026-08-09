@@ -748,6 +748,19 @@ confirmer par un vrai lancement.
       capture d'écran) : le logo s'affiche correctement dans le
       panneau latéral.
 
+- [x] **Thème customtkinter aligné sur la charte graphique** (issue
+      [#16](https://github.com/MrFanghoDev/fletchscore/issues/16)) --
+      `gui/app.py::_apply_brand_colors()`, port fidèle de l'équivalent
+      FletchTime (mêmes valeurs hex, dupliquées à dessein plutôt que
+      partagées en code -- voir CLAUDE.md global, section "Design
+      partagé"). Surcharge seulement les couleurs du thème intégré
+      "dark-blue" (jamais ses clés structurelles), appelé avant
+      `super().__init__()` comme FletchTime -- customtkinter fige le
+      thème de chaque widget à sa construction, fenêtre racine
+      comprise. Vérifié réellement (Xvfb + capture d'écran, thème clair
+      et sombre) : la palette dorée/bleue correspond à celle des pages
+      web.
+
 ## Points ouverts transverses
 
 Voir le [cahier des charges](cahier-des-charges/roadmap.rst) pour le

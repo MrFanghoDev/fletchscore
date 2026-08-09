@@ -56,8 +56,75 @@ LIBELLES_SECTIONS = {
 }
 
 
+def _apply_brand_colors() -> None:
+    """Surcharge uniquement les couleurs du thème `customtkinter` déjà
+    chargé pour reprendre la palette de marque de l'appli -- mêmes
+    couleurs que les pages web en thème sombre/clair (voir
+    `fletchscore/web/theme.css`). Identique à FletchTime (voir
+    `fletchtime/gui.py::_apply_brand_colors`) -- valeurs hex dupliquées
+    à dessein plutôt que partagées en code, voir CLAUDE.md global
+    section "Design partagé" : à garder synchronisé manuellement avec
+    `fletchapps/theme.css` si la palette change un jour.
+
+    Ne touche à aucune clé structurelle (rayons, épaisseurs de
+    bordure...), qui reste celle du thème intégré ("dark-blue"), déjà
+    complète et testée pour la version de `customtkinter` installée --
+    un thème entièrement personnalisé (JSON maison) risquerait d'oublier
+    une clé interne attendue par une version différente de la
+    bibliothèque, faisant planter la construction de la fenêtre (piège
+    déjà rencontré côté FletchTime)."""
+    try:
+        theme = ctk.ThemeManager.theme
+
+        def set_color(widget: str, key: str, light: str, dark: str) -> None:
+            # Ne crée jamais une clé absente du thème chargé -- remplace
+            # seulement une valeur déjà attendue à cet endroit précis.
+            if widget in theme and key in theme[widget]:
+                theme[widget][key] = [light, dark]
+
+        set_color("CTk", "fg_color", "#eef1f6", "#0f1216")
+        set_color("CTkToplevel", "fg_color", "#eef1f6", "#0f1216")
+
+        set_color("CTkFrame", "fg_color", "#ffffff", "#171b22")
+        set_color("CTkFrame", "top_fg_color", "#f2f4f9", "#1d232c")
+        set_color("CTkFrame", "border_color", "#d7dce6", "#2a3140")
+
+        set_color("CTkButton", "fg_color", "#a8781f", "#d1a13d")
+        set_color("CTkButton", "hover_color", "#8a6119", "#b38732")
+        set_color("CTkButton", "text_color", "#ffffff", "#0f1216")
+
+        set_color("CTkLabel", "text_color", "#1b2333", "#e8ebf1")
+
+        set_color("CTkEntry", "fg_color", "#f2f4f9", "#1d232c")
+        set_color("CTkEntry", "border_color", "#d7dce6", "#2a3140")
+        set_color("CTkEntry", "text_color", "#1b2333", "#e8ebf1")
+
+        set_color("CTkOptionMenu", "fg_color", "#3357bf", "#4c7bdb")
+
+        set_color("CTkTextbox", "fg_color", "#f2f4f9", "#05070a")
+        set_color("CTkTextbox", "border_color", "#d7dce6", "#2a3140")
+        set_color("CTkTextbox", "text_color", "#1b2333", "#e8ebf1")
+    except Exception:
+        # Filet de sécurité : si l'API interne de ThemeManager diffère de
+        # ce qui est attendu ici (ex. version de customtkinter
+        # différente), l'appli continue avec le thème intégré
+        # "dark-blue" tel quel -- moins conforme à la charte graphique,
+        # jamais un plantage au démarrage pour une simple histoire de
+        # couleurs.
+        pass
+
+
 class FenetrePrincipale(ctk.CTk):
     def __init__(self, conn: sqlite3.Connection, config: gui_config.ConfigGui) -> None:
+        # Doit être fait AVANT super().__init__() : customtkinter
+        # applique le thème au moment de la construction de chaque
+        # widget, fenêtre racine comprise -- appelé après, la fenêtre
+        # elle-même garderait le thème par défaut (même piège documenté
+        # côté FletchTime).
+        ctk.set_appearance_mode(config.theme)
+        ctk.set_default_color_theme("dark-blue")
+        _apply_brand_colors()
+
         super().__init__()
         self.conn = conn
         self.config_gui = config
@@ -68,8 +135,6 @@ class FenetrePrincipale(ctk.CTk):
         self.title(f"FletchScore {__version__}")
         self.geometry("1100x700")
         self.minsize(900, 600)
-
-        ctk.set_appearance_mode(self.config_gui.theme)
 
         self.authentifie = True
         if auth.mot_de_passe_defini():
