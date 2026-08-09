@@ -29,13 +29,15 @@ class EcranClassement(ctk.CTkFrame):
         self.conn = conn
         self._epreuves_par_libelle: dict = {}
         self._competitions_par_libelle: dict = {}
+        self._mode_affichage = "epreuve"  # ou "global" -- voir _basculer_affichage
 
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(3, weight=1)
+        self.grid_rowconfigure(4, weight=1)
 
         self._construire_selecteur_epreuve()
         self._construire_controles_export()
         self._construire_controles_export_global()
+        self._construire_bascule_affichage()
         self._construire_zone_classement()
         self._rafraichir_epreuves()
         self._rafraichir_competitions_globales()
@@ -184,7 +186,11 @@ class EcranClassement(ctk.CTkFrame):
         ).grid(row=0, column=0, columnspan=5, sticky="w", padx=10, pady=(10, 5))
 
         ctk.CTkLabel(cadre, text="Compétition :").grid(row=1, column=0, padx=(10, 5))
-        self.menu_competition_globale = ctk.CTkOptionMenu(cadre, values=["(aucune compétition)"])
+        self.menu_competition_globale = ctk.CTkOptionMenu(
+            cadre,
+            values=["(aucune compétition)"],
+            command=lambda _libelle: self._rafraichir_classement(),
+        )
         self.menu_competition_globale.grid(row=1, column=1, sticky="ew", padx=(0, 10))
 
         ctk.CTkButton(cadre, text="Exporter CSV", command=self._exporter_global_csv).grid(
@@ -301,17 +307,61 @@ class EcranClassement(ctk.CTkFrame):
         exporter_classement_global_pdf(epreuves, classement, chemin, titre=competition.nom)
         self._afficher_info_export_global(f"Classement global exporté vers {chemin}")
 
+    # -- Bascule épreuve / global ---------------------------------------------
+
+    def _construire_bascule_affichage(self) -> None:
+        cadre = ctk.CTkFrame(self, fg_color="transparent")
+        cadre.grid(row=3, column=0, sticky="w", pady=(0, 5))
+
+        self.bouton_mode_epreuve = ctk.CTkButton(
+            cadre,
+            text="Par épreuve",
+            width=120,
+            command=lambda: self._basculer_affichage("epreuve"),
+        )
+        self.bouton_mode_epreuve.grid(row=0, column=0, padx=(0, 5))
+        # Couleur "active" par défaut du thème -- capturée ici plutôt que
+        # redonnée comme fg_color=None à .configure() plus bas : contrairement
+        # au constructeur, CTkButton.configure() refuse fg_color=None (lève
+        # ValueError), il faut lui repasser une vraie couleur.
+        self._couleur_bouton_actif = self.bouton_mode_epreuve.cget("fg_color")
+
+        self.bouton_mode_global = ctk.CTkButton(
+            cadre,
+            text="Global",
+            width=120,
+            fg_color="gray40",
+            command=lambda: self._basculer_affichage("global"),
+        )
+        self.bouton_mode_global.grid(row=0, column=1)
+
+    def _basculer_affichage(self, mode: str) -> None:
+        self._mode_affichage = mode
+        self.bouton_mode_epreuve.configure(
+            fg_color=self._couleur_bouton_actif if mode == "epreuve" else "gray40"
+        )
+        self.bouton_mode_global.configure(
+            fg_color=self._couleur_bouton_actif if mode == "global" else "gray40"
+        )
+        self._rafraichir_classement()
+
     # -- Classement ----------------------------------------------------------
 
     def _construire_zone_classement(self) -> None:
         self.zone_classement = ctk.CTkScrollableFrame(self, fg_color="transparent")
-        self.zone_classement.grid(row=3, column=0, sticky="nsew")
+        self.zone_classement.grid(row=4, column=0, sticky="nsew")
         self.zone_classement.grid_columnconfigure(0, weight=1)
 
     def _rafraichir_classement(self) -> None:
         for widget in self.zone_classement.winfo_children():
             widget.destroy()
 
+        if self._mode_affichage == "global":
+            self._rafraichir_classement_global()
+        else:
+            self._rafraichir_classement_epreuve()
+
+    def _rafraichir_classement_epreuve(self) -> None:
         epreuve = self._epreuves_par_libelle.get(self.menu_epreuve.get())
         if epreuve is None:
             ctk.CTkLabel(self.zone_classement, text="Aucune épreuve disponible.").grid(
@@ -351,6 +401,52 @@ class EcranClassement(ctk.CTkFrame):
                 if ligne_classement.nombre_x:
                     texte += f", {ligne_classement.nombre_x} X"
                 ctk.CTkLabel(self.zone_classement, text=texte, anchor="w").grid(
+                    row=ligne_grille, column=0, sticky="ew", padx=15, pady=2
+                )
+                ligne_grille += 1
+
+    def _rafraichir_classement_global(self) -> None:
+        competition = self._competitions_par_libelle.get(self.menu_competition_globale.get())
+        if competition is None:
+            ctk.CTkLabel(self.zone_classement, text="Aucune compétition disponible.").grid(
+                row=0, column=0, sticky="w", pady=10
+            )
+            return
+
+        try:
+            epreuves, classement = services.classement_global_competition(self.conn, competition.id)
+        except ErreurMetier as erreur:
+            ctk.CTkLabel(self.zone_classement, text=str(erreur), text_color="red").grid(
+                row=0, column=0, sticky="w", pady=10
+            )
+            return
+
+        if not classement:
+            ctk.CTkLabel(
+                self.zone_classement, text="Aucun compétiteur inscrit pour l'instant."
+            ).grid(row=0, column=0, sticky="w", pady=10)
+            return
+
+        ligne_grille = 0
+        for code_categorie in sorted(classement):
+            ctk.CTkLabel(
+                self.zone_classement,
+                text=code_categorie,
+                font=ctk.CTkFont(size=15, weight="bold"),
+            ).grid(row=ligne_grille, column=0, sticky="w", pady=(15, 5))
+            ligne_grille += 1
+
+            for ligne_globale in classement[code_categorie]:
+                competiteur = ligne_globale.competiteur
+                detail_epreuves = ", ".join(
+                    f"{epreuve.nom} : {ligne_globale.totaux_par_epreuve.get(epreuve.id, 0)}"
+                    for epreuve in epreuves
+                )
+                texte = (
+                    f"{ligne_globale.rang}. {competiteur.prenom} {competiteur.nom} "
+                    f"-- {ligne_globale.total_global} points ({detail_epreuves})"
+                )
+                ctk.CTkLabel(self.zone_classement, text=texte, anchor="w", wraplength=700).grid(
                     row=ligne_grille, column=0, sticky="ew", padx=15, pady=2
                 )
                 ligne_grille += 1

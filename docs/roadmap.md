@@ -776,7 +776,28 @@ confirmer par un vrai lancement.
       affichée immédiatement sur une date invalide sans cliquer sur
       "Créer", puis effacée dès correction.
 
-## Points ouverts transverses
+- [x] **Classement global affiché à l'écran, pas seulement à l'export**
+      (issue [#26](https://github.com/MrFanghoDev/fletchscore/issues/26)).
+      `services.classement_global_competition` et le bloc d'export
+      global existaient déjà, mais rien n'affichait ce classement à
+      l'écran -- l'organisateur devait exporter un fichier pour le
+      consulter. Ajout d'une bascule "Par épreuve / Global" au-dessus
+      de la zone de classement (`gui/ecran_classement.py`), qui
+      réutilise le sélecteur de compétition déjà présent pour l'export
+      global. Le mode global affiche, par catégorie, le total cumulé
+      et le détail par épreuve de chaque compétiteur.
+      **Bug trouvé et corrigé en vérifiant réellement** :
+      `CTkButton.configure(fg_color=None)` lève une `ValueError` dans
+      cette version de customtkinter (contrairement au constructeur, où
+      `None` est valide et signifie "couleur du thème") -- la bascule
+      plantait silencieusement dans le gestionnaire du bouton et
+      n'appelait jamais le rafraîchissement de l'affichage. Une capture
+      d'écran seule ne l'aurait pas révélé (les couleurs des boutons
+      changeaient malgré tout) ; repéré en inspectant directement le
+      contenu de `zone_classement` par script plutôt qu'en relisant
+      seulement les captures d'écran. Corrigé en capturant la couleur
+      par défaut du bouton une fois à la construction
+      (`cget("fg_color")`) plutôt que de repasser `None` à `configure()`.
 
 Voir le [cahier des charges](cahier-des-charges/roadmap.rst) pour le
 détail : style de tir (extension FFTL ?), format d'export fédération,
