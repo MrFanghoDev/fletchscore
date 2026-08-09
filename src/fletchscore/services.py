@@ -21,8 +21,6 @@ import uuid
 from dataclasses import dataclass
 from datetime import date, datetime
 
-logger = logging.getLogger("fletchscore")
-
 from fletchscore import securite
 from fletchscore.models import (
     Club,
@@ -46,6 +44,8 @@ from fletchscore.models import (
 from fletchscore.scoring import classement_global, classement_par_categorie
 from fletchscore.scoring.classement import LigneClassement, LigneClassementGlobal
 from fletchscore.storage import db
+
+logger = logging.getLogger("fletchscore")
 
 
 class ErreurMetier(Exception):
