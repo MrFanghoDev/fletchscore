@@ -21,6 +21,13 @@ DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 MAX_BYTES = 1_000_000
 BACKUP_COUNT = 5
 
+NOM_FICHIER_JOURNAL = "fletchscore.log"
+DOSSIER_JOURNAL_PAR_DEFAUT = Path("logs")
+# Chemin complet par défaut -- source unique pour __main__.py (écriture)
+# et gui/ecran_journal.py (lecture), pour qu'ils ne puissent pas dériver
+# l'un de l'autre.
+CHEMIN_JOURNAL_PAR_DEFAUT = DOSSIER_JOURNAL_PAR_DEFAUT / NOM_FICHIER_JOURNAL
+
 
 def configure_logging(
     log_dir: Path, console_level: int = logging.WARNING, file_level: int = logging.INFO
@@ -37,7 +44,7 @@ def configure_logging(
     le terminal) et ``-d``/``--debug`` (DEBUG partout, fichier compris).
     """
     log_dir.mkdir(parents=True, exist_ok=True)
-    log_file = log_dir / "fletchscore.log"
+    log_file = log_dir / NOM_FICHIER_JOURNAL
 
     logger = logging.getLogger("fletchscore")
     # Le logger lui-même laisse tout passer (DEBUG) -- c'est à chaque

@@ -7,9 +7,8 @@ resolves to `fletchscore.__main__:main`.
 
 import argparse
 import logging
-from pathlib import Path
 
-from fletchscore.logging_setup import configure_logging
+from fletchscore.logging_setup import DOSSIER_JOURNAL_PAR_DEFAUT, configure_logging
 
 
 def _resolve_console_log_level(args: argparse.Namespace) -> int:
@@ -55,7 +54,7 @@ def main() -> None:
 
     console_level = _resolve_console_log_level(args)
     file_level = logging.DEBUG if args.debug else logging.INFO
-    log_file = configure_logging(Path("logs"), console_level, file_level)
+    log_file = configure_logging(DOSSIER_JOURNAL_PAR_DEFAUT, console_level, file_level)
     if args.verbose or args.debug:
         print(f"Journal détaillé : {log_file}")
 

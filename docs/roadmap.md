@@ -820,6 +820,21 @@ confirmer par un vrai lancement.
       idempotence, mise à jour des niveaux, écriture réelle) + 1 sur la
       journalisation d'une panne dans `saisir_score_final`.
 
+- [x] **Écran "Journal" dans la GUI** (issue
+      [#19](https://github.com/MrFanghoDev/fletchscore/issues/19),
+      dépendait de #18). Affiche le contenu du fichier créé par #18
+      (`gui/ecran_journal.py`, `CTkTextbox` en lecture seule sur le
+      modèle du `log_box` de FletchTime), avec un bouton "Actualiser"
+      plutôt qu'un suivi en temps réel -- FletchScore n'a pas le même
+      besoin de suivi en direct que FletchTime pendant un concours.
+      Nouvelle constante `CHEMIN_JOURNAL_PAR_DEFAUT` dans
+      `logging_setup.py`, seule source de vérité pour `__main__.py`
+      (écriture) et cet écran (lecture), pour que les deux ne puissent
+      pas dériver l'un de l'autre. Vérifié réellement (Xvfb + capture
+      d'écran) : contenu pré-rempli affiché correctement, une ligne
+      ajoutée au fichier depuis l'extérieur apparaît bien après un clic
+      sur "Actualiser".
+
 ## Points ouverts transverses
 
 Voir le [cahier des charges](cahier-des-charges/roadmap.rst) pour le

@@ -27,6 +27,7 @@ from fletchscore.gui.ecran_classement import EcranClassement
 from fletchscore.gui.ecran_competiteurs import EcranCompetiteurs
 from fletchscore.gui.ecran_competitions import EcranCompetitions
 from fletchscore.gui.ecran_connexions import EcranConnexions
+from fletchscore.gui.ecran_journal import EcranJournal
 from fletchscore.gui.ecran_mot_de_passe import EcranMotDePasse
 from fletchscore.gui.ecran_saisie import EcranSaisie
 from fletchscore.gui.robustesse import (
@@ -52,6 +53,7 @@ LIBELLES_SECTIONS = {
     "classement": "Classement",
     "connexions": "Connexions compétiteurs",
     "mot_de_passe": "Mot de passe",
+    "journal": "Journal",
     "aide": "Aide",
 }
 
@@ -310,6 +312,11 @@ class FenetrePrincipale(ctk.CTk):
 
         if cle == "mot_de_passe":
             ecran = EcranMotDePasse(self.cadre_section)
+            ecran.grid(row=0, column=0, sticky="nsew")
+            return
+
+        if cle == "journal":
+            ecran = EcranJournal(self.cadre_section)
             ecran.grid(row=0, column=0, sticky="nsew")
             return
 
