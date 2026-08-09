@@ -401,6 +401,20 @@ class TestSaisirScoreFinal(ServiceTestCase):
             services.saisir_score_final(self.conn, inscription.id, 200, nombre_x=1)
         self.assertIn("n'utilise pas de zone X", str(contexte.exception))
 
+    def test_echec_inattendu_de_lecriture_est_journalise_puis_relance(self):
+        """Chemin critique (CLAUDE.md) : une panne d'écriture imprévue ne
+        doit jamais être avalée silencieusement -- voir issue #18."""
+        with mock.patch.object(
+            services.db, "upsert_score", side_effect=RuntimeError("panne simulée")
+        ):
+            with self.assertLogs("fletchscore", level="ERROR") as contexte:
+                with self.assertRaises(RuntimeError):
+                    services.saisir_score_final(self.conn, self.inscription.id, 260)
+
+        journal = "\n".join(contexte.output)
+        self.assertIn("Échec de l'enregistrement du score", journal)
+        self.assertIn("RuntimeError", journal)
+
     def test_correction_ecrase_le_score_precedent_sans_doublon(self):
         services.saisir_score_final(self.conn, self.inscription.id, 200)
         services.saisir_score_final(self.conn, self.inscription.id, 260)

@@ -6,6 +6,18 @@ resolves to `fletchscore.__main__:main`.
 """
 
 import argparse
+import logging
+from pathlib import Path
+
+from fletchscore.logging_setup import configure_logging
+
+
+def _resolve_console_log_level(args: argparse.Namespace) -> int:
+    if args.debug:
+        return logging.DEBUG
+    if args.verbose:
+        return logging.INFO
+    return logging.WARNING
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -40,6 +52,12 @@ def main() -> None:
             __version__ = _pkg_version("fletchscore")
         print(__version__)
         return
+
+    console_level = _resolve_console_log_level(args)
+    file_level = logging.DEBUG if args.debug else logging.INFO
+    log_file = configure_logging(Path("logs"), console_level, file_level)
+    if args.verbose or args.debug:
+        print(f"Journal détaillé : {log_file}")
 
     # Import tardif : garde `--version` fonctionnel même si customtkinter
     # est absent ou cassé sur cette machine (cas plausible sous Pydroid),

@@ -41,6 +41,10 @@ config/certificat_https_cle.pem
 # personne qui lance la fenêtre, pas un réglage de club à partager.
 config/gui.toml
 
+# Journal applicatif (voir fletchscore/logging_setup.py) -- propre à
+# chaque installation, jamais versionné.
+logs/
+
 # Base de données locale -- contient des données personnelles réelles de
 # compétiteurs (id fédéral, nom, date de naissance) : ne doit jamais être
 # committée, ni en développement ni en test.

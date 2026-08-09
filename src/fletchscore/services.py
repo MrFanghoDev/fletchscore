@@ -14,11 +14,14 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import logging
 import secrets
 import sqlite3
 import uuid
 from dataclasses import dataclass
 from datetime import date, datetime
+
+logger = logging.getLogger("fletchscore")
 
 from fletchscore import securite
 from fletchscore.models import (
@@ -545,7 +548,23 @@ def saisir_score_final(
         statut=statut,
         propose_par_id_federal=propose_par_id_federal,
     )
-    db.upsert_score(conn, score)
+    try:
+        db.upsert_score(conn, score)
+    except Exception:
+        # Chemin critique (CLAUDE.md) : couvre à la fois la saisie
+        # organisateur, une proposition compétiteur (proposer_score) et
+        # sa validation (valider_score_propose), qui passent toutes les
+        # trois par ici -- jamais de corruption silencieuse d'un score,
+        # toujours une trace exploitable après coup. Ré-échouée telle
+        # quelle après journalisation, pas de repli ni de correction
+        # automatique : à l'appelant de décider quoi faire d'une
+        # écriture en base qui a échoué.
+        logger.exception(
+            "Échec de l'enregistrement du score (inscription_id=%s, statut=%s)",
+            inscription_id,
+            statut,
+        )
+        raise
     return score
 
 

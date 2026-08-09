@@ -799,6 +799,29 @@ confirmer par un vrai lancement.
       par défaut du bouton une fois à la construction
       (`cget("fg_color")`) plutôt que de repasser `None` à `configure()`.
 
+- [x] **Infrastructure de journalisation** (issue
+      [#18](https://github.com/MrFanghoDev/fletchscore/issues/18)) --
+      `-v`/`-d` étaient déclarés dans l'argparse de `__main__.py` mais
+      jamais lus, sans aucun fichier journal persistant. Port fidèle de
+      `fletchtime/logging_setup.py` (rotation 1 Mo × 5 fichiers, niveaux
+      fichier/terminal indépendants) : le fichier reste à INFO par
+      défaut, `-v` élève le terminal à INFO, `-d` élève les deux à
+      DEBUG. Fichier dans `logs/` (sibling de `config/`, jamais
+      versionné -- même trou trouvé et corrigé dans le `.gitignore` de
+      FletchTime au passage, absent là-bas aussi). `saisir_score_final`
+      (saisie organisateur, proposition compétiteur et sa validation
+      passent toutes les trois par cette unique fonction) journalise
+      désormais toute panne d'écriture imprévue avec sa trace complète
+      avant de la relancer telle quelle -- jamais de corruption
+      silencieuse d'un score, conformément à l'exigence déjà documentée
+      plus haut dans ce fichier. Vérifié réellement : script forçant un
+      échec d'écriture, message + trace bien présents dans le fichier
+      journal ; 4 nouveaux tests sur `logging_setup.py` (création,
+      idempotence, mise à jour des niveaux, écriture réelle) + 1 sur la
+      journalisation d'une panne dans `saisir_score_final`.
+
+## Points ouverts transverses
+
 Voir le [cahier des charges](cahier-des-charges/roadmap.rst) pour le
 détail : style de tir (extension FFTL ?), format d'export fédération,
 bibliothèque PDF à choisir (voir `pyproject.toml`). Vétérans/Seniors est
