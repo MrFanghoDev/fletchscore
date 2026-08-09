@@ -73,7 +73,11 @@ class EcranCompetiteurs(ctk.CTkFrame):
         ).grid(row=0, column=3)
 
     def _construire_zone_rapport(self) -> None:
-        self.zone_rapport = ctk.CTkTextbox(self, height=100, wrap="word")
+        # Hauteur pensée pour le cas courant (une seule ligne de résumé) --
+        # un import avec des lignes en erreur ajoute une ligne par erreur
+        # (voir formater_rapport) et reste consultable via le défilement
+        # intégré de CTkTextbox plutôt que d'agrandir le cadre.
+        self.zone_rapport = ctk.CTkTextbox(self, height=60, wrap="word")
         self.zone_rapport.grid(row=1, column=0, sticky="ew", pady=(0, 10))
         self.zone_rapport.configure(state="disabled")
 
