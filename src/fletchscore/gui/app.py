@@ -16,6 +16,7 @@ import threading
 from pathlib import Path
 
 import customtkinter as ctk
+from PIL import Image
 
 from fletchscore import __version__, auth
 from fletchscore.api.competiteur import adresse_ip_locale, creer_serveur
@@ -36,6 +37,12 @@ from fletchscore.gui.robustesse import (
 from fletchscore.storage.db import ouvrir_base
 
 CHEMIN_BASE_PAR_DEFAUT = Path("fletchscore.db")
+
+# Même fichier que celui servi par la vue compétiteur (fletchscore.web
+# est déjà embarqué tel quel par pip et PyInstaller -- voir
+# pyproject.toml/fletchscore.spec) : pas de nouveau dossier d'assets ni
+# de nouvelle entrée de packaging à faire vivre pour la GUI seule.
+CHEMIN_LOGO = Path(__file__).resolve().parent.parent / "web" / "logo.png"
 
 LIBELLES_SECTIONS = {
     "accueil": "Accueil",
@@ -124,11 +131,20 @@ class FenetrePrincipale(ctk.CTk):
         self.barre_laterale.grid(row=0, column=0, sticky="nsew")
         self.barre_laterale.grid_rowconfigure(len(LIBELLES_SECTIONS) + 1, weight=1)
 
+        entete = ctk.CTkFrame(self.barre_laterale, fg_color="transparent")
+        entete.grid(row=0, column=0, padx=20, pady=(20, 15))
+
+        image_logo = ctk.CTkImage(
+            light_image=Image.open(CHEMIN_LOGO),
+            dark_image=Image.open(CHEMIN_LOGO),
+            size=(28, 28),
+        )
+        ctk.CTkLabel(entete, image=image_logo, text="").pack(side="left", padx=(0, 8))
         ctk.CTkLabel(
-            self.barre_laterale,
+            entete,
             text="FletchScore",
             font=ctk.CTkFont(size=20, weight="bold"),
-        ).grid(row=0, column=0, padx=20, pady=(20, 15))
+        ).pack(side="left")
 
         self.boutons_sections: dict[str, ctk.CTkButton] = {}
         for index, (cle, libelle) in enumerate(LIBELLES_SECTIONS.items(), start=1):

@@ -739,6 +739,15 @@ confirmer par un vrai lancement.
       clic simulé) : le bouton s'affiche au bon endroit et le processus
       se termine sans trace d'erreur après le clic.
 
+- [x] **Logo FletchScore dans le panneau latéral** (issue
+      [#13](https://github.com/MrFanghoDev/fletchscore/issues/13)), à
+      côté du titre en haut. Réutilise `fletchscore/web/logo.png` (déjà
+      embarqué par pip et PyInstaller pour la vue compétiteur) plutôt
+      que d'ajouter un nouveau dossier d'assets et une nouvelle entrée
+      de packaging pour la seule GUI. Vérifié réellement (Xvfb +
+      capture d'écran) : le logo s'affiche correctement dans le
+      panneau latéral.
+
 ## Points ouverts transverses
 
 Voir le [cahier des charges](cahier-des-charges/roadmap.rst) pour le

@@ -30,7 +30,7 @@ include = ["fletchscore*"]
 
 [tool.setuptools.package-data]
 "fletchscore.web" = [
-    "*.html", "*.js", "*.css",
+    "*.html", "*.js", "*.css", "*.png",
 ]
 
 [tool.setuptools_scm]
