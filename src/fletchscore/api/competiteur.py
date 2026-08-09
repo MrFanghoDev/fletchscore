@@ -183,6 +183,11 @@ _TEXTES: dict[str, dict[str, str]] = {
         "en": "Your request has been sent. Please see the organiser so they "
         "can confirm your identity and grant you access.",
     },
+    "footer_credit": {
+        "fr": "Développé pour les Archers Libres de Fontaine-le-Port ·",
+        "en": "Built for Archers Libres de Fontaine-le-Port ·",
+    },
+    "footer_license": {"fr": "Licence GPLv3", "en": "GPLv3 License"},
 }
 
 
@@ -244,8 +249,21 @@ def _mise_en_page(
 <div class="page">
 {corps}
 </div>
+{_pied_de_page(lang)}
 </body>
 </html>"""
+
+
+def _pied_de_page(lang: str) -> str:
+    return (
+        '<footer class="site-footer">'
+        f"{_echapper(_t('footer_credit', lang))} "
+        '<a href="https://github.com/MrFanghoDev" target="_blank" rel="noopener">@MrFanghoDev</a>'
+        " · "
+        '<a href="https://github.com/MrFanghoDev/fletchscore/blob/master/LICENSE" '
+        f'target="_blank" rel="noopener">{_echapper(_t("footer_license", lang))}</a>'
+        "</footer>"
+    )
 
 
 def _statut_epreuve_pour(
