@@ -21,6 +21,7 @@ from fletchscore.io.export.excel import (
 )
 from fletchscore.scoring import podium_par_categorie
 from fletchscore.services import ErreurMetier, libelle_epreuve
+from fletchscore.storage import db
 
 
 class EcranClassement(ctk.CTkFrame):
@@ -362,11 +363,10 @@ class EcranClassement(ctk.CTkFrame):
             self._rafraichir_classement_epreuve()
 
     def _rafraichir_classement_epreuve(self) -> None:
-        # Remet la configuration de colonne à plat -- annule le mode
-        # tableau du classement global (voir _rafraichir_classement_global)
-        # si l'utilisateur vient de basculer depuis ce mode-là.
-        self.zone_classement.grid_columnconfigure(0, weight=1)
-        self.zone_classement.grid_columnconfigure(1, weight=0)
+        # Colonne "Nom" seule à s'étirer -- même convention que le mode
+        # global (voir _rafraichir_classement_global).
+        self.zone_classement.grid_columnconfigure(0, weight=0)
+        self.zone_classement.grid_columnconfigure(1, weight=1)
 
         epreuve = self._epreuves_par_libelle.get(self.menu_epreuve.get())
         if epreuve is None:
@@ -389,26 +389,48 @@ class EcranClassement(ctk.CTkFrame):
             ).grid(row=0, column=0, sticky="w", pady=10)
             return
 
+        noms_clubs = {club.code_club: club.nom for club in db.list_clubs(self.conn)}
+        entetes = ["Rang", "Nom", "Club", "Total", "X"]
+        nb_colonnes = len(entetes)
+
         ligne_grille = 0
         for code_categorie in sorted(classement):
             ctk.CTkLabel(
                 self.zone_classement,
                 text=code_categorie,
                 font=ctk.CTkFont(size=15, weight="bold"),
-            ).grid(row=ligne_grille, column=0, sticky="w", pady=(15, 5))
+            ).grid(row=ligne_grille, column=0, columnspan=nb_colonnes, sticky="w", pady=(15, 5))
+            ligne_grille += 1
+
+            for colonne, texte in enumerate(entetes):
+                ctk.CTkLabel(
+                    self.zone_classement, text=texte, font=ctk.CTkFont(weight="bold"), anchor="w"
+                ).grid(
+                    row=ligne_grille,
+                    column=colonne,
+                    sticky="w",
+                    padx=(15 if colonne == 0 else 8, 8),
+                )
             ligne_grille += 1
 
             for ligne_classement in classement[code_categorie]:
                 competiteur = ligne_classement.competiteur
-                texte = (
-                    f"{ligne_classement.rang}. {competiteur.prenom} {competiteur.nom} "
-                    f"-- {ligne_classement.total} points"
-                )
-                if ligne_classement.nombre_x:
-                    texte += f", {ligne_classement.nombre_x} X"
-                ctk.CTkLabel(self.zone_classement, text=texte, anchor="w").grid(
-                    row=ligne_grille, column=0, sticky="ew", padx=15, pady=2
-                )
+                nom_club = noms_clubs.get(competiteur.code_club, competiteur.code_club)
+                valeurs = [
+                    str(ligne_classement.rang),
+                    f"{competiteur.prenom} {competiteur.nom}",
+                    nom_club,
+                    str(ligne_classement.total),
+                    str(ligne_classement.nombre_x or ""),
+                ]
+                for colonne, texte in enumerate(valeurs):
+                    ctk.CTkLabel(self.zone_classement, text=texte, anchor="w").grid(
+                        row=ligne_grille,
+                        column=colonne,
+                        sticky="w",
+                        padx=(15 if colonne == 0 else 8, 8),
+                        pady=2,
+                    )
                 ligne_grille += 1
 
     def _rafraichir_classement_global(self) -> None:
@@ -433,14 +455,15 @@ class EcranClassement(ctk.CTkFrame):
             ).grid(row=0, column=0, sticky="w", pady=10)
             return
 
-        # Tableau (rang, nom, une colonne par épreuve, total, X) -- même
-        # structure que page_competition() côté vue web, plutôt qu'une
-        # ligne de texte par compétiteur. Colonne "Nom" seule à s'étirer
-        # (index 1) ; les autres colonnes restent compactes, y compris
-        # celles ajoutées dynamiquement par épreuve.
+        # Tableau (rang, nom, club, une colonne par épreuve, total, X) --
+        # même structure que page_competition() côté vue web, plutôt
+        # qu'une ligne de texte par compétiteur. Colonne "Nom" seule à
+        # s'étirer (index 1) ; les autres colonnes restent compactes, y
+        # compris celles ajoutées dynamiquement par épreuve.
         self.zone_classement.grid_columnconfigure(0, weight=0)
         self.zone_classement.grid_columnconfigure(1, weight=1)
-        entetes = ["Rang", "Nom"] + [epreuve.nom for epreuve in epreuves] + ["Total", "X"]
+        noms_clubs = {club.code_club: club.nom for club in db.list_clubs(self.conn)}
+        entetes = ["Rang", "Nom", "Club"] + [epreuve.nom for epreuve in epreuves] + ["Total", "X"]
         nb_colonnes = len(entetes)
 
         ligne_grille = 0
@@ -465,8 +488,9 @@ class EcranClassement(ctk.CTkFrame):
 
             for ligne_globale in classement[code_categorie]:
                 competiteur = ligne_globale.competiteur
+                nom_club = noms_clubs.get(competiteur.code_club, competiteur.code_club)
                 valeurs = (
-                    [str(ligne_globale.rang), f"{competiteur.prenom} {competiteur.nom}"]
+                    [str(ligne_globale.rang), f"{competiteur.prenom} {competiteur.nom}", nom_club]
                     + [
                         str(ligne_globale.totaux_par_epreuve.get(epreuve.id, 0))
                         for epreuve in epreuves

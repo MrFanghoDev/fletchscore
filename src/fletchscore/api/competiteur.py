@@ -105,6 +105,7 @@ _TEXTES: dict[str, dict[str, str]] = {
     "retour_epreuve": {"fr": "← Retour à l'épreuve", "en": "← Back to event"},
     "rang": {"fr": "Rang", "en": "Rank"},
     "nom": {"fr": "Nom", "en": "Name"},
+    "club": {"fr": "Club", "en": "Club"},
     "total": {"fr": "Total", "en": "Total"},
     "aucun_classe": {
         "fr": "Aucun compétiteur classé pour l'instant.",
@@ -404,16 +405,22 @@ def page_accueil(
     return _mise_en_page(_t("titre_accueil", lang), corps, lang, theme, "/")
 
 
-def _tableau_classement(classement: dict, lang: str) -> str:
+def _noms_clubs_par_code(conn: sqlite3.Connection) -> dict[str, str]:
+    return {club.code_club: club.nom for club in db.list_clubs(conn)}
+
+
+def _tableau_classement(classement: dict, lang: str, conn: sqlite3.Connection) -> str:
     if not classement:
         return f'<p>{_t("aucun_classe", lang)}</p>'
 
+    noms_clubs = _noms_clubs_par_code(conn)
     morceaux = []
     for categorie in sorted(classement):
         lignes_html = "".join(
             f"<tr><td>{ligne.rang}</td>"
             f"<td>{_echapper(ligne.competiteur.prenom)} "
             f"{_echapper(ligne.competiteur.nom)}</td>"
+            f"<td>{_echapper(noms_clubs.get(ligne.competiteur.code_club, ligne.competiteur.code_club))}</td>"
             f"<td>{ligne.total}</td><td>{ligne.nombre_x or ''}</td></tr>"
             for ligne in classement[categorie]
         )
@@ -421,6 +428,7 @@ def _tableau_classement(classement: dict, lang: str) -> str:
             f'<h2 class="categorie">{_echapper(categorie)}</h2>'
             '<table class="classement">'
             f'<tr><th>{_t("rang", lang)}</th><th>{_t("nom", lang)}</th>'
+            f'<th>{_t("club", lang)}</th>'
             f'<th>{_t("total", lang)}</th><th>X</th></tr>'
             f"{lignes_html}</table>"
         )
@@ -540,7 +548,7 @@ def page_epreuve(
         f"<h1>{_echapper(epreuve.nom)}</h1>"
         f'<p class="intro">{epreuve.date}</p>'
         f"{_section_proposer_score(conn, epreuve, identite, lang)}"
-        f"{_tableau_classement(classement, lang)}"
+        f"{_tableau_classement(classement, lang, conn)}"
     )
     return _mise_en_page(epreuve.nom, corps, lang, theme, chemin_retour)
 
@@ -572,6 +580,7 @@ def page_competition(
     if not classement:
         corps_classement = f'<p>{_t("aucun_classe", lang)}</p>'
     else:
+        noms_clubs = _noms_clubs_par_code(conn)
         morceaux = []
         for categorie in sorted(classement):
             lignes_html = ""
@@ -579,10 +588,12 @@ def page_competition(
                 colonnes_epreuves = "".join(
                     f"<td>{ligne.totaux_par_epreuve.get(e.id, 0)}</td>" for e in epreuves
                 )
+                nom_club = noms_clubs.get(ligne.competiteur.code_club, ligne.competiteur.code_club)
                 lignes_html += (
                     f"<tr><td>{ligne.rang}</td>"
                     f"<td>{_echapper(ligne.competiteur.prenom)} "
                     f"{_echapper(ligne.competiteur.nom)}</td>"
+                    f"<td>{_echapper(nom_club)}</td>"
                     f"{colonnes_epreuves}"
                     f"<td>{ligne.total_global}</td>"
                     f"<td>{ligne.nombre_x_global or ''}</td></tr>"
@@ -591,6 +602,7 @@ def page_competition(
                 f'<h2 class="categorie">{_echapper(categorie)}</h2>'
                 '<table class="classement">'
                 f'<tr><th>{_t("rang", lang)}</th><th>{_t("nom", lang)}</th>'
+                f'<th>{_t("club", lang)}</th>'
                 f'{entetes_epreuves}<th>{_t("total", lang)}</th><th>X</th></tr>'
                 f"{lignes_html}</table>"
             )
