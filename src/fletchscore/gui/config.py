@@ -20,6 +20,7 @@ from pathlib import Path
 CHEMIN_PAR_DEFAUT = Path("config") / "gui.toml"
 
 THEMES_VALIDES = ("system", "light", "dark")
+LANGUES_VALIDES = ("fr", "en")
 
 
 @dataclass(slots=True)
@@ -27,6 +28,9 @@ class ConfigGui:
     theme: str = "system"
     """Un de THEMES_VALIDES. 'system' suit le réglage clair/sombre du
     système d'exploitation."""
+
+    language: str = "fr"
+    """Un de LANGUES_VALIDES -- voir gui/i18n.py (issue #17)."""
 
     http_port: int | None = None
     """Port fixe pour la vue compétiteur (écran "Vue compétiteur") --
@@ -48,6 +52,11 @@ class ConfigGui:
             raise ValueError(
                 f"Thème inconnu : {self.theme!r} -- valeurs possibles : "
                 f"{', '.join(THEMES_VALIDES)}"
+            )
+        if self.language not in LANGUES_VALIDES:
+            raise ValueError(
+                f"Langue inconnue : {self.language!r} -- valeurs possibles : "
+                f"{', '.join(LANGUES_VALIDES)}"
             )
         if self.http_port is not None and not (1 <= self.http_port <= 65535):
             raise ValueError(
@@ -78,6 +87,10 @@ def charger(chemin: Path | str = CHEMIN_PAR_DEFAUT) -> ConfigGui:
     if theme not in THEMES_VALIDES:
         return ConfigGui()
 
+    language = donnees.get("language", "fr")
+    if language not in LANGUES_VALIDES:
+        language = "fr"  # valeur corrompue -- repli sur le français plutôt que planter
+
     http_port = donnees.get("http_port")
     if http_port is not None and not (1 <= http_port <= 65535):
         http_port = None  # valeur corrompue -- repli sur "auto" plutôt que planter
@@ -86,7 +99,7 @@ def charger(chemin: Path | str = CHEMIN_PAR_DEFAUT) -> ConfigGui:
     if not isinstance(https_actif, bool):
         https_actif = False  # valeur corrompue -- repli sur False plutôt que planter
 
-    return ConfigGui(theme=theme, http_port=http_port, https_actif=https_actif)
+    return ConfigGui(theme=theme, language=language, http_port=http_port, https_actif=https_actif)
 
 
 def sauvegarder(config: ConfigGui, chemin: Path | str = CHEMIN_PAR_DEFAUT) -> None:
@@ -103,6 +116,7 @@ def sauvegarder(config: ConfigGui, chemin: Path | str = CHEMIN_PAR_DEFAUT) -> No
         "# Préférences d'affichage de FletchScore -- fichier local,\n"
         "# non versionné. Supprime-le pour revenir aux valeurs par défaut.\n"
         f'theme = "{config.theme}"\n'
+        f'language = "{config.language}"\n'
     )
     if config.http_port is not None:
         contenu += f"http_port = {config.http_port}\n"

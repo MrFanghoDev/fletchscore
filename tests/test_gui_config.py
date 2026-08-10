@@ -97,6 +97,25 @@ class TestConfigGui(unittest.TestCase):
         self.chemin.write_text('theme = "dark"\nhttps_actif = "oui"\n', encoding="utf-8")
         self.assertFalse(charger(self.chemin).https_actif)
 
+    def test_langue_invalide_refuse_a_la_construction(self):
+        with self.assertRaises(ValueError):
+            ConfigGui(language="de")
+
+    def test_langue_francaise_par_defaut(self):
+        self.assertEqual(ConfigGui().language, "fr")
+
+    def test_langue_aller_retour(self):
+        sauvegarder(ConfigGui(language="en"), self.chemin)
+        self.assertEqual(charger(self.chemin).language, "en")
+
+    def test_langue_absente_du_fichier_donne_francais(self):
+        self.chemin.write_text('theme = "dark"\n', encoding="utf-8")
+        self.assertEqual(charger(self.chemin).language, "fr")
+
+    def test_langue_corrompue_dans_le_fichier_retombe_sur_francais(self):
+        self.chemin.write_text('theme = "dark"\nlanguage = "de"\n', encoding="utf-8")
+        self.assertEqual(charger(self.chemin).language, "fr")
+
 
 if __name__ == "__main__":
     unittest.main()

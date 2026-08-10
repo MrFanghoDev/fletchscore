@@ -30,6 +30,7 @@ from fletchscore.gui.ecran_connexions import EcranConnexions
 from fletchscore.gui.ecran_journal import EcranJournal
 from fletchscore.gui.ecran_mot_de_passe import EcranMotDePasse
 from fletchscore.gui.ecran_saisie import EcranSaisie
+from fletchscore.gui.i18n import traduire
 from fletchscore.gui.robustesse import (
     ErreurAffichageIndisponible,
     construire_fenetre,
@@ -45,17 +46,20 @@ CHEMIN_BASE_PAR_DEFAUT = Path("fletchscore.db")
 # de nouvelle entrée de packaging à faire vivre pour la GUI seule.
 CHEMIN_LOGO = Path(__file__).resolve().parent.parent / "web" / "logo.png"
 
-LIBELLES_SECTIONS = {
-    "accueil": "Accueil",
-    "competitions": "Compétitions",
-    "competiteurs": "Compétiteurs",
-    "saisie": "Saisie",
-    "classement": "Classement",
-    "connexions": "Connexions compétiteurs",
-    "mot_de_passe": "Mot de passe",
-    "journal": "Journal",
-    "aide": "Aide",
-}
+# Ordre d'affichage des boutons du panneau latéral -- les libellés
+# viennent désormais de gui/i18n.py (clés "section_<cle>", issue #17),
+# plus de dict français en dur ici.
+CLES_SECTIONS = (
+    "accueil",
+    "competitions",
+    "competiteurs",
+    "saisie",
+    "classement",
+    "connexions",
+    "mot_de_passe",
+    "journal",
+    "aide",
+)
 
 
 def _apply_brand_colors() -> None:
@@ -130,6 +134,8 @@ class FenetrePrincipale(ctk.CTk):
         super().__init__()
         self.conn = conn
         self.config_gui = config
+        self.language = config.language
+        self.section_active = "accueil"
         self.chemin_base_db: str | None = None
         self.serveur_web = None
         self.thread_serveur_web: threading.Thread | None = None
@@ -196,7 +202,7 @@ class FenetrePrincipale(ctk.CTk):
     def _construire_barre_laterale(self) -> None:
         self.barre_laterale = ctk.CTkFrame(self, width=220, corner_radius=0)
         self.barre_laterale.grid(row=0, column=0, sticky="nsew")
-        self.barre_laterale.grid_rowconfigure(len(LIBELLES_SECTIONS) + 2, weight=1)
+        self.barre_laterale.grid_rowconfigure(len(CLES_SECTIONS) + 2, weight=1)
 
         entete = ctk.CTkFrame(self.barre_laterale, fg_color="transparent")
         entete.grid(row=0, column=0, padx=20, pady=(20, 15))
@@ -226,23 +232,38 @@ class FenetrePrincipale(ctk.CTk):
         )
         self.barre_status_dot.pack(side="left")
         self.barre_status_label = ctk.CTkLabel(
-            cadre_statut, text="Serveur arrêté", font=ctk.CTkFont(size=11)
+            cadre_statut, text=self._t("statut_serveur_arrete"), font=ctk.CTkFont(size=11)
         )
         self.barre_status_label.pack(side="left", padx=(5, 0))
 
         self.boutons_sections: dict[str, ctk.CTkButton] = {}
-        for index, (cle, libelle) in enumerate(LIBELLES_SECTIONS.items(), start=2):
+        for index, cle in enumerate(CLES_SECTIONS, start=2):
             bouton = ctk.CTkButton(
                 self.barre_laterale,
-                text=libelle,
+                text=self._t(f"section_{cle}"),
                 anchor="w",
                 command=lambda c=cle: self.afficher_section(c),
             )
             bouton.grid(row=index, column=0, padx=20, pady=6, sticky="ew")
             self.boutons_sections[cle] = bouton
 
-        ctk.CTkLabel(self.barre_laterale, text="Thème").grid(
-            row=len(LIBELLES_SECTIONS) + 3, column=0, padx=20, pady=(10, 0), sticky="w"
+        self.langue_caption = ctk.CTkLabel(self.barre_laterale, text=self._t("langue_caption"))
+        self.langue_caption.grid(
+            row=len(CLES_SECTIONS) + 3, column=0, padx=20, pady=(10, 0), sticky="w"
+        )
+        self.menu_langue = ctk.CTkOptionMenu(
+            self.barre_laterale,
+            values=["FR", "EN"],
+            command=self._on_language_change,
+        )
+        self.menu_langue.set(self.language.upper())
+        self.menu_langue.grid(
+            row=len(CLES_SECTIONS) + 4, column=0, padx=20, pady=(5, 10), sticky="ew"
+        )
+
+        self.theme_caption = ctk.CTkLabel(self.barre_laterale, text=self._t("theme_caption"))
+        self.theme_caption.grid(
+            row=len(CLES_SECTIONS) + 5, column=0, padx=20, pady=(10, 0), sticky="w"
         )
         self.menu_theme = ctk.CTkOptionMenu(
             self.barre_laterale,
@@ -251,22 +272,25 @@ class FenetrePrincipale(ctk.CTk):
         )
         self.menu_theme.set(self.config_gui.theme)
         self.menu_theme.grid(
-            row=len(LIBELLES_SECTIONS) + 4, column=0, padx=20, pady=(5, 10), sticky="ew"
+            row=len(CLES_SECTIONS) + 6, column=0, padx=20, pady=(5, 10), sticky="ew"
         )
 
-        ctk.CTkButton(
+        self.bouton_quitter = ctk.CTkButton(
             self.barre_laterale,
-            text="Quitter",
+            text=self._t("quitter"),
             fg_color="gray40",
             command=self._on_quit,
-        ).grid(row=len(LIBELLES_SECTIONS) + 5, column=0, padx=20, pady=(0, 15), sticky="ew")
+        )
+        self.bouton_quitter.grid(
+            row=len(CLES_SECTIONS) + 7, column=0, padx=20, pady=(0, 15), sticky="ew"
+        )
 
         ctk.CTkLabel(
             self.barre_laterale,
             text=f"v{__version__}",
             font=ctk.CTkFont(size=11),
             text_color="gray60",
-        ).grid(row=len(LIBELLES_SECTIONS) + 6, column=0, padx=20, pady=(0, 10), sticky="w")
+        ).grid(row=len(CLES_SECTIONS) + 8, column=0, padx=20, pady=(0, 10), sticky="w")
 
         self._maj_statut_serveur()
 
@@ -289,13 +313,16 @@ class FenetrePrincipale(ctk.CTk):
     # -- Navigation -------------------------------------------------------
 
     def afficher_section(self, cle: str) -> None:
+        self.section_active = cle
         for widget in self.cadre_section.winfo_children():
             widget.destroy()
 
-        self.titre_section.configure(text=LIBELLES_SECTIONS[cle])
+        self.titre_section.configure(text=self._t(f"section_{cle}"))
 
         if cle == "accueil":
-            ecran = EcranAccueil(self.cadre_section, self.conn, self.afficher_section)
+            ecran = EcranAccueil(
+                self.cadre_section, self.conn, self.afficher_section, self.language
+            )
             ecran.grid(row=0, column=0, sticky="nsew")
             return
 
@@ -396,7 +423,11 @@ class FenetrePrincipale(ctk.CTk):
         (Connexions compétiteurs, Vue compétiteur) qui l'a déclenché."""
         en_marche = self.serveur_web is not None
         couleur = "#2fb344" if en_marche else "gray50"
-        texte = f"Serveur en cours -- {adresse_ip_locale()}" if en_marche else "Serveur arrêté"
+        texte = (
+            self._t("statut_serveur_en_cours", ip=adresse_ip_locale())
+            if en_marche
+            else self._t("statut_serveur_arrete")
+        )
         self.barre_status_dot.configure(text_color=couleur)
         self.barre_status_label.configure(text=texte)
 
@@ -407,6 +438,27 @@ class FenetrePrincipale(ctk.CTk):
         return f"{schema}://{adresse_ip_locale()}:{self.serveur_web.server_port}/"
 
     # -- Préférences -------------------------------------------------------
+
+    def _t(self, cle: str, **kwargs: object) -> str:
+        return traduire(cle, self.language, **kwargs)
+
+    def _on_language_change(self, valeur: str) -> None:
+        """Change la langue et retraduit tout ce qui est déjà construit --
+        chrome du panneau latéral (jamais détruit/reconstruit) et écran
+        actif (reconstruit via afficher_section, même mécanisme qu'une
+        navigation normale)."""
+        self.language = valeur.lower()
+        self.config_gui.language = self.language
+        gui_config.sauvegarder(self.config_gui)
+
+        for cle, bouton in self.boutons_sections.items():
+            bouton.configure(text=self._t(f"section_{cle}"))
+        self.langue_caption.configure(text=self._t("langue_caption"))
+        self.theme_caption.configure(text=self._t("theme_caption"))
+        self.bouton_quitter.configure(text=self._t("quitter"))
+        self._maj_statut_serveur()
+
+        self.afficher_section(self.section_active)
 
     def changer_theme(self, theme: str) -> None:
         self.config_gui.theme = theme
