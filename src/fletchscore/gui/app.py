@@ -196,7 +196,7 @@ class FenetrePrincipale(ctk.CTk):
     def _construire_barre_laterale(self) -> None:
         self.barre_laterale = ctk.CTkFrame(self, width=220, corner_radius=0)
         self.barre_laterale.grid(row=0, column=0, sticky="nsew")
-        self.barre_laterale.grid_rowconfigure(len(LIBELLES_SECTIONS) + 1, weight=1)
+        self.barre_laterale.grid_rowconfigure(len(LIBELLES_SECTIONS) + 2, weight=1)
 
         entete = ctk.CTkFrame(self.barre_laterale, fg_color="transparent")
         entete.grid(row=0, column=0, padx=20, pady=(20, 15))
@@ -213,8 +213,25 @@ class FenetrePrincipale(ctk.CTk):
             font=ctk.CTkFont(size=20, weight="bold"),
         ).pack(side="left")
 
+        # Indicateur de statut serveur -- toujours présent dans le panneau
+        # latéral (jamais détruit/reconstruit, contrairement aux écrans),
+        # pour rester visible quel que soit l'écran affiché. Même principe
+        # que FletchTime (voir fletchtime/gui.py::_construire_barre_laterale) ;
+        # les écrans "Connexions compétiteurs"/"Vue compétiteur" gardent en
+        # plus leurs propres contrôles démarrer/arrêter détaillés.
+        cadre_statut = ctk.CTkFrame(self.barre_laterale, fg_color="transparent")
+        cadre_statut.grid(row=1, column=0, padx=20, pady=(0, 15), sticky="w")
+        self.barre_status_dot = ctk.CTkLabel(
+            cadre_statut, text="●", text_color="gray50", font=ctk.CTkFont(size=13)
+        )
+        self.barre_status_dot.pack(side="left")
+        self.barre_status_label = ctk.CTkLabel(
+            cadre_statut, text="Serveur arrêté", font=ctk.CTkFont(size=11)
+        )
+        self.barre_status_label.pack(side="left", padx=(5, 0))
+
         self.boutons_sections: dict[str, ctk.CTkButton] = {}
-        for index, (cle, libelle) in enumerate(LIBELLES_SECTIONS.items(), start=1):
+        for index, (cle, libelle) in enumerate(LIBELLES_SECTIONS.items(), start=2):
             bouton = ctk.CTkButton(
                 self.barre_laterale,
                 text=libelle,
@@ -225,7 +242,7 @@ class FenetrePrincipale(ctk.CTk):
             self.boutons_sections[cle] = bouton
 
         ctk.CTkLabel(self.barre_laterale, text="Thème").grid(
-            row=len(LIBELLES_SECTIONS) + 2, column=0, padx=20, pady=(10, 0), sticky="w"
+            row=len(LIBELLES_SECTIONS) + 3, column=0, padx=20, pady=(10, 0), sticky="w"
         )
         self.menu_theme = ctk.CTkOptionMenu(
             self.barre_laterale,
@@ -234,7 +251,7 @@ class FenetrePrincipale(ctk.CTk):
         )
         self.menu_theme.set(self.config_gui.theme)
         self.menu_theme.grid(
-            row=len(LIBELLES_SECTIONS) + 3, column=0, padx=20, pady=(5, 10), sticky="ew"
+            row=len(LIBELLES_SECTIONS) + 4, column=0, padx=20, pady=(5, 10), sticky="ew"
         )
 
         ctk.CTkButton(
@@ -242,14 +259,16 @@ class FenetrePrincipale(ctk.CTk):
             text="Quitter",
             fg_color="gray40",
             command=self._on_quit,
-        ).grid(row=len(LIBELLES_SECTIONS) + 4, column=0, padx=20, pady=(0, 15), sticky="ew")
+        ).grid(row=len(LIBELLES_SECTIONS) + 5, column=0, padx=20, pady=(0, 15), sticky="ew")
 
         ctk.CTkLabel(
             self.barre_laterale,
             text=f"v{__version__}",
             font=ctk.CTkFont(size=11),
             text_color="gray60",
-        ).grid(row=len(LIBELLES_SECTIONS) + 5, column=0, padx=20, pady=(0, 10), sticky="w")
+        ).grid(row=len(LIBELLES_SECTIONS) + 6, column=0, padx=20, pady=(0, 10), sticky="w")
+
+        self._maj_statut_serveur()
 
     def _construire_zone_contenu(self) -> None:
         self.zone_contenu = ctk.CTkFrame(self, corner_radius=0, fg_color="transparent")
@@ -360,6 +379,7 @@ class FenetrePrincipale(ctk.CTk):
                 a_sauvegarder = True
             if a_sauvegarder:
                 gui_config.sauvegarder(self.config_gui)
+        self._maj_statut_serveur()
         return self.url_serveur_web()
 
     def arreter_serveur_web(self) -> None:
@@ -368,6 +388,17 @@ class FenetrePrincipale(ctk.CTk):
             self.serveur_web.server_close()
             self.serveur_web = None
             self.thread_serveur_web = None
+        self._maj_statut_serveur()
+
+    def _maj_statut_serveur(self) -> None:
+        """Met à jour l'indicateur (point + texte) du panneau latéral --
+        toujours appelé après un démarrage/arrêt, quel que soit l'écran
+        (Connexions compétiteurs, Vue compétiteur) qui l'a déclenché."""
+        en_marche = self.serveur_web is not None
+        couleur = "#2fb344" if en_marche else "gray50"
+        texte = f"Serveur en cours -- {adresse_ip_locale()}" if en_marche else "Serveur arrêté"
+        self.barre_status_dot.configure(text_color=couleur)
+        self.barre_status_label.configure(text=texte)
 
     def url_serveur_web(self) -> str | None:
         if self.serveur_web is None:
