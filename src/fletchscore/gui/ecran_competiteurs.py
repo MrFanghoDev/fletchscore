@@ -18,6 +18,7 @@ import sqlite3
 import customtkinter as ctk
 
 from fletchscore import services
+from fletchscore.gui.champ_date import ChampDate
 from fletchscore.gui.dialogue_fichier import demander_chemin
 from fletchscore.io.import_csv import (
     exporter_clubs_csv,
@@ -296,7 +297,9 @@ class EcranCompetiteurs(ctk.CTkFrame):
         self.menu_sexe = ctk.CTkOptionMenu(cadre, values=[s.value for s in Sexe])
         self.menu_sexe.grid(row=5, column=0, sticky="ew", padx=10, pady=2)
 
-        self.champ_date_naissance = ctk.CTkEntry(cadre, placeholder_text="Naissance AAAA-MM-JJ")
+        self.champ_date_naissance = ChampDate(
+            cadre, placeholder_text="Naissance AAAA-MM-JJ", titre_calendrier="Date de naissance"
+        )
         self.champ_date_naissance.grid(row=6, column=0, sticky="ew", padx=10, pady=2)
         self.champ_date_naissance.bind(
             "<FocusOut>",
@@ -308,8 +311,10 @@ class EcranCompetiteurs(ctk.CTkFrame):
         self.menu_style_competiteur = ctk.CTkOptionMenu(cadre, values=["(aucun style)"])
         self.menu_style_competiteur.grid(row=7, column=0, sticky="ew", padx=10, pady=2)
 
-        self.champ_licence = ctk.CTkEntry(
-            cadre, placeholder_text="Licence valide jusqu'au (optionnel)"
+        self.champ_licence = ChampDate(
+            cadre,
+            placeholder_text="Licence valide jusqu'au (optionnel)",
+            titre_calendrier="Licence valide jusqu'au",
         )
         self.champ_licence.grid(row=8, column=0, sticky="ew", padx=10, pady=2)
         self.champ_licence.bind(

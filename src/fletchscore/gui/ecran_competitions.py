@@ -13,6 +13,7 @@ import sqlite3
 import customtkinter as ctk
 
 from fletchscore import services
+from fletchscore.gui.champ_date import ChampDate
 from fletchscore.models import Competition, Epreuve
 from fletchscore.services import ErreurMetier, parser_date
 from fletchscore.storage import db
@@ -73,7 +74,9 @@ class EcranCompetitions(ctk.CTkFrame):
         self.champ_lieu_competition = ctk.CTkEntry(cadre, placeholder_text="Lieu (optionnel)")
         self.champ_lieu_competition.grid(row=2, column=0, sticky="ew", padx=10, pady=2)
 
-        self.champ_date_debut = ctk.CTkEntry(cadre, placeholder_text="Début AAAA-MM-JJ")
+        self.champ_date_debut = ChampDate(
+            cadre, placeholder_text="Début AAAA-MM-JJ", titre_calendrier="Date de début"
+        )
         self.champ_date_debut.grid(row=3, column=0, sticky="ew", padx=10, pady=2)
         self.champ_date_debut.bind(
             "<FocusOut>",
@@ -82,7 +85,9 @@ class EcranCompetitions(ctk.CTkFrame):
             ),
         )
 
-        self.champ_date_fin = ctk.CTkEntry(cadre, placeholder_text="Fin AAAA-MM-JJ")
+        self.champ_date_fin = ChampDate(
+            cadre, placeholder_text="Fin AAAA-MM-JJ", titre_calendrier="Date de fin"
+        )
         self.champ_date_fin.grid(row=4, column=0, sticky="ew", padx=10, pady=2)
         self.champ_date_fin.bind(
             "<FocusOut>",
@@ -284,7 +289,9 @@ class EcranCompetitions(ctk.CTkFrame):
         self.champ_nom_epreuve = ctk.CTkEntry(cadre, placeholder_text="Nom")
         self.champ_nom_epreuve.grid(row=2, column=0, sticky="ew", padx=10, pady=2)
 
-        self.champ_date_epreuve = ctk.CTkEntry(cadre, placeholder_text="Date AAAA-MM-JJ")
+        self.champ_date_epreuve = ChampDate(
+            cadre, placeholder_text="Date AAAA-MM-JJ", titre_calendrier="Date de l'épreuve"
+        )
         self.champ_date_epreuve.grid(row=3, column=0, sticky="ew", padx=10, pady=2)
         self.champ_date_epreuve.bind(
             "<FocusOut>",

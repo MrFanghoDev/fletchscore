@@ -835,6 +835,34 @@ confirmer par un vrai lancement.
       ajoutée au fichier depuis l'extérieur apparaît bien après un clic
       sur "Actualiser".
 
+- [x] **Widget de sélection de date** (issue
+      [#23](https://github.com/MrFanghoDev/fletchscore/issues/23),
+      partie 2 -- la partie 1, validation en direct, était déjà faite).
+      Nouvelle dépendance `tkcalendar>=1.6` (décision explicite de
+      l'utilisateur, pure Python sans extension C -- pas encore vérifié
+      en pratique sur Pydroid/Android). `gui/champ_date.py::ChampDate`
+      encapsule un `CTkEntry` + bouton calendrier optionnel (masqué si
+      `tkcalendar` absent -- jamais un plantage) ; se comporte comme un
+      `CTkEntry` pour le code appelant (`get`/`delete`/`insert`/`bind`/
+      `configure`), remplace directement les 5 `ctk.CTkEntry(...)` des
+      champs date sans toucher au reste des écrans. Popup sur le modèle
+      de `dialogue_fichier.py` (`CTkToplevel` + `transient()` +
+      `grab_set()` différé + `wait_window()`).
+      **Bug trouvé et corrigé en vérifiant réellement** :
+      `_activer_colonne_epreuves()` (`ecran_competitions.py`) appelle
+      `configure(state=...)` sur `champ_date_epreuve` pour désactiver le
+      formulaire tant qu'aucune compétition n'est sélectionnée -- or
+      `CTkFrame` (la classe de base de `ChampDate`) ne supporte pas cet
+      argument, contrairement à `CTkEntry` qu'il remplace. L'écran
+      Compétitions restait entièrement blanc à l'ouverture, sans aucune
+      erreur visible dans l'interface (seule la trace en sortie standard
+      le révélait). Corrigé en ajoutant un `configure()` qui redirige
+      `state=...` vers le champ texte et le bouton calendrier. Vérifié
+      réellement de bout en bout (Xvfb + captures d'écran) : ouverture
+      du calendrier, sélection d'une date, remplissage du champ,
+      soumission du formulaire, réactivation de la colonne Épreuves --
+      tout fonctionne sans erreur.
+
 ## Points ouverts transverses
 
 Voir le [cahier des charges](cahier-des-charges/roadmap.rst) pour le
