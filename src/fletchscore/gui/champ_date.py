@@ -22,6 +22,8 @@ from datetime import date
 
 import customtkinter as ctk
 
+from fletchscore.gui.i18n import traduire
+
 try:
     from tkcalendar import Calendar
 
@@ -31,7 +33,13 @@ except ImportError:
 
 
 class _FenetreCalendrier(ctk.CTkToplevel):
-    def __init__(self, parent: ctk.CTkBaseClass, titre: str, date_initiale: date | None) -> None:
+    def __init__(
+        self,
+        parent: ctk.CTkBaseClass,
+        titre: str,
+        date_initiale: date | None,
+        lang: str = "fr",
+    ) -> None:
         super().__init__(parent)
         self.resultat: date | None = None
 
@@ -51,12 +59,15 @@ class _FenetreCalendrier(ctk.CTkToplevel):
 
         cadre_boutons = ctk.CTkFrame(self, fg_color="transparent")
         cadre_boutons.pack(pady=(0, 15))
-        ctk.CTkButton(cadre_boutons, text="Choisir", command=self._valider).pack(
+        ctk.CTkButton(cadre_boutons, text=traduire("choisir", lang), command=self._valider).pack(
             side="left", padx=5
         )
-        ctk.CTkButton(cadre_boutons, text="Annuler", fg_color="gray40", command=self._annuler).pack(
-            side="left", padx=5
-        )
+        ctk.CTkButton(
+            cadre_boutons,
+            text=traduire("annuler", lang),
+            fg_color="gray40",
+            command=self._annuler,
+        ).pack(side="left", padx=5)
 
         self.protocol("WM_DELETE_WINDOW", self._annuler)
         # Modal, différé pour laisser la fenêtre s'afficher avant de
@@ -75,7 +86,10 @@ class _FenetreCalendrier(ctk.CTkToplevel):
 
 
 def demander_date(
-    parent: ctk.CTkBaseClass, titre: str, date_initiale: date | None = None
+    parent: ctk.CTkBaseClass,
+    titre: str,
+    date_initiale: date | None = None,
+    lang: str = "fr",
 ) -> date | None:
     """Retourne la date choisie, ou ``None`` si annulé/fermé.
 
@@ -85,7 +99,7 @@ def demander_date(
     """
     if not TKCALENDAR_DISPONIBLE:
         raise ImportError("La bibliothèque tkcalendar n'est pas installée.")
-    fenetre = _FenetreCalendrier(parent, titre, date_initiale)
+    fenetre = _FenetreCalendrier(parent, titre, date_initiale, lang)
     return fenetre.resultat
 
 
@@ -107,11 +121,13 @@ class ChampDate(ctk.CTkFrame):
         *,
         placeholder_text: str = "",
         titre_calendrier: str = "Choisir une date",
+        lang: str = "fr",
         **kwargs,
     ) -> None:
         super().__init__(master, fg_color="transparent")
         self.grid_columnconfigure(0, weight=1)
         self._titre_calendrier = titre_calendrier
+        self._lang = lang
 
         self.entree = ctk.CTkEntry(self, placeholder_text=placeholder_text, **kwargs)
         self.entree.grid(row=0, column=0, sticky="ew")
@@ -134,7 +150,7 @@ class ChampDate(ctk.CTkFrame):
         except ValueError:
             pass  # champ vide ou pas encore une date valide -- calendrier sur aujourd'hui
 
-        choisie = demander_date(self, self._titre_calendrier, date_initiale)
+        choisie = demander_date(self, self._titre_calendrier, date_initiale, self._lang)
         if choisie is not None:
             self.entree.delete(0, "end")
             self.entree.insert(0, choisie.isoformat())

@@ -63,7 +63,7 @@ class EcranAccueil(ctk.CTkFrame):
 
         self._construire_chiffre(cadre, 0, self._t("section_competitions"), resume.nb_competitions)
         self._construire_chiffre(cadre, 1, self._t("section_competiteurs"), resume.nb_competiteurs)
-        self._construire_chiffre(cadre, 2, self._t("accueil_chiffre_epreuves"), resume.nb_epreuves)
+        self._construire_chiffre(cadre, 2, self._t("epreuves"), resume.nb_epreuves)
 
         if resume.derniere_epreuve is not None:
             competition, epreuve = resume.derniere_epreuve
