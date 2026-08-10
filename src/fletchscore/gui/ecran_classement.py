@@ -362,6 +362,12 @@ class EcranClassement(ctk.CTkFrame):
             self._rafraichir_classement_epreuve()
 
     def _rafraichir_classement_epreuve(self) -> None:
+        # Remet la configuration de colonne à plat -- annule le mode
+        # tableau du classement global (voir _rafraichir_classement_global)
+        # si l'utilisateur vient de basculer depuis ce mode-là.
+        self.zone_classement.grid_columnconfigure(0, weight=1)
+        self.zone_classement.grid_columnconfigure(1, weight=0)
+
         epreuve = self._epreuves_par_libelle.get(self.menu_epreuve.get())
         if epreuve is None:
             ctk.CTkLabel(self.zone_classement, text="Aucune épreuve disponible.").grid(
@@ -427,26 +433,52 @@ class EcranClassement(ctk.CTkFrame):
             ).grid(row=0, column=0, sticky="w", pady=10)
             return
 
+        # Tableau (rang, nom, une colonne par épreuve, total, X) -- même
+        # structure que page_competition() côté vue web, plutôt qu'une
+        # ligne de texte par compétiteur. Colonne "Nom" seule à s'étirer
+        # (index 1) ; les autres colonnes restent compactes, y compris
+        # celles ajoutées dynamiquement par épreuve.
+        self.zone_classement.grid_columnconfigure(0, weight=0)
+        self.zone_classement.grid_columnconfigure(1, weight=1)
+        entetes = ["Rang", "Nom"] + [epreuve.nom for epreuve in epreuves] + ["Total", "X"]
+        nb_colonnes = len(entetes)
+
         ligne_grille = 0
         for code_categorie in sorted(classement):
             ctk.CTkLabel(
                 self.zone_classement,
                 text=code_categorie,
                 font=ctk.CTkFont(size=15, weight="bold"),
-            ).grid(row=ligne_grille, column=0, sticky="w", pady=(15, 5))
+            ).grid(row=ligne_grille, column=0, columnspan=nb_colonnes, sticky="w", pady=(15, 5))
+            ligne_grille += 1
+
+            for colonne, texte in enumerate(entetes):
+                ctk.CTkLabel(
+                    self.zone_classement, text=texte, font=ctk.CTkFont(weight="bold"), anchor="w"
+                ).grid(
+                    row=ligne_grille,
+                    column=colonne,
+                    sticky="w",
+                    padx=(15 if colonne == 0 else 8, 8),
+                )
             ligne_grille += 1
 
             for ligne_globale in classement[code_categorie]:
                 competiteur = ligne_globale.competiteur
-                detail_epreuves = ", ".join(
-                    f"{epreuve.nom} : {ligne_globale.totaux_par_epreuve.get(epreuve.id, 0)}"
-                    for epreuve in epreuves
+                valeurs = (
+                    [str(ligne_globale.rang), f"{competiteur.prenom} {competiteur.nom}"]
+                    + [
+                        str(ligne_globale.totaux_par_epreuve.get(epreuve.id, 0))
+                        for epreuve in epreuves
+                    ]
+                    + [str(ligne_globale.total_global), str(ligne_globale.nombre_x_global or "")]
                 )
-                texte = (
-                    f"{ligne_globale.rang}. {competiteur.prenom} {competiteur.nom} "
-                    f"-- {ligne_globale.total_global} points ({detail_epreuves})"
-                )
-                ctk.CTkLabel(self.zone_classement, text=texte, anchor="w", wraplength=700).grid(
-                    row=ligne_grille, column=0, sticky="ew", padx=15, pady=2
-                )
+                for colonne, texte in enumerate(valeurs):
+                    ctk.CTkLabel(self.zone_classement, text=texte, anchor="w").grid(
+                        row=ligne_grille,
+                        column=colonne,
+                        sticky="w",
+                        padx=(15 if colonne == 0 else 8, 8),
+                        pady=2,
+                    )
                 ligne_grille += 1
