@@ -49,7 +49,7 @@ from fletchscore.storage import db
 
 RAFRAICHISSEMENT_SECONDES = 15
 LANGUES_DISPONIBLES = ("fr", "en")
-THEMES_DISPONIBLES = ("dark", "light")
+THEMES_DISPONIBLES = ("dark", "light", "system")
 
 # fletchscore/api/competiteur.py -> fletchscore/ -> web/
 DOSSIER_WEB = Path(__file__).resolve().parent.parent / "web"
@@ -213,9 +213,11 @@ def _controles_haut(lang: str, theme: str, chemin_retour: str) -> str:
     boutons_lang = _bouton_preference("lang", "fr", "FR", lang, chemin_retour) + _bouton_preference(
         "lang", "en", "EN", lang, chemin_retour
     )
-    boutons_theme = _bouton_preference(
-        "theme", "dark", "🌙", theme, chemin_retour
-    ) + _bouton_preference("theme", "light", "☀", theme, chemin_retour)
+    boutons_theme = (
+        _bouton_preference("theme", "system", "◐", theme, chemin_retour)
+        + _bouton_preference("theme", "light", "☀", theme, chemin_retour)
+        + _bouton_preference("theme", "dark", "☾", theme, chemin_retour)
+    )
     return (
         '<div class="top-controls">'
         f'<div class="lang-toggle">{boutons_lang}</div>'
@@ -235,8 +237,11 @@ def _mise_en_page(
     meta_refresh = (
         f'<meta http-equiv="refresh" content="{RAFRAICHISSEMENT_SECONDES}">' if rafraichir else ""
     )
+    # "system" ne pose pas l'attribut du tout -- laisse le repli
+    # prefers-color-scheme de theme.css décider (voir sa docstring).
+    attribut_theme = "" if theme == "system" else f' data-theme="{theme}"'
     return f"""<!DOCTYPE html>
-<html lang="{lang}" data-theme="{theme}">
+<html lang="{lang}"{attribut_theme}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

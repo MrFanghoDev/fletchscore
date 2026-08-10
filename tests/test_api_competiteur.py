@@ -213,6 +213,18 @@ class TestPageAccueil(unittest.TestCase):
         page = page_accueil(self.conn, theme="light")
         self.assertIn('data-theme="light"', page)
 
+    def test_theme_system_omet_l_attribut_data_theme(self):
+        # "system" laisse le repli prefers-color-scheme de theme.css
+        # décider -- l'attribut ne doit donc pas être posé du tout,
+        # ni avec la valeur "system" ni avec une autre.
+        page = page_accueil(self.conn, theme="system")
+        self.assertNotIn("data-theme", page)
+
+    def test_bouton_theme_auto_present(self):
+        page = page_accueil(self.conn)
+        self.assertIn('href="/preference?theme=system', page)
+        self.assertIn("◐", page)
+
     def test_reference_les_feuilles_de_style(self):
         page = page_accueil(self.conn)
         self.assertIn('href="/theme.css"', page)
@@ -872,6 +884,23 @@ class TestServeurIntegration(unittest.TestCase):
             contenu = reponse.read().decode("utf-8")
         self.assertIn('<html lang="en"', contenu)
         self.assertIn('data-theme="light"', contenu)
+
+    def test_preference_theme_system_accepte_et_respecte_ensuite(self):
+        connexion = http.client.HTTPConnection("127.0.0.1", self.serveur.server_port, timeout=5)
+        try:
+            connexion.request("GET", "/preference?theme=system&retour=/")
+            reponse = connexion.getresponse()
+            cookies = reponse.msg.get_all("Set-Cookie") or []
+            reponse.read()
+        finally:
+            connexion.close()
+        self.assertTrue(any(c.startswith("theme=system") for c in cookies))
+
+        requete = urllib.request.Request(self._url("/"))
+        requete.add_header("Cookie", "theme=system")
+        with urllib.request.urlopen(requete, timeout=5) as reponse:
+            contenu = reponse.read().decode("utf-8")
+        self.assertNotIn("data-theme", contenu)
 
     def test_get_rattachement_repond_200(self):
         with urllib.request.urlopen(
