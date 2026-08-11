@@ -20,6 +20,7 @@ import customtkinter as ctk
 from fletchscore import services
 from fletchscore.gui.champ_date import ChampDate
 from fletchscore.gui.dialogue_fichier import demander_chemin
+from fletchscore.gui.i18n import traduire
 from fletchscore.io.import_csv import (
     exporter_clubs_csv,
     exporter_competiteurs_csv,
@@ -33,9 +34,12 @@ from fletchscore.storage import db
 
 
 class EcranCompetiteurs(ctk.CTkFrame):
-    def __init__(self, parent: ctk.CTkBaseClass, conn: sqlite3.Connection) -> None:
+    def __init__(
+        self, parent: ctk.CTkBaseClass, conn: sqlite3.Connection, lang: str = "fr"
+    ) -> None:
         super().__init__(parent, fg_color="transparent")
         self.conn = conn
+        self.lang = lang
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(4, weight=1)
@@ -46,29 +50,32 @@ class EcranCompetiteurs(ctk.CTkFrame):
         self._construire_liste_competiteurs()
         self._rafraichir_liste()
 
+    def _t(self, cle: str, **kwargs: object) -> str:
+        return traduire(cle, self.lang, **kwargs)
+
     # -- Import / export -----------------------------------------------------
 
     def _construire_boutons_import(self) -> None:
         cadre = ctk.CTkFrame(self, fg_color="transparent")
         cadre.grid(row=0, column=0, sticky="ew", pady=(0, 10))
 
-        ctk.CTkButton(cadre, text="Importer clubs.csv", command=self._importer_clubs).grid(
-            row=0, column=0, padx=(0, 10)
-        )
+        ctk.CTkButton(
+            cadre, text=self._t("competiteurs_import_clubs_button"), command=self._importer_clubs
+        ).grid(row=0, column=0, padx=(0, 10))
         ctk.CTkButton(
             cadre,
-            text="Importer compétiteurs.csv",
+            text=self._t("competiteurs_import_competiteurs_button"),
             command=self._importer_competiteurs,
         ).grid(row=0, column=1, padx=(0, 10))
         ctk.CTkButton(
             cadre,
-            text="Exporter clubs.csv",
+            text=self._t("competiteurs_export_clubs_button"),
             fg_color="gray40",
             command=self._exporter_clubs,
         ).grid(row=0, column=2, padx=(0, 10))
         ctk.CTkButton(
             cadre,
-            text="Exporter compétiteurs.csv",
+            text=self._t("competiteurs_export_competiteurs_button"),
             fg_color="gray40",
             command=self._exporter_competiteurs,
         ).grid(row=0, column=3)
@@ -89,7 +96,9 @@ class EcranCompetiteurs(ctk.CTkFrame):
         self.zone_rapport.configure(state="disabled")
 
     def _importer_clubs(self) -> None:
-        chemin = demander_chemin(self, "Chemin de clubs.csv à importer", "clubs.csv")
+        chemin = demander_chemin(
+            self, self._t("competiteurs_import_clubs_prompt"), "clubs.csv", self.lang
+        )
         if not chemin:
             return  # annulé par l'organisateur -- pas une erreur
 
@@ -99,7 +108,12 @@ class EcranCompetiteurs(ctk.CTkFrame):
         self._rafraichir_selection_club()
 
     def _importer_competiteurs(self) -> None:
-        chemin = demander_chemin(self, "Chemin de competiteurs.csv à importer", "competiteurs.csv")
+        chemin = demander_chemin(
+            self,
+            self._t("competiteurs_import_competiteurs_prompt"),
+            "competiteurs.csv",
+            self.lang,
+        )
         if not chemin:
             return
 
@@ -108,20 +122,27 @@ class EcranCompetiteurs(ctk.CTkFrame):
         self._rafraichir_liste()
 
     def _exporter_clubs(self) -> None:
-        chemin = demander_chemin(self, "Chemin où exporter clubs.csv", "clubs.csv")
+        chemin = demander_chemin(
+            self, self._t("competiteurs_export_clubs_prompt"), "clubs.csv", self.lang
+        )
         if not chemin:
             return  # annulé -- pas une erreur
 
         exporter_clubs_csv(db.list_clubs(self.conn), chemin)
-        self._afficher_rapport(f"Clubs exportés vers {chemin}")
+        self._afficher_rapport(self._t("competiteurs_clubs_exported", chemin=chemin))
 
     def _exporter_competiteurs(self) -> None:
-        chemin = demander_chemin(self, "Chemin où exporter competiteurs.csv", "competiteurs.csv")
+        chemin = demander_chemin(
+            self,
+            self._t("competiteurs_export_competiteurs_prompt"),
+            "competiteurs.csv",
+            self.lang,
+        )
         if not chemin:
             return
 
         exporter_competiteurs_csv(db.list_competiteurs(self.conn), chemin)
-        self._afficher_rapport(f"Compétiteurs exportés vers {chemin}")
+        self._afficher_rapport(self._t("competiteurs_competiteurs_exported", chemin=chemin))
 
     # -- Ajout manuel ------------------------------------------------------
 
@@ -140,7 +161,7 @@ class EcranCompetiteurs(ctk.CTkFrame):
         cadre.grid_columnconfigure(0, weight=1)
 
         self.titre_formulaire_club = ctk.CTkLabel(
-            cadre, text="Ajouter un club", font=ctk.CTkFont(weight="bold")
+            cadre, text=self._t("competiteurs_add_club_title"), font=ctk.CTkFont(weight="bold")
         )
         self.titre_formulaire_club.grid(row=0, column=0, sticky="w", padx=10, pady=(10, 5))
 
@@ -148,19 +169,28 @@ class EcranCompetiteurs(ctk.CTkFrame):
         cadre_selection.grid(row=1, column=0, sticky="ew", padx=10, pady=2)
         cadre_selection.grid_columnconfigure(0, weight=1)
 
-        self.menu_selection_club = ctk.CTkOptionMenu(cadre_selection, values=["(aucun club)"])
+        self.menu_selection_club = ctk.CTkOptionMenu(
+            cadre_selection, values=[self._t("aucun_club")]
+        )
         self.menu_selection_club.grid(row=0, column=0, sticky="ew", padx=(0, 5))
         ctk.CTkButton(
-            cadre_selection, text="Modifier", width=80, command=self._charger_club_pour_edition
+            cadre_selection,
+            text=self._t("modifier"),
+            width=80,
+            command=self._charger_club_pour_edition,
         ).grid(row=0, column=1)
 
-        self.champ_code_club = ctk.CTkEntry(cadre, placeholder_text="Code club")
+        self.champ_code_club = ctk.CTkEntry(
+            cadre, placeholder_text=self._t("competiteurs_club_code_placeholder")
+        )
         self.champ_code_club.grid(row=2, column=0, sticky="ew", padx=10, pady=2)
 
-        self.champ_nom_club = ctk.CTkEntry(cadre, placeholder_text="Nom")
+        self.champ_nom_club = ctk.CTkEntry(cadre, placeholder_text=self._t("champ_nom"))
         self.champ_nom_club.grid(row=3, column=0, sticky="ew", padx=10, pady=2)
 
-        self.champ_ville_club = ctk.CTkEntry(cadre, placeholder_text="Ville (optionnel)")
+        self.champ_ville_club = ctk.CTkEntry(
+            cadre, placeholder_text=self._t("competiteurs_club_city_placeholder")
+        )
         self.champ_ville_club.grid(row=4, column=0, sticky="ew", padx=10, pady=2)
 
         self.erreur_club = ctk.CTkLabel(cadre, text="", text_color="red", wraplength=260)
@@ -171,13 +201,13 @@ class EcranCompetiteurs(ctk.CTkFrame):
         cadre_boutons_club.grid_columnconfigure(0, weight=1)
 
         self.bouton_soumettre_club = ctk.CTkButton(
-            cadre_boutons_club, text="Ajouter", command=self._soumettre_club
+            cadre_boutons_club, text=self._t("ajouter"), command=self._soumettre_club
         )
         self.bouton_soumettre_club.grid(row=0, column=0, sticky="ew")
 
         self.bouton_annuler_club = ctk.CTkButton(
             cadre_boutons_club,
-            text="Annuler",
+            text=self._t("annuler"),
             width=80,
             fg_color="gray40",
             command=self._annuler_edition_club,
@@ -197,8 +227,8 @@ class EcranCompetiteurs(ctk.CTkFrame):
     def _rafraichir_selection_club(self) -> None:
         clubs = db.list_clubs(self.conn)
         if not clubs:
-            self.menu_selection_club.configure(values=["(aucun club)"])
-            self.menu_selection_club.set("(aucun club)")
+            self.menu_selection_club.configure(values=[self._t("aucun_club")])
+            self.menu_selection_club.set(self._t("aucun_club"))
             self._clubs_pour_edition = {}
             return
 
@@ -210,17 +240,17 @@ class EcranCompetiteurs(ctk.CTkFrame):
     def _charger_club_pour_edition(self) -> None:
         code_club = self._clubs_pour_edition.get(self.menu_selection_club.get())
         if code_club is None:
-            self._afficher_erreur_club("Aucun club à modifier.")
+            self._afficher_erreur_club(self._t("competiteurs_no_club_to_edit"))
             return
 
         club = db.get_club(self.conn, code_club)
         if club is None:
-            self._afficher_erreur_club("Club introuvable.")
+            self._afficher_erreur_club(self._t("competiteurs_club_not_found"))
             return
 
         self.club_en_edition = club.code_club
-        self.titre_formulaire_club.configure(text=f"Modifier -- {club.nom}")
-        self.bouton_soumettre_club.configure(text="Enregistrer les modifications")
+        self.titre_formulaire_club.configure(text=self._t("modifier_avec_nom", nom=club.nom))
+        self.bouton_soumettre_club.configure(text=self._t("enregistrer_modifications"))
         self.bouton_annuler_club.grid(row=0, column=1, padx=(8, 0))
         self._afficher_erreur_club("")
 
@@ -234,8 +264,8 @@ class EcranCompetiteurs(ctk.CTkFrame):
 
     def _annuler_edition_club(self) -> None:
         self.club_en_edition = None
-        self.titre_formulaire_club.configure(text="Ajouter un club")
-        self.bouton_soumettre_club.configure(text="Ajouter")
+        self.titre_formulaire_club.configure(text=self._t("competiteurs_add_club_title"))
+        self.bouton_soumettre_club.configure(text=self._t("ajouter"))
         self.bouton_annuler_club.grid_forget()
         self._afficher_erreur_club("")
         self.champ_code_club.configure(state="normal")
@@ -270,7 +300,7 @@ class EcranCompetiteurs(ctk.CTkFrame):
         self._rafraichir_selection_club()
         self._rafraichir_liste()
         if etait_en_edition:
-            self._afficher_info_club("Club mis à jour.")
+            self._afficher_info_club(self._t("competiteurs_club_updated"))
 
     def _construire_formulaire_competiteur(self, parent: ctk.CTkBaseClass) -> None:
         cadre = ctk.CTkFrame(parent)
@@ -278,27 +308,40 @@ class EcranCompetiteurs(ctk.CTkFrame):
         cadre.grid_columnconfigure(0, weight=1)
 
         self.titre_formulaire_competiteur = ctk.CTkLabel(
-            cadre, text="Ajouter un compétiteur", font=ctk.CTkFont(weight="bold")
+            cadre,
+            text=self._t("competiteurs_add_competitor_title"),
+            font=ctk.CTkFont(weight="bold"),
         )
         self.titre_formulaire_competiteur.grid(row=0, column=0, sticky="w", padx=10, pady=(10, 5))
 
-        self.champ_id_federal = ctk.CTkEntry(cadre, placeholder_text="Id fédéral")
+        self.champ_id_federal = ctk.CTkEntry(
+            cadre, placeholder_text=self._t("competiteurs_federal_id_placeholder")
+        )
         self.champ_id_federal.grid(row=1, column=0, sticky="ew", padx=10, pady=2)
 
-        self.champ_nom_competiteur = ctk.CTkEntry(cadre, placeholder_text="Nom")
+        self.champ_nom_competiteur = ctk.CTkEntry(cadre, placeholder_text=self._t("champ_nom"))
         self.champ_nom_competiteur.grid(row=2, column=0, sticky="ew", padx=10, pady=2)
 
-        self.champ_prenom_competiteur = ctk.CTkEntry(cadre, placeholder_text="Prénom")
+        self.champ_prenom_competiteur = ctk.CTkEntry(
+            cadre, placeholder_text=self._t("competiteurs_firstname_placeholder")
+        )
         self.champ_prenom_competiteur.grid(row=3, column=0, sticky="ew", padx=10, pady=2)
 
-        self.menu_club_competiteur = ctk.CTkOptionMenu(cadre, values=["(aucun club)"])
+        self.menu_club_competiteur = ctk.CTkOptionMenu(cadre, values=[self._t("aucun_club")])
         self.menu_club_competiteur.grid(row=4, column=0, sticky="ew", padx=10, pady=2)
 
         self.menu_sexe = ctk.CTkOptionMenu(cadre, values=[s.value for s in Sexe])
         self.menu_sexe.grid(row=5, column=0, sticky="ew", padx=10, pady=2)
 
+        # "Date de naissance"/"Licence valide jusqu'au" (nom_champ plus bas)
+        # restent en français en dur -- voir le commentaire équivalent dans
+        # ecran_competitions.py (alimentent services.parser_date, jamais
+        # traduit, même choix que la vue web bilingue existante).
         self.champ_date_naissance = ChampDate(
-            cadre, placeholder_text="Naissance AAAA-MM-JJ", titre_calendrier="Date de naissance"
+            cadre,
+            placeholder_text=self._t("competiteurs_birthdate_placeholder"),
+            titre_calendrier=self._t("competiteurs_birthdate_title"),
+            lang=self.lang,
         )
         self.champ_date_naissance.grid(row=6, column=0, sticky="ew", padx=10, pady=2)
         self.champ_date_naissance.bind(
@@ -308,13 +351,14 @@ class EcranCompetiteurs(ctk.CTkFrame):
             ),
         )
 
-        self.menu_style_competiteur = ctk.CTkOptionMenu(cadre, values=["(aucun style)"])
+        self.menu_style_competiteur = ctk.CTkOptionMenu(cadre, values=[self._t("aucun_style")])
         self.menu_style_competiteur.grid(row=7, column=0, sticky="ew", padx=10, pady=2)
 
         self.champ_licence = ChampDate(
             cadre,
-            placeholder_text="Licence valide jusqu'au (optionnel)",
-            titre_calendrier="Licence valide jusqu'au",
+            placeholder_text=self._t("competiteurs_license_placeholder"),
+            titre_calendrier=self._t("competiteurs_license_title"),
+            lang=self.lang,
         )
         self.champ_licence.grid(row=8, column=0, sticky="ew", padx=10, pady=2)
         self.champ_licence.bind(
@@ -332,13 +376,13 @@ class EcranCompetiteurs(ctk.CTkFrame):
         cadre_boutons_competiteur.grid_columnconfigure(0, weight=1)
 
         self.bouton_soumettre_competiteur = ctk.CTkButton(
-            cadre_boutons_competiteur, text="Ajouter", command=self._soumettre_competiteur
+            cadre_boutons_competiteur, text=self._t("ajouter"), command=self._soumettre_competiteur
         )
         self.bouton_soumettre_competiteur.grid(row=0, column=0, sticky="ew")
 
         self.bouton_annuler_competiteur = ctk.CTkButton(
             cadre_boutons_competiteur,
-            text="Annuler",
+            text=self._t("annuler"),
             width=80,
             fg_color="gray40",
             command=self._annuler_edition_competiteur,
@@ -376,8 +420,8 @@ class EcranCompetiteurs(ctk.CTkFrame):
     def _rafraichir_choix_club(self) -> None:
         clubs = db.list_clubs(self.conn)
         if not clubs:
-            self.menu_club_competiteur.configure(values=["(aucun club)"])
-            self.menu_club_competiteur.set("(aucun club)")
+            self.menu_club_competiteur.configure(values=[self._t("aucun_club")])
+            self.menu_club_competiteur.set(self._t("aucun_club"))
             self._clubs_par_libelle = {}
             return
 
@@ -389,16 +433,16 @@ class EcranCompetiteurs(ctk.CTkFrame):
     def _rafraichir_choix_style(self) -> None:
         styles = db.list_styles(self.conn)
         self._styles_par_libelle = {f"{s.libelle} ({s.code})": s.code for s in styles}
-        libelles = list(self._styles_par_libelle.keys()) or ["(aucun style)"]
+        libelles = list(self._styles_par_libelle.keys()) or [self._t("aucun_style")]
         self.menu_style_competiteur.configure(values=libelles)
         self.menu_style_competiteur.set(libelles[0])
 
     def _passer_en_edition_competiteur(self, competiteur) -> None:
         self.competiteur_en_edition = competiteur.id_federal
         self.titre_formulaire_competiteur.configure(
-            text=f"Modifier -- {competiteur.prenom} {competiteur.nom}"
+            text=self._t("modifier_avec_nom", nom=f"{competiteur.prenom} {competiteur.nom}")
         )
-        self.bouton_soumettre_competiteur.configure(text="Enregistrer les modifications")
+        self.bouton_soumettre_competiteur.configure(text=self._t("enregistrer_modifications"))
         self.bouton_annuler_competiteur.grid(row=0, column=1, padx=(8, 0))
         self._afficher_erreur_competiteur("")
 
@@ -430,8 +474,10 @@ class EcranCompetiteurs(ctk.CTkFrame):
 
     def _annuler_edition_competiteur(self) -> None:
         self.competiteur_en_edition = None
-        self.titre_formulaire_competiteur.configure(text="Ajouter un compétiteur")
-        self.bouton_soumettre_competiteur.configure(text="Ajouter")
+        self.titre_formulaire_competiteur.configure(
+            text=self._t("competiteurs_add_competitor_title")
+        )
+        self.bouton_soumettre_competiteur.configure(text=self._t("ajouter"))
         self.bouton_annuler_competiteur.grid_forget()
         self._afficher_erreur_competiteur("")
         self.champ_id_federal.configure(state="normal")
@@ -446,12 +492,12 @@ class EcranCompetiteurs(ctk.CTkFrame):
 
         code_club = self._clubs_par_libelle.get(self.menu_club_competiteur.get())
         if code_club is None:
-            self._afficher_erreur_competiteur("Ajoute d'abord un club.")
+            self._afficher_erreur_competiteur(self._t("competiteurs_add_club_first"))
             return
 
         code_style = self._styles_par_libelle.get(self.menu_style_competiteur.get())
         if code_style is None:
-            self._afficher_erreur_competiteur("Aucun style disponible.")
+            self._afficher_erreur_competiteur(self._t("competiteurs_no_style_available"))
             return
 
         texte_licence = self.champ_licence.get().strip()
@@ -494,14 +540,14 @@ class EcranCompetiteurs(ctk.CTkFrame):
         self._annuler_edition_competiteur()
         self._rafraichir_liste()
         if etait_en_edition:
-            self._afficher_info_competiteur("Compétiteur mis à jour.")
+            self._afficher_info_competiteur(self._t("competiteurs_updated"))
 
     # -- Liste ---------------------------------------------------------------
 
     def _construire_liste_competiteurs(self) -> None:
-        ctk.CTkLabel(self, text="Compétiteurs", font=ctk.CTkFont(size=16, weight="bold")).grid(
-            row=3, column=0, sticky="w", pady=(0, 5)
-        )
+        ctk.CTkLabel(
+            self, text=self._t("section_competiteurs"), font=ctk.CTkFont(size=16, weight="bold")
+        ).grid(row=3, column=0, sticky="w", pady=(0, 5))
 
         self.liste_competiteurs = ctk.CTkScrollableFrame(self, fg_color="transparent")
         self.liste_competiteurs.grid(row=4, column=0, sticky="nsew")
@@ -513,9 +559,9 @@ class EcranCompetiteurs(ctk.CTkFrame):
 
         competiteurs = db.list_competiteurs(self.conn)
         if not competiteurs:
-            ctk.CTkLabel(
-                self.liste_competiteurs, text="Aucun compétiteur importé pour l'instant."
-            ).grid(row=0, column=0, sticky="w", pady=10)
+            ctk.CTkLabel(self.liste_competiteurs, text=self._t("competiteurs_none_yet")).grid(
+                row=0, column=0, sticky="w", pady=10
+            )
             return
 
         self.liste_competiteurs.grid_columnconfigure(0, weight=1)
@@ -536,7 +582,7 @@ class EcranCompetiteurs(ctk.CTkFrame):
             ctk.CTkLabel(ligne, text=texte, anchor="w").grid(row=0, column=0, sticky="ew")
             ctk.CTkButton(
                 ligne,
-                text="Modifier",
+                text=self._t("modifier"),
                 width=80,
                 command=lambda c=competiteur: self._passer_en_edition_competiteur(c),
             ).grid(row=0, column=1, padx=(6, 0))

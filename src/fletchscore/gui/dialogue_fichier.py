@@ -19,9 +19,17 @@ from __future__ import annotations
 
 import customtkinter as ctk
 
+from fletchscore.gui.i18n import traduire
+
 
 class _FenetreChemin(ctk.CTkToplevel):
-    def __init__(self, parent: ctk.CTkBaseClass, titre: str, valeur_initiale: str) -> None:
+    def __init__(
+        self,
+        parent: ctk.CTkBaseClass,
+        titre: str,
+        valeur_initiale: str,
+        lang: str = "fr",
+    ) -> None:
         super().__init__(parent)
         self.resultat: str | None = None
 
@@ -39,9 +47,12 @@ class _FenetreChemin(ctk.CTkToplevel):
         cadre_boutons = ctk.CTkFrame(self, fg_color="transparent")
         cadre_boutons.pack(pady=10)
         ctk.CTkButton(cadre_boutons, text="OK", command=self._valider).pack(side="left", padx=5)
-        ctk.CTkButton(cadre_boutons, text="Annuler", fg_color="gray40", command=self._annuler).pack(
-            side="left", padx=5
-        )
+        ctk.CTkButton(
+            cadre_boutons,
+            text=traduire("annuler", lang),
+            fg_color="gray40",
+            command=self._annuler,
+        ).pack(side="left", padx=5)
 
         self.protocol("WM_DELETE_WINDOW", self._annuler)
         self.champ.bind("<Return>", lambda _evenement: self._valider())
@@ -62,12 +73,17 @@ class _FenetreChemin(ctk.CTkToplevel):
         self.destroy()
 
 
-def demander_chemin(parent: ctk.CTkBaseClass, titre: str, valeur_initiale: str = "") -> str | None:
+def demander_chemin(
+    parent: ctk.CTkBaseClass,
+    titre: str,
+    valeur_initiale: str = "",
+    lang: str = "fr",
+) -> str | None:
     """Demande un chemin de fichier à l'utilisateur, saisi à la main.
 
     Retourne ``None`` si annulé -- même contrat que
     ``tkinter.filedialog`` (chaîne vide = annulé), pour que le code
     appelant n'ait rien à changer d'autre.
     """
-    fenetre = _FenetreChemin(parent, titre, valeur_initiale)
+    fenetre = _FenetreChemin(parent, titre, valeur_initiale, lang)
     return fenetre.resultat
