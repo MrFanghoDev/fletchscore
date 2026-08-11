@@ -16,6 +16,7 @@ from fletchscore.api.competiteur import (
     adresse_ip_locale,
     creer_serveur,
     page_accueil,
+    page_aide,
     page_code_invalide,
     page_competition,
     page_confirmation_code,
@@ -736,6 +737,46 @@ class TestPageCode(unittest.TestCase):
         self.assertNotIn('http-equiv="refresh"', page_code_invalide())
 
 
+class TestPageAide(unittest.TestCase):
+    def test_contient_les_sept_sections_en_francais(self):
+        page = page_aide()
+        for titre in (
+            "Obtenir un accès",
+            "Suivre le classement",
+            "Proposer ton score",
+            "Procurations",
+            "Tes messages",
+            "Thème et langue",
+            "Foire aux questions",
+        ):
+            self.assertIn(titre, page)
+
+    def test_contient_les_sept_sections_en_anglais(self):
+        page = page_aide(lang="en")
+        for titre in (
+            "Getting access",
+            "Following the rankings",
+            "Proposing your score",
+            "Proxies",
+            "Your messages",
+            "Theme and language",
+            "Frequently asked questions",
+        ):
+            self.assertIn(titre, page)
+
+    def test_sommaire_pointe_vers_les_ancres_des_sections(self):
+        page = page_aide()
+        for ancre in ("s1", "s2", "s3", "s4", "s5", "s6", "s7"):
+            self.assertIn(f'href="#{ancre}"', page)
+            self.assertIn(f'id="{ancre}"', page)
+
+    def test_pas_de_rafraichissement_automatique(self):
+        self.assertNotIn('http-equiv="refresh"', page_aide())
+
+    def test_lien_retour_vers_laccueil(self):
+        self.assertIn('href="/"', page_aide())
+
+
 class TestPageMesMessages(unittest.TestCase):
     def setUp(self):
         self.conn = db.connect(":memory:")
@@ -867,6 +908,17 @@ class TestServeurIntegration(unittest.TestCase):
             self.assertEqual(reponse.status, 200)
             contenu = reponse.read().decode("utf-8")
         self.assertIn("table.classement", contenu)
+
+    def test_logo_png_servi_reellement(self):
+        with urllib.request.urlopen(self._url("/logo.png"), timeout=5) as reponse:
+            self.assertEqual(reponse.status, 200)
+            self.assertIn("image/png", reponse.headers["Content-Type"])
+
+    def test_aide_servie_reellement(self):
+        with urllib.request.urlopen(self._url("/aide"), timeout=5) as reponse:
+            self.assertEqual(reponse.status, 200)
+            contenu = reponse.read().decode("utf-8")
+        self.assertIn("Obtenir un accès", contenu)
 
     def test_preference_redirige_et_pose_des_cookies(self):
         connexion = http.client.HTTPConnection("127.0.0.1", self.serveur.server_port, timeout=5)

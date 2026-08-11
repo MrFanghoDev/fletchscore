@@ -189,6 +189,142 @@ _TEXTES: dict[str, dict[str, str]] = {
         "en": "Built for Archers Libres de Fontaine-le-Port ·",
     },
     "footer_license": {"fr": "Licence GPLv3", "en": "GPLv3 License"},
+    "footer_aide": {"fr": "Aide", "en": "Help"},
+    "aide_titre": {"fr": "Aide", "en": "Help"},
+    "aide_toc_label": {"fr": "Sommaire", "en": "Contents"},
+    "aide_s1_titre": {"fr": "Obtenir un accès", "en": "Getting access"},
+    "aide_s1_intro": {
+        "fr": "Deux façons d'accéder au suivi d'une compétition :",
+        "en": "Two ways to access a competition's live tracking:",
+    },
+    "aide_s1_li1": {
+        "fr": "Tu as déjà un code d'accès (donné par l'organisateur, à la "
+        "main ou par QR code) : entre-le dans le champ « Code d'accès » "
+        "en bas de l'accueil.",
+        "en": "You already have an access code (given by the organiser, "
+        "by hand or via QR code): enter it in the \"Access code\" field "
+        "at the bottom of the home page.",
+    },
+    "aide_s1_li2": {
+        "fr": "Tu n'as pas encore de code : ouvre la page de la "
+        "compétition, clique « Pas encore d'accès ? Demander un "
+        "rattachement », cherche ton nom dans la liste et clique "
+        "« C'est moi ». L'organisateur devra vérifier ton identité "
+        "(carte de licence, pièce d'identité) avant de valider -- le "
+        "code n'est généré qu'à ce moment-là, jamais avant.",
+        "en": "You don't have a code yet: open the competition's page, "
+        "click \"No access yet? Request access\", find your name in "
+        "the list and click \"That's me\". The organiser will need to "
+        "check your identity (licence card, ID) before validating -- "
+        "the code is only generated at that point, never before.",
+    },
+    "aide_s2_titre": {"fr": "Suivre le classement", "en": "Following the rankings"},
+    "aide_s2_text": {
+        "fr": "Chaque épreuve a son propre classement, mis à jour "
+        "automatiquement toutes les 15 secondes tant que la page reste "
+        "ouverte. La compétition dans son ensemble a aussi un "
+        "classement global (une colonne par épreuve, un total cumulé), "
+        "accessible depuis l'accueil ou la page de la compétition.",
+        "en": "Each event has its own rankings, refreshed automatically "
+        "every 15 seconds while the page stays open. The competition as "
+        "a whole also has an overall ranking (one column per event, a "
+        "cumulative total), reachable from the home page or the "
+        "competition's page.",
+    },
+    "aide_s3_titre": {"fr": "Proposer ton score", "en": "Proposing your score"},
+    "aide_s3_text": {
+        "fr": "Une fois ton accès confirmé, la page de chaque épreuve où "
+        "tu es inscrit·e affiche un formulaire « Proposer mon score » "
+        "(total + nombre de X si le barème l'utilise). Ta proposition "
+        "n'apparaît dans aucun classement tant que l'organisateur ne "
+        "l'a pas validée -- il la recoupe avec la feuille de match "
+        "papier avant de confirmer.",
+        "en": "Once your access is confirmed, each event's page where "
+        "you're registered shows a \"Propose my score\" form (total + "
+        "number of X's if the scoring scale uses it). Your proposal "
+        "doesn't appear in any ranking until the organiser has "
+        "validated it -- they cross-check it against the paper match "
+        "sheet before confirming.",
+    },
+    "aide_s4_titre": {"fr": "Procurations", "en": "Proxies"},
+    "aide_s4_text": {
+        "fr": "Si une seule personne note les scores de tout un groupe, "
+        "elle peut demander une procuration pour proposer le score "
+        "d'un·e autre compétiteur·rice à sa place (lien « Proposer les "
+        "scores d'un·e autre compétiteur·rice ? » sur l'accueil, une "
+        "fois identifié·e). Comme pour un accès, l'organisateur valide "
+        "la demande avant qu'elle ne prenne effet.",
+        "en": "If a single person scores for a whole group, they can "
+        "request a proxy to propose another competitor's score on "
+        "their behalf (\"Propose another competitor's scores?\" link on "
+        "the home page, once identified). As with access, the "
+        "organiser approves the request before it takes effect.",
+    },
+    "aide_s5_titre": {"fr": "Tes messages", "en": "Your messages"},
+    "aide_s5_text": {
+        "fr": "L'organisateur peut envoyer des messages (à toi "
+        "précisément, ou à tous les compétiteurs) -- le dernier reçu "
+        "s'affiche sur l'accueil, l'historique complet est accessible "
+        "via « Voir tous mes messages ».",
+        "en": "The organiser can send messages (to you specifically, or "
+        "to all competitors) -- the latest one shows on the home page, "
+        "the full history is available via \"See all my messages\".",
+    },
+    "aide_s6_titre": {"fr": "Thème et langue", "en": "Theme and language"},
+    "aide_s6_text": {
+        "fr": "Les boutons en haut de chaque page permettent de choisir "
+        "clair/sombre/auto et français/anglais -- ce choix est mémorisé "
+        "sur cet appareil pour les prochaines visites.",
+        "en": "The buttons at the top of each page let you choose "
+        "light/dark/auto and French/English -- this choice is "
+        "remembered on this device for future visits.",
+    },
+    "aide_s7_titre": {"fr": "Foire aux questions", "en": "Frequently asked questions"},
+    "aide_faq_q1": {
+        "fr": "Je n'ai pas reçu de code, que faire ?",
+        "en": "I haven't received a code, what should I do?",
+    },
+    "aide_faq_a1": {
+        "fr": "Vérifie d'abord que tu as bien fait une demande d'accès "
+        "(« C'est moi ») -- le code n'est envoyé qu'après validation "
+        "manuelle par l'organisateur, ça peut prendre un moment "
+        "pendant une compétition chargée. Vois directement avec lui si "
+        "le délai te semble long.",
+        "en": "First check that you've actually made an access request "
+        "(\"That's me\") -- the code is only issued after manual "
+        "validation by the organiser, which can take a moment during a "
+        "busy competition. Check with them directly if it's taking a "
+        "while.",
+    },
+    "aide_faq_q2": {
+        "fr": "Le classement ne se met pas à jour, pourquoi ?",
+        "en": "The rankings aren't updating, why?",
+    },
+    "aide_faq_a2": {
+        "fr": "La page se rafraîchit automatiquement toutes les 15 "
+        "secondes tant qu'elle reste ouverte -- vérifie ta connexion au "
+        "wifi du club. Un rechargement manuel de la page force aussi la "
+        "mise à jour.",
+        "en": "The page refreshes automatically every 15 seconds while "
+        "it stays open -- check your connection to the club's wifi. "
+        "Manually reloading the page also forces an update.",
+    },
+    "aide_faq_q3": {
+        "fr": "J'ai fait une erreur dans le score que j'ai proposé, "
+        "comment le corriger ?",
+        "en": "I made a mistake in the score I proposed, how do I fix "
+        "it?",
+    },
+    "aide_faq_a3": {
+        "fr": "Tant que l'organisateur n'a pas validé ta proposition, tu "
+        "peux en soumettre une nouvelle depuis la même page -- elle "
+        "remplace la précédente. Une fois validée, vois directement "
+        "avec l'organisateur pour une correction.",
+        "en": "As long as the organiser hasn't validated your proposal, "
+        "you can submit a new one from the same page -- it replaces the "
+        "previous one. Once validated, see the organiser directly for a "
+        "correction.",
+    },
 }
 
 
@@ -263,6 +399,8 @@ def _mise_en_page(
 def _pied_de_page(lang: str) -> str:
     return (
         '<footer class="site-footer">'
+        f'<a href="/aide">{_echapper(_t("footer_aide", lang))}</a>'
+        " · "
         f"{_echapper(_t('footer_credit', lang))} "
         '<a href="https://github.com/MrFanghoDev" target="_blank" rel="noopener">@MrFanghoDev</a>'
         " · "
@@ -270,6 +408,68 @@ def _pied_de_page(lang: str) -> str:
         f'target="_blank" rel="noopener">{_echapper(_t("footer_license", lang))}</a>'
         "</footer>"
     )
+
+
+def page_aide(lang: str = "fr", theme: str = "dark") -> str:
+    """Page d'aide pour le compétiteur -- pas de contenu technique
+    (installation, config...), contrairement au manuel FletchTime : le
+    public ici n'installe jamais rien, il ouvre juste un lien reçu de
+    l'organisateur. Rendue côté serveur comme le reste de la vue
+    compétiteur (pas de JS -- voir docstring du module), contrairement
+    à manual.html côté FletchTime qui est une page statique avec i18n
+    JS."""
+    sections = (
+        ("s1", "aide_s1_titre", None),
+        ("s2", "aide_s2_titre", None),
+        ("s3", "aide_s3_titre", None),
+        ("s4", "aide_s4_titre", None),
+        ("s5", "aide_s5_titre", None),
+        ("s6", "aide_s6_titre", None),
+        ("s7", "aide_s7_titre", None),
+    )
+    sommaire = "".join(
+        f'<li><a href="#{ancre}">{_t(cle_titre, lang)}</a></li>' for ancre, cle_titre, _ in sections
+    )
+
+    corps_s1 = (
+        f'<p>{_t("aide_s1_intro", lang)}</p>'
+        f'<ul><li>{_t("aide_s1_li1", lang)}</li><li>{_t("aide_s1_li2", lang)}</li></ul>'
+    )
+    corps_s7 = (
+        '<dl class="faq">'
+        f'<dt>{_t("aide_faq_q1", lang)}</dt><dd>{_t("aide_faq_a1", lang)}</dd>'
+        f'<dt>{_t("aide_faq_q2", lang)}</dt><dd>{_t("aide_faq_a2", lang)}</dd>'
+        f'<dt>{_t("aide_faq_q3", lang)}</dt><dd>{_t("aide_faq_a3", lang)}</dd>'
+        "</dl>"
+    )
+    contenus = {
+        "s1": corps_s1,
+        "s2": f'<p>{_t("aide_s2_text", lang)}</p>',
+        "s3": f'<p>{_t("aide_s3_text", lang)}</p>',
+        "s4": f'<p>{_t("aide_s4_text", lang)}</p>',
+        "s5": f'<p>{_t("aide_s5_text", lang)}</p>',
+        "s6": f'<p>{_t("aide_s6_text", lang)}</p>',
+        "s7": corps_s7,
+    }
+
+    articles = "".join(
+        f'<article class="manual-section" id="{ancre}">'
+        f"<h2>{_t(cle_titre, lang)}</h2>"
+        f"{contenus[ancre]}"
+        "</article>"
+        for ancre, cle_titre, _ in sections
+    )
+
+    corps = (
+        f'<p><a class="back" href="/">{_t("retour", lang)}</a></p>'
+        f"<h1>{_t('aide_titre', lang)}</h1>"
+        '<nav class="toc">'
+        f'<div class="toc-label">{_t("aide_toc_label", lang)}</div>'
+        f"<ul>{sommaire}</ul>"
+        "</nav>"
+        f"{articles}"
+    )
+    return _mise_en_page(_t("aide_titre", lang), corps, lang, theme, "/", rafraichir=False)
 
 
 def _statut_epreuve_pour(
@@ -1012,6 +1212,10 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
             return
 
         lang, theme = self._lire_preferences()
+
+        if chemin == "/aide":
+            self._repondre_html(page_aide(lang, theme))
+            return
 
         if chemin == "/mes-messages":
             identite = self._lire_identite()
