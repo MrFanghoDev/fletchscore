@@ -352,10 +352,12 @@ def _controles_haut(lang: str, theme: str, chemin_retour: str) -> str:
         + _bouton_preference("theme", "light", "☀", theme, chemin_retour)
         + _bouton_preference("theme", "dark", "☾", theme, chemin_retour)
     )
+    # Thème avant langue -- même ordre que FletchTime (voir web/index.html
+    # côté FletchTime, .top-controls).
     return (
         '<div class="top-controls">'
-        f'<div class="lang-toggle">{boutons_lang}</div>'
         f'<div class="theme-toggle">{boutons_theme}</div>'
+        f'<div class="lang-toggle">{boutons_lang}</div>'
         "</div>"
     )
 
