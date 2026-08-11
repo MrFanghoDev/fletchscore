@@ -13,12 +13,14 @@ from __future__ import annotations
 
 import customtkinter as ctk
 
+from fletchscore.gui.i18n import traduire
 from fletchscore.logging_setup import CHEMIN_JOURNAL_PAR_DEFAUT
 
 
 class EcranJournal(ctk.CTkFrame):
-    def __init__(self, parent: ctk.CTkBaseClass) -> None:
+    def __init__(self, parent: ctk.CTkBaseClass, lang: str = "fr") -> None:
         super().__init__(parent, fg_color="transparent")
+        self.lang = lang
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
@@ -26,6 +28,9 @@ class EcranJournal(ctk.CTkFrame):
         self._construire_controles()
         self._construire_zone_journal()
         self._rafraichir_journal()
+
+    def _t(self, cle: str, **kwargs: object) -> str:
+        return traduire(cle, self.lang, **kwargs)
 
     def _construire_controles(self) -> None:
         cadre = ctk.CTkFrame(self, fg_color="transparent")
@@ -36,9 +41,9 @@ class EcranJournal(ctk.CTkFrame):
             row=0, column=0, sticky="w"
         )
 
-        ctk.CTkButton(cadre, text="Actualiser", command=self._rafraichir_journal).grid(
-            row=0, column=1
-        )
+        ctk.CTkButton(
+            cadre, text=self._t("classement_refresh"), command=self._rafraichir_journal
+        ).grid(row=0, column=1)
 
     def _construire_zone_journal(self) -> None:
         self.zone_journal = ctk.CTkTextbox(self, font=ctk.CTkFont(family="monospace", size=11))
@@ -49,12 +54,9 @@ class EcranJournal(ctk.CTkFrame):
         if CHEMIN_JOURNAL_PAR_DEFAUT.exists():
             contenu = CHEMIN_JOURNAL_PAR_DEFAUT.read_text(encoding="utf-8")
             if not contenu:
-                contenu = "(fichier journal vide pour l'instant.)"
+                contenu = self._t("journal_empty")
         else:
-            contenu = (
-                "Aucun fichier journal pour l'instant -- il est créé au "
-                "prochain lancement de FletchScore."
-            )
+            contenu = self._t("journal_no_file")
 
         self.zone_journal.configure(state="normal")
         self.zone_journal.delete("1.0", "end")

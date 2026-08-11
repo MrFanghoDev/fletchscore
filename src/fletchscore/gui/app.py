@@ -167,11 +167,11 @@ class FenetrePrincipale(ctk.CTk):
         resultat = {"ok": False}
 
         dialogue = ctk.CTkToplevel(self)
-        dialogue.title("FletchScore -- connexion")
+        dialogue.title(self._t("login_window_title"))
         dialogue.geometry("320x180")
         dialogue.protocol("WM_DELETE_WINDOW", dialogue.destroy)
 
-        ctk.CTkLabel(dialogue, text="Mot de passe organisateur").pack(padx=20, pady=(20, 5))
+        ctk.CTkLabel(dialogue, text=self._t("login_organizer_password")).pack(padx=20, pady=(20, 5))
         champ = ctk.CTkEntry(dialogue, show="*")
         champ.pack(padx=20, pady=5, fill="x")
         erreur = ctk.CTkLabel(dialogue, text="", text_color="red")
@@ -182,10 +182,10 @@ class FenetrePrincipale(ctk.CTk):
                 resultat["ok"] = True
                 dialogue.destroy()
             else:
-                erreur.configure(text="Mot de passe incorrect.")
+                erreur.configure(text=self._t("login_incorrect"))
                 champ.delete(0, "end")
 
-        ctk.CTkButton(dialogue, text="Se connecter", command=valider).pack(pady=10)
+        ctk.CTkButton(dialogue, text=self._t("login_connect"), command=valider).pack(pady=10)
         champ.bind("<Return>", lambda _evenement: valider())
         champ.focus()
 
@@ -347,7 +347,7 @@ class FenetrePrincipale(ctk.CTk):
             return
 
         if cle == "aide":
-            ecran = EcranAide(self.cadre_section)
+            ecran = EcranAide(self.cadre_section, self.language)
             ecran.grid(row=0, column=0, sticky="nsew")
             return
 
@@ -362,7 +362,7 @@ class FenetrePrincipale(ctk.CTk):
             return
 
         if cle == "journal":
-            ecran = EcranJournal(self.cadre_section)
+            ecran = EcranJournal(self.cadre_section, self.language)
             ecran.grid(row=0, column=0, sticky="nsew")
             return
 

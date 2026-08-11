@@ -269,6 +269,73 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         "motdepasse_new_empty_error": "Le nouveau mot de passe ne peut pas être vide.",
         "motdepasse_changed": "Mot de passe changé.",
         "motdepasse_removed": "Protection par mot de passe désactivée.",
+        # -- Écran Journal -----------------------------------------------------
+        "journal_empty": "(fichier journal vide pour l'instant.)",
+        "journal_no_file": (
+            "Aucun fichier journal pour l'instant -- il est créé au prochain "
+            "lancement de FletchScore."
+        ),
+        # -- Écran Aide ----------------------------------------------------------
+        "aide_intro": (
+            "Ce résumé couvre l'essentiel. Pour le détail complet (cahier "
+            "des charges, architecture), voir la documentation en ligne :"
+        ),
+        "aide_open_docs": "Ouvrir la documentation en ligne",
+        "aide_desc_competitions": (
+            "Crée une compétition (dates, lieu, catégories Veteran/Senior "
+            "optionnelles), puis une ou plusieurs épreuves avec un barème "
+            "(IFAA Indoor, Flint Indoor...). Un bouton « Modifier » permet "
+            "de corriger une compétition ou une épreuve existante."
+        ),
+        "aide_desc_competiteurs": (
+            "Importe un fichier clubs.csv puis competiteurs.csv, ou ajoute "
+            "un club/compétiteur au coup par coup avec les formulaires "
+            "dédiés. Un rapport détaille les lignes rejetées à l'import."
+        ),
+        "aide_desc_saisie": (
+            "Deux onglets. Saisie manuelle : choisis une épreuve, inscris "
+            "les compétiteurs présents, puis saisis le score final de "
+            "chacun (total + nombre de X si le barème l'utilise) tel que "
+            "totalisé sur la feuille de match -- un score déjà saisi peut "
+            "être corrigé en le ressaisissant. Propositions en attente : "
+            "un compétiteur identifié depuis la vue web peut proposer son "
+            "propre score ; ça n'apparaît dans aucun classement tant que "
+            "tu ne l'as pas validé ici -- recoupe avec la feuille de match "
+            "papier avant de valider."
+        ),
+        "aide_desc_classement": (
+            "Choisis une épreuve pour voir le classement live, groupé par "
+            "catégorie (sexe + âge + style), avec départage au X si le "
+            "barème le prévoit. Une section séparée permet d'exporter le "
+            "classement cumulé de toute une compétition (une colonne par "
+            "épreuve, un total)."
+        ),
+        "aide_desc_connexions": (
+            "Démarre un petit serveur web (bouton, port fixe ou "
+            "automatique, HTTPS optionnel si la bibliothèque cryptography "
+            "est installée) pour que les compétiteurs consultent le "
+            "classement live depuis leur téléphone, sur le wifi du club. "
+            "En dessous, quatre onglets : Demandes en attente (valide "
+            "seulement après avoir vérifié l'identité de visu -- un code, "
+            "et un QR code si disponible, s'affiche alors une seule fois, "
+            "à transmettre immédiatement) ; Accès actifs (révoquer un "
+            "accès déjà donné) ; Procurations (autoriser un compétiteur à "
+            "proposer des scores au nom d'un autre, utile si une seule "
+            "personne note pour tout un groupe) ; Messages (envoyer à un "
+            "compétiteur précis ou à tous, historique des envois)."
+        ),
+        "aide_desc_motdepasse": (
+            "Optionnel : définis un mot de passe pour protéger l'ouverture "
+            "de FletchScore. Sans mot de passe défini, l'application "
+            "s'ouvre directement. Une fois défini, tu peux le changer ou "
+            "supprimer la protection -- les deux redemandent le mot de "
+            "passe actuel."
+        ),
+        # -- Fenêtre de connexion (mot de passe, avant le reste de la GUI) --
+        "login_window_title": "FletchScore -- connexion",
+        "login_organizer_password": "Mot de passe organisateur",
+        "login_incorrect": "Mot de passe incorrect.",
+        "login_connect": "Se connecter",
     },
     "en": {
         # -- Panneau latéral (chrome, toujours visible) ------------------
@@ -520,6 +587,68 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         "motdepasse_new_empty_error": "New password can't be empty.",
         "motdepasse_changed": "Password changed.",
         "motdepasse_removed": "Password protection disabled.",
+        # -- Écran Journal -----------------------------------------------------
+        "journal_empty": "(log file empty for now.)",
+        "journal_no_file": "No log file yet -- it's created on FletchScore's next launch.",
+        # -- Écran Aide ----------------------------------------------------------
+        "aide_intro": (
+            "This summary covers the essentials. For the full detail "
+            "(specifications, architecture), see the online documentation:"
+        ),
+        "aide_open_docs": "Open the online documentation",
+        "aide_desc_competitions": (
+            "Create a competition (dates, place, optional Veteran/Senior "
+            "categories), then one or more events with a scoring scale "
+            '(IFAA Indoor, Flint Indoor...). An "Edit" button lets you '
+            "correct an existing competition or event."
+        ),
+        "aide_desc_competiteurs": (
+            "Import a clubs.csv file then competiteurs.csv, or add a "
+            "club/competitor one at a time with the dedicated forms. A "
+            "report details the rejected rows on import."
+        ),
+        "aide_desc_saisie": (
+            "Two tabs. Manual entry: choose an event, register the "
+            "competitors present, then enter each one's final score "
+            "(total + number of X's if the scoring scale uses it) as "
+            "totaled on the match sheet -- an already-entered score can "
+            "be corrected by re-entering it. Pending proposals: a "
+            "competitor identified from the web view can propose their "
+            "own score; it doesn't appear in any ranking until you "
+            "validate it here -- cross-check it against the paper match "
+            "sheet before validating."
+        ),
+        "aide_desc_classement": (
+            "Choose an event to see the live rankings, grouped by "
+            "category (sex + age + style), with tie-breaking by X's if "
+            "the scoring scale provides for it. A separate section lets "
+            "you export the cumulative rankings for a whole competition "
+            "(one column per event, a total)."
+        ),
+        "aide_desc_connexions": (
+            "Starts a small web server (button, fixed or automatic port, "
+            "optional HTTPS if the cryptography library is installed) so "
+            "competitors can check the live rankings from their phone, on "
+            "the club's wifi. Below, four tabs: Pending requests (only "
+            "validate after checking identity in person -- a code, and a "
+            "QR code if available, is then shown once, to hand over "
+            "immediately); Active access (revoke an access already "
+            "granted); Proxies (allow a competitor to propose scores on "
+            "behalf of another, useful if a single person records for a "
+            "whole group); Messages (send to a specific competitor or "
+            "everyone, with a history of sent messages)."
+        ),
+        "aide_desc_motdepasse": (
+            "Optional: set a password to protect FletchScore's launch. "
+            "With no password set, the app opens directly. Once set, you "
+            "can change it or remove the protection -- both require the "
+            "current password."
+        ),
+        # -- Fenêtre de connexion (mot de passe, avant le reste de la GUI) --
+        "login_window_title": "FletchScore -- login",
+        "login_organizer_password": "Organizer password",
+        "login_incorrect": "Incorrect password.",
+        "login_connect": "Log in",
     },
 }
 
