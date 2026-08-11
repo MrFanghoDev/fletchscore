@@ -71,6 +71,27 @@ h1 { display: flex; align-items: center; gap: 0.6rem; font-size: 1.4rem; margin:
 h1 img { height: 1.6em; width: auto; }
 p.intro { color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; max-width: 640px; }
 
+/* ---------- Hero (accueil -- logo + slogan, repris de FletchTime) ---------- */
+
+.hero { display: flex; flex-direction: column; align-items: center; text-align: center; max-width: 640px; margin: 0 auto; }
+.hero img { height: 5rem; width: auto; margin-bottom: 1rem; filter: drop-shadow(0 0 24px rgba(209,161,61,0.25)); }
+.hero h1 { justify-content: center; font-size: 1.8rem; margin: 0 0 0.4rem; letter-spacing: -0.01em; }
+.wordmark .fletch { color: var(--text); }
+.wordmark .score { color: var(--gold); }
+.hero .tagline { color: var(--text-muted); font-size: 1rem; margin: 0; line-height: 1.5; }
+
+/* ---------- Grille de cartes (repris de FletchTime -- les cartes elles-
+   mêmes restent .section-competition, déjà stylée dans classement.css ;
+   ceci ne fait que les répartir en grille responsive au lieu d'un
+   empilement mono-colonne systématique) ------------------------------ */
+
+.cards {
+  display: grid; gap: 1rem; width: 100%; margin-top: 1.5rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 640px) { .cards { grid-template-columns: repeat(2, 1fr); } }
+.cards .section-competition { margin-bottom: 0; }
+
 footer.site-footer {
   max-width: 900px; margin: 2rem auto 0; padding: 0 1rem;
   color: var(--text-faint); font-size: 0.78rem; text-align: center;

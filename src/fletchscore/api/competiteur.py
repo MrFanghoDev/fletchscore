@@ -307,9 +307,17 @@ def page_accueil(
     """
     competitions = db.list_competitions(conn)
 
+    # Hero (logo + slogan) repris du style FletchTime -- seulement sur
+    # l'accueil, les autres pages gardent un <h1> simple (voir
+    # _mise_en_page, pas de logo par défaut).
     entete = (
-        f'<h1>{_t("bienvenue_titre", lang)}</h1>'
-        f'<p class="intro">{_t("bienvenue_intro", lang)}</p>'
+        '<div class="hero">'
+        '<img src="/logo.png" alt="FletchScore">'
+        '<h1 class="wordmark">'
+        '<span class="fletch">Fletch</span><span class="score">Score</span>'
+        "</h1>"
+        f'<p class="tagline">{_t("bienvenue_intro", lang)}</p>'
+        "</div>"
     )
 
     banniere = ""
@@ -385,7 +393,7 @@ def page_accueil(
                 f"{ligne_acces}"
                 "</div>"
             )
-        corps_competitions = "".join(sections)
+        corps_competitions = f'<div class="cards">{"".join(sections)}</div>'
 
     if identite is not None:
         # Déjà une session active -- resaisir un code n'a plus lieu
@@ -992,6 +1000,9 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
             return
         if chemin == "/classement.css":
             self._servir_fichier_statique("classement.css", "text/css")
+            return
+        if chemin == "/logo.png":
+            self._servir_fichier_statique("logo.png", "image/png")
             return
         if chemin == "/preference":
             self._definir_preference(url)

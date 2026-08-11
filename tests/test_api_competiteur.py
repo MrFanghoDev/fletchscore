@@ -231,8 +231,14 @@ class TestPageAccueil(unittest.TestCase):
         self.assertIn('href="/classement.css"', page)
 
     def test_contient_le_message_de_bienvenue(self):
+        # Le bandeau d'accueil est désormais un "hero" (logo + wordmark),
+        # repris du style FletchTime -- "FletchScore" apparaît dans le
+        # wordmark lui-même plutôt que dans un texte "Bienvenue sur..."
+        # séparé (voir page_accueil).
         page = page_accueil(self.conn)
-        self.assertIn("Bienvenue sur FletchScore", page)
+        self.assertIn('class="wordmark"', page)
+        self.assertIn(">Fletch</span><span class=\"score\">Score</span>", page)
+        self.assertIn("Suis les résultats en direct", page)
 
     def test_contient_la_section_code_dacces(self):
         page = page_accueil(self.conn)
@@ -998,8 +1004,9 @@ class TestServeurIntegration(unittest.TestCase):
     def test_mes_messages_sans_cookie_redirige_vers_laccueil(self):
         requete = urllib.request.Request(self._url("/mes-messages"))
         with urllib.request.urlopen(requete, timeout=5) as reponse:
-            # urllib suit la redirection -- on doit atterrir sur l'accueil.
-            self.assertIn("Bienvenue", reponse.read().decode("utf-8"))
+            # urllib suit la redirection -- on doit atterrir sur l'accueil
+            # (identifiable par le wordmark du hero, voir page_accueil).
+            self.assertIn('class="wordmark"', reponse.read().decode("utf-8"))
 
     def test_cookie_de_session_permet_de_proposer_un_score(self):
         # Le test décisif de ce chantier : un vrai POST /code pose un
@@ -1255,7 +1262,7 @@ class TestServeurHttps(unittest.TestCase):
         ) as reponse:
             self.assertEqual(reponse.status, 200)
             contenu = reponse.read().decode("utf-8")
-        self.assertIn("Bienvenue", contenu)
+        self.assertIn('class="wordmark"', contenu)
 
     def test_certificat_genere_automatiquement(self):
         self.assertTrue(certificat_https.CHEMIN_CERT_PAR_DEFAUT.exists())
