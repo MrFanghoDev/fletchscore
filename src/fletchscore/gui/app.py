@@ -342,7 +342,7 @@ class FenetrePrincipale(ctk.CTk):
             return
 
         if cle == "classement":
-            ecran = EcranClassement(self.cadre_section, self.conn)
+            ecran = EcranClassement(self.cadre_section, self.conn, self.language)
             ecran.grid(row=0, column=0, sticky="nsew")
             return
 
