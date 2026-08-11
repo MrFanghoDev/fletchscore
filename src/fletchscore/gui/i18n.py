@@ -174,6 +174,79 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         "classement_club_header": "Club",
         "classement_total_header": "Total",
         "classement_x_header": "X",
+        # -- Textes génériques (suite) --------------------------------------
+        "valider": "Valider",
+        "rejeter": "Rejeter",
+        "revoquer": "Révoquer",
+        "envoyer": "Envoyer",
+        "fermer": "Fermer",
+        "competition_label": "Compétition :",
+        # -- Écran Connexions compétiteurs -----------------------------------
+        "connexions_server_desc": (
+            "Permet à un compétiteur de consulter le classement live depuis "
+            "son téléphone, sur le réseau wifi du club, et de s'y identifier "
+            "pour demander un accès ou proposer un score."
+        ),
+        "connexions_port_label": "Port",
+        "connexions_port_hint": "(laisser vide = port différent à chaque démarrage)",
+        "connexions_https_checkbox": "Activer HTTPS (certificat auto-signé)",
+        "connexions_https_note": (
+            "Le navigateur du compétiteur affichera un avertissement "
+            '"connexion non sécurisée" à accepter manuellement une fois '
+            "(normal pour un certificat auto-signé, pas émis par une "
+            "autorité reconnue)."
+        ),
+        "connexions_https_unavailable": (
+            "Indisponible -- la bibliothèque cryptography n'est pas installée."
+        ),
+        "connexions_start_server": "Démarrer le serveur",
+        "connexions_stop_server": "Arrêter le serveur",
+        "connexions_server_stopped_dot": "Serveur arrêté.",
+        "connexions_server_started": (
+            "Serveur démarré -- adresse à donner aux compétiteurs : {url}"
+        ),
+        "connexions_invalid_port_not_number": "Port invalide -- un nombre est attendu.",
+        "connexions_invalid_port_range": "Port invalide -- doit être entre 1 et 65535.",
+        "connexions_https_import_error": (
+            "Impossible d'activer HTTPS -- la bibliothèque cryptography n'est "
+            "pas installée. Décoche la case et réessaie pour démarrer en HTTP simple."
+        ),
+        "connexions_server_start_error": "Impossible de démarrer le serveur sur ce port : {erreur}",
+        "connexions_tab_requests": "Demandes en attente",
+        "connexions_tab_active": "Accès actifs",
+        "connexions_tab_proxies": "Procurations",
+        "connexions_tab_messages": "Messages",
+        "connexions_no_pending_request": "Aucune demande en attente.",
+        "connexions_request_line": "{prenom} {nom} ({id_federal}) -- né(e) le {naissance} -- {club}",
+        "connexions_access_granted": "Accès validé -- code {code}.",
+        "connexions_request_rejected": "Demande rejetée.",
+        "connexions_no_active_access": "Aucun accès actif pour l'instant.",
+        "connexions_active_line": "{prenom} {nom} ({id_federal}) -- code {code}",
+        "connexions_access_revoked": "Accès de {nom} révoqué.",
+        "connexions_proxy_intro": (
+            "Autorise un compétiteur (le mandataire) à proposer des scores au "
+            "nom d'un autre (le mandant) -- utile si une seule personne note "
+            "les scores de tout un groupe."
+        ),
+        "connexions_no_pending_proxy": "Aucune demande de procuration en attente.",
+        "connexions_proxy_request_line": "{mandataire} veut proposer des scores pour {mandant}",
+        "connexions_proxy_validated": "Procuration validée.",
+        "connexions_proxy_rejected": "Procuration rejetée.",
+        "connexions_active_proxies_title": "Procurations actives",
+        "connexions_no_active_proxy": "Aucune procuration active pour l'instant.",
+        "connexions_active_proxy_line": "{mandataire} propose des scores pour {mandant}",
+        "connexions_proxy_revoked": "Procuration révoquée.",
+        "connexions_destinataire_label": "Destinataire :",
+        "connexions_all_competitors": "Tous les compétiteurs",
+        "connexions_sent_messages_title": "Messages envoyés",
+        "connexions_no_message_sent": "Aucun message envoyé pour l'instant.",
+        "connexions_all_short": "Tous",
+        "connexions_choose_competition_first": "Choisis d'abord une compétition.",
+        "connexions_message_sent": "Message envoyé.",
+        "connexions_token_window_title": "Accès compétiteur",
+        "connexions_token_code_label": "Code d'accès à donner au compétiteur",
+        "connexions_qr_unavailable": "(QR code indisponible)",
+        "connexions_qr_lib_missing": "(bibliothèque qrcode non installée -- code court uniquement)",
     },
     "en": {
         # -- Panneau latéral (chrome, toujours visible) ------------------
@@ -333,6 +406,76 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         "classement_club_header": "Club",
         "classement_total_header": "Total",
         "classement_x_header": "X",
+        # -- Textes génériques (suite) --------------------------------------
+        "valider": "Validate",
+        "rejeter": "Reject",
+        "revoquer": "Revoke",
+        "envoyer": "Send",
+        "fermer": "Close",
+        "competition_label": "Competition:",
+        # -- Écran Connexions compétiteurs -----------------------------------
+        "connexions_server_desc": (
+            "Lets a competitor check the live rankings from their phone, on "
+            "the club's wifi network, and identify themselves to request "
+            "access or propose a score."
+        ),
+        "connexions_port_label": "Port",
+        "connexions_port_hint": "(leave blank = a different port each time it starts)",
+        "connexions_https_checkbox": "Enable HTTPS (self-signed certificate)",
+        "connexions_https_note": (
+            'The competitor\'s browser will show an "insecure connection" '
+            "warning to accept manually once (normal for a self-signed "
+            "certificate, not issued by a recognized authority)."
+        ),
+        "connexions_https_unavailable": (
+            "Unavailable -- the cryptography library isn't installed."
+        ),
+        "connexions_start_server": "Start the server",
+        "connexions_stop_server": "Stop the server",
+        "connexions_server_stopped_dot": "Server stopped.",
+        "connexions_server_started": ("Server started -- address to give to competitors: {url}"),
+        "connexions_invalid_port_not_number": "Invalid port -- a number is expected.",
+        "connexions_invalid_port_range": "Invalid port -- must be between 1 and 65535.",
+        "connexions_https_import_error": (
+            "Can't enable HTTPS -- the cryptography library isn't installed. "
+            "Uncheck the box and try again to start in plain HTTP."
+        ),
+        "connexions_server_start_error": "Couldn't start the server on this port: {erreur}",
+        "connexions_tab_requests": "Pending requests",
+        "connexions_tab_active": "Active access",
+        "connexions_tab_proxies": "Proxies",
+        "connexions_tab_messages": "Messages",
+        "connexions_no_pending_request": "No pending request.",
+        "connexions_request_line": "{prenom} {nom} ({id_federal}) -- born {naissance} -- {club}",
+        "connexions_access_granted": "Access granted -- code {code}.",
+        "connexions_request_rejected": "Request rejected.",
+        "connexions_no_active_access": "No active access yet.",
+        "connexions_active_line": "{prenom} {nom} ({id_federal}) -- code {code}",
+        "connexions_access_revoked": "Access revoked for {nom}.",
+        "connexions_proxy_intro": (
+            "Lets a competitor (the proxy) propose scores on behalf of "
+            "another (the principal) -- useful if a single person is "
+            "recording scores for a whole group."
+        ),
+        "connexions_no_pending_proxy": "No pending proxy request.",
+        "connexions_proxy_request_line": "{mandataire} wants to propose scores for {mandant}",
+        "connexions_proxy_validated": "Proxy validated.",
+        "connexions_proxy_rejected": "Proxy rejected.",
+        "connexions_active_proxies_title": "Active proxies",
+        "connexions_no_active_proxy": "No active proxy yet.",
+        "connexions_active_proxy_line": "{mandataire} proposes scores for {mandant}",
+        "connexions_proxy_revoked": "Proxy revoked.",
+        "connexions_destinataire_label": "Recipient:",
+        "connexions_all_competitors": "All competitors",
+        "connexions_sent_messages_title": "Sent messages",
+        "connexions_no_message_sent": "No message sent yet.",
+        "connexions_all_short": "All",
+        "connexions_choose_competition_first": "Choose a competition first.",
+        "connexions_message_sent": "Message sent.",
+        "connexions_token_window_title": "Competitor access",
+        "connexions_token_code_label": "Access code to give to the competitor",
+        "connexions_qr_unavailable": "(QR code unavailable)",
+        "connexions_qr_lib_missing": "(qrcode library not installed -- short code only)",
     },
 }
 
