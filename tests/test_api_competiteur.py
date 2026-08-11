@@ -237,7 +237,7 @@ class TestPageAccueil(unittest.TestCase):
         # séparé (voir page_accueil).
         page = page_accueil(self.conn)
         self.assertIn('class="wordmark"', page)
-        self.assertIn(">Fletch</span><span class=\"score\">Score</span>", page)
+        self.assertIn('>Fletch</span><span class="score">Score</span>', page)
         self.assertIn("Suis les résultats en direct", page)
 
     def test_contient_la_section_code_dacces(self):
