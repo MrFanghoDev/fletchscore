@@ -44,6 +44,8 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         "ajouter": "Ajouter",
         "aucun_club": "(aucun club)",
         "aucun_style": "(aucun style)",
+        "epreuve_label": "Épreuve :",
+        "aucune_epreuve": "(aucune épreuve)",
         # -- Écran Accueil -------------------------------------------------
         "accueil_bienvenue": "Bienvenue sur FletchScore",
         "accueil_tagline": "Enregistrement des scores de compétitions FFTL/IFAA.",
@@ -105,6 +107,42 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         "competiteurs_no_style_available": "Aucun style disponible.",
         "competiteurs_updated": "Compétiteur mis à jour.",
         "competiteurs_none_yet": "Aucun compétiteur importé pour l'instant.",
+        # -- Écran Saisie ----------------------------------------------------
+        "saisie_tab_manuelle": "Saisie manuelle",
+        "saisie_tab_propositions": "Propositions en attente",
+        "saisie_aucun_competiteur_disponible": "(aucun)",
+        "saisie_inscrire": "Inscrire",
+        "saisie_inscrits_title": "Inscrit·e·s",
+        "saisie_choose_event_first": "Choisis d'abord une épreuve.",
+        "saisie_no_competitor_to_register": "Aucun compétiteur à inscrire.",
+        "saisie_no_one_registered": "Personne d'inscrit pour l'instant.",
+        "saisie_score_final_title": "Score final épreuve",
+        "saisie_total_label": "Score total",
+        "saisie_x_label": "Nombre de X",
+        "saisie_save": "Enregistrer",
+        "saisie_max_score": "Score maximum possible : {max}",
+        "saisie_up_to_x": " -- jusqu'à {n} X",
+        "saisie_select_registrant_first": "Sélectionne d'abord un·e inscrit·e.",
+        "saisie_invalid_total": "Score total invalide -- un nombre entier est attendu.",
+        "saisie_invalid_x": "Nombre de X invalide -- un nombre entier est attendu.",
+        "saisie_no_score_yet": "Aucun score saisi pour l'instant.",
+        "saisie_current_score": "Score actuel : {total} pts, {x} X ({statut})",
+        "statut_court_propose": "en attente",
+        "statut_court_valide": "validé",
+        "statut_court_rejete": "rejeté",
+        "propositions_intro": (
+            "Un score proposé n'apparaît dans aucun classement tant qu'il "
+            "n'est pas validé ici. Recoupe-le avec la feuille de match "
+            "papier avant de valider -- FletchScore ne vérifie rien "
+            "d'autre que les bornes du barème."
+        ),
+        "propositions_refresh": "Actualiser",
+        "propositions_none_pending": "Aucune proposition en attente.",
+        "propositions_proposed_by": " -- proposé par {nom}",
+        "propositions_validate": "Valider",
+        "propositions_reject": "Rejeter",
+        "propositions_validated": "Score validé -- {total} pts officiels.",
+        "propositions_rejected": "Proposition rejetée.",
     },
     "en": {
         # -- Panneau latéral (chrome, toujours visible) ------------------
@@ -134,6 +172,8 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         "ajouter": "Add",
         "aucun_club": "(no club)",
         "aucun_style": "(no style)",
+        "epreuve_label": "Event:",
+        "aucune_epreuve": "(no event)",
         # -- Écran Accueil -------------------------------------------------
         "accueil_bienvenue": "Welcome to FletchScore",
         "accueil_tagline": "Score recording for FFTL/IFAA archery competitions.",
@@ -195,6 +235,42 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         "competiteurs_no_style_available": "No style available.",
         "competiteurs_updated": "Competitor updated.",
         "competiteurs_none_yet": "No competitor imported yet.",
+        # -- Écran Saisie ----------------------------------------------------
+        "saisie_tab_manuelle": "Manual entry",
+        "saisie_tab_propositions": "Pending proposals",
+        "saisie_aucun_competiteur_disponible": "(none)",
+        "saisie_inscrire": "Register",
+        "saisie_inscrits_title": "Registered",
+        "saisie_choose_event_first": "Choose an event first.",
+        "saisie_no_competitor_to_register": "No competitor to register.",
+        "saisie_no_one_registered": "No one registered yet.",
+        "saisie_score_final_title": "Event final score",
+        "saisie_total_label": "Total score",
+        "saisie_x_label": "Number of X's",
+        "saisie_save": "Save",
+        "saisie_max_score": "Maximum possible score: {max}",
+        "saisie_up_to_x": " -- up to {n} X's",
+        "saisie_select_registrant_first": "Select a registrant first.",
+        "saisie_invalid_total": "Invalid total score -- a whole number is expected.",
+        "saisie_invalid_x": "Invalid X count -- a whole number is expected.",
+        "saisie_no_score_yet": "No score entered yet.",
+        "saisie_current_score": "Current score: {total} pts, {x} X's ({statut})",
+        "statut_court_propose": "pending",
+        "statut_court_valide": "validated",
+        "statut_court_rejete": "rejected",
+        "propositions_intro": (
+            "A proposed score doesn't appear in any ranking until it's "
+            "validated here. Cross-check it against the paper scoresheet "
+            "before validating -- FletchScore only checks the scoring "
+            "scale's bounds, nothing else."
+        ),
+        "propositions_refresh": "Refresh",
+        "propositions_none_pending": "No pending proposal.",
+        "propositions_proposed_by": " -- proposed by {nom}",
+        "propositions_validate": "Validate",
+        "propositions_reject": "Reject",
+        "propositions_validated": "Score validated -- {total} official pts.",
+        "propositions_rejected": "Proposal rejected.",
     },
 }
 

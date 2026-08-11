@@ -23,26 +23,42 @@ import sqlite3
 import customtkinter as ctk
 
 from fletchscore import services
+from fletchscore.gui.i18n import traduire
 from fletchscore.models import Bareme, Competiteur, Competition, Epreuve, Inscription
 from fletchscore.services import ErreurMetier, libelle_competiteur, libelle_epreuve
 from fletchscore.storage import db
 
+_STATUTS_COURTS = {
+    "propose": "statut_court_propose",
+    "valide": "statut_court_valide",
+    "rejete": "statut_court_rejete",
+}
+
 
 class EcranSaisie(ctk.CTkFrame):
-    def __init__(self, parent: ctk.CTkBaseClass, conn: sqlite3.Connection) -> None:
+    def __init__(
+        self, parent: ctk.CTkBaseClass, conn: sqlite3.Connection, lang: str = "fr"
+    ) -> None:
         super().__init__(parent, fg_color="transparent")
         self.conn = conn
+        self.lang = lang
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
+        nom_onglet_saisie = self._t("saisie_tab_manuelle")
+        nom_onglet_propositions = self._t("saisie_tab_propositions")
+
         self.onglets = ctk.CTkTabview(self)
         self.onglets.grid(row=0, column=0, sticky="nsew")
-        self.onglets.add("Saisie manuelle")
-        self.onglets.add("Propositions en attente")
+        self.onglets.add(nom_onglet_saisie)
+        self.onglets.add(nom_onglet_propositions)
 
-        self._construire_onglet_saisie(self.onglets.tab("Saisie manuelle"))
-        self._construire_onglet_propositions(self.onglets.tab("Propositions en attente"))
+        self._construire_onglet_saisie(self.onglets.tab(nom_onglet_saisie))
+        self._construire_onglet_propositions(self.onglets.tab(nom_onglet_propositions))
+
+    def _t(self, cle: str, **kwargs: object) -> str:
+        return traduire(cle, self.lang, **kwargs)
 
     # ===================================================== Saisie manuelle ==
 
@@ -69,9 +85,11 @@ class EcranSaisie(ctk.CTkFrame):
         cadre = ctk.CTkFrame(onglet, fg_color="transparent")
         cadre.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 10))
 
-        ctk.CTkLabel(cadre, text="Épreuve :").grid(row=0, column=0, padx=(0, 10))
+        ctk.CTkLabel(cadre, text=self._t("epreuve_label")).grid(row=0, column=0, padx=(0, 10))
         self.menu_epreuve = ctk.CTkOptionMenu(
-            cadre, values=["(aucune épreuve)"], command=self._selectionner_epreuve_par_libelle
+            cadre,
+            values=[self._t("aucune_epreuve")],
+            command=self._selectionner_epreuve_par_libelle,
         )
         self.menu_epreuve.grid(row=0, column=1, sticky="ew")
         cadre.grid_columnconfigure(1, weight=1)
@@ -83,8 +101,8 @@ class EcranSaisie(ctk.CTkFrame):
             for competition, epreuve in paires
         }
         if not self._epreuves_par_libelle:
-            self.menu_epreuve.configure(values=["(aucune épreuve)"])
-            self.menu_epreuve.set("(aucune épreuve)")
+            self.menu_epreuve.configure(values=[self._t("aucune_epreuve")])
+            self.menu_epreuve.set(self._t("aucune_epreuve"))
             return
 
         libelles = list(self._epreuves_par_libelle.keys())
@@ -119,19 +137,21 @@ class EcranSaisie(ctk.CTkFrame):
         cadre_inscription.grid(row=0, column=0, sticky="ew", padx=15, pady=15)
         cadre_inscription.grid_columnconfigure(0, weight=1)
 
-        self.menu_non_inscrits = ctk.CTkOptionMenu(cadre_inscription, values=["(aucun)"])
+        self.menu_non_inscrits = ctk.CTkOptionMenu(
+            cadre_inscription, values=[self._t("saisie_aucun_competiteur_disponible")]
+        )
         self.menu_non_inscrits.grid(row=0, column=0, sticky="ew", pady=(0, 5))
 
-        ctk.CTkButton(cadre_inscription, text="Inscrire", command=self._inscrire).grid(
-            row=1, column=0, sticky="ew"
-        )
+        ctk.CTkButton(
+            cadre_inscription, text=self._t("saisie_inscrire"), command=self._inscrire
+        ).grid(row=1, column=0, sticky="ew")
 
         self.erreur_inscription = ctk.CTkLabel(colonne, text="", text_color="red", wraplength=280)
         self.erreur_inscription.grid(row=1, column=0, sticky="w", padx=15)
 
-        ctk.CTkLabel(colonne, text="Inscrit·e·s", font=ctk.CTkFont(size=14, weight="bold")).grid(
-            row=2, column=0, sticky="nw", padx=15
-        )
+        ctk.CTkLabel(
+            colonne, text=self._t("saisie_inscrits_title"), font=ctk.CTkFont(size=14, weight="bold")
+        ).grid(row=2, column=0, sticky="nw", padx=15)
 
         self.liste_inscrits = ctk.CTkScrollableFrame(colonne, fg_color="transparent")
         self.liste_inscrits.grid(row=3, column=0, sticky="nsew", padx=15, pady=(5, 15))
@@ -140,8 +160,10 @@ class EcranSaisie(ctk.CTkFrame):
 
     def _rafraichir_inscription_disponibles(self) -> None:
         if self.epreuve_courante is None:
-            self.menu_non_inscrits.configure(values=["(aucun)"])
-            self.menu_non_inscrits.set("(aucun)")
+            self.menu_non_inscrits.configure(
+                values=[self._t("saisie_aucun_competiteur_disponible")]
+            )
+            self.menu_non_inscrits.set(self._t("saisie_aucun_competiteur_disponible"))
             self._non_inscrits_par_libelle = {}
             return
 
@@ -150,8 +172,10 @@ class EcranSaisie(ctk.CTkFrame):
         )
         self._non_inscrits_par_libelle = {libelle_competiteur(c): c for c in non_inscrits}
         if not non_inscrits:
-            self.menu_non_inscrits.configure(values=["(aucun)"])
-            self.menu_non_inscrits.set("(aucun)")
+            self.menu_non_inscrits.configure(
+                values=[self._t("saisie_aucun_competiteur_disponible")]
+            )
+            self.menu_non_inscrits.set(self._t("saisie_aucun_competiteur_disponible"))
             return
 
         libelles = list(self._non_inscrits_par_libelle.keys())
@@ -161,12 +185,12 @@ class EcranSaisie(ctk.CTkFrame):
     def _inscrire(self) -> None:
         self.erreur_inscription.configure(text="")
         if self.epreuve_courante is None:
-            self.erreur_inscription.configure(text="Choisis d'abord une épreuve.")
+            self.erreur_inscription.configure(text=self._t("saisie_choose_event_first"))
             return
 
         competiteur = self._non_inscrits_par_libelle.get(self.menu_non_inscrits.get())
         if competiteur is None:
-            self.erreur_inscription.configure(text="Aucun compétiteur à inscrire.")
+            self.erreur_inscription.configure(text=self._t("saisie_no_competitor_to_register"))
             return
 
         try:
@@ -187,7 +211,7 @@ class EcranSaisie(ctk.CTkFrame):
 
         inscriptions = db.list_inscriptions_by_epreuve(self.conn, self.epreuve_courante.id)
         if not inscriptions:
-            ctk.CTkLabel(self.liste_inscrits, text="Personne d'inscrit pour l'instant.").grid(
+            ctk.CTkLabel(self.liste_inscrits, text=self._t("saisie_no_one_registered")).grid(
                 row=0, column=0, sticky="w", pady=10
             )
             return
@@ -225,18 +249,24 @@ class EcranSaisie(ctk.CTkFrame):
         self.colonne_saisie = colonne
 
         self.titre_saisie = ctk.CTkLabel(
-            colonne, text="Score final épreuve", font=ctk.CTkFont(size=14, weight="bold")
+            colonne,
+            text=self._t("saisie_score_final_title"),
+            font=ctk.CTkFont(size=14, weight="bold"),
         )
         self.titre_saisie.grid(row=0, column=0, sticky="w", padx=15, pady=(15, 5))
 
         cadre_champs = ctk.CTkFrame(colonne, fg_color="transparent")
         cadre_champs.grid(row=1, column=0, sticky="ew", padx=15, pady=10)
 
-        ctk.CTkLabel(cadre_champs, text="Score total").grid(row=0, column=0, padx=(0, 5))
+        ctk.CTkLabel(cadre_champs, text=self._t("saisie_total_label")).grid(
+            row=0, column=0, padx=(0, 5)
+        )
         self.champ_total = ctk.CTkEntry(cadre_champs, width=80, placeholder_text="-")
         self.champ_total.grid(row=0, column=1, padx=(0, 20))
 
-        ctk.CTkLabel(cadre_champs, text="Nombre de X").grid(row=0, column=2, padx=(0, 5))
+        ctk.CTkLabel(cadre_champs, text=self._t("saisie_x_label")).grid(
+            row=0, column=2, padx=(0, 5)
+        )
         self.champ_nombre_x = ctk.CTkEntry(cadre_champs, width=60, placeholder_text="0")
         self.champ_nombre_x.grid(row=0, column=3)
 
@@ -246,7 +276,7 @@ class EcranSaisie(ctk.CTkFrame):
         self.erreur_saisie = ctk.CTkLabel(colonne, text="", text_color="red", wraplength=280)
         self.erreur_saisie.grid(row=3, column=0, sticky="nw", padx=15, pady=(5, 0))
 
-        ctk.CTkButton(colonne, text="Enregistrer", command=self._enregistrer_score).grid(
+        ctk.CTkButton(colonne, text=self._t("saisie_save"), command=self._enregistrer_score).grid(
             row=4, column=0, sticky="ew", padx=15, pady=15
         )
 
@@ -266,16 +296,16 @@ class EcranSaisie(ctk.CTkFrame):
             self._activer_colonne_saisie(False)
             return
 
-        texte = f"Score maximum possible : {self.bareme_courant.score_max}"
+        texte = self._t("saisie_max_score", max=self.bareme_courant.score_max)
         if self.bareme_courant.departage_par_x:
-            texte += f" -- jusqu'à {self.bareme_courant.total_flèches} X"
+            texte += self._t("saisie_up_to_x", n=self.bareme_courant.total_flèches)
         self.aide_bareme.configure(text=texte)
         self._activer_colonne_saisie(True)
 
     def _enregistrer_score(self) -> None:
         self.erreur_saisie.configure(text="")
         if self.inscription_selectionnee is None:
-            self.erreur_saisie.configure(text="Sélectionne d'abord un·e inscrit·e.")
+            self.erreur_saisie.configure(text=self._t("saisie_select_registrant_first"))
             return
 
         texte_total = self.champ_total.get().strip()
@@ -284,17 +314,13 @@ class EcranSaisie(ctk.CTkFrame):
         try:
             total = int(texte_total)
         except ValueError:
-            self.erreur_saisie.configure(
-                text="Score total invalide -- un nombre entier est attendu."
-            )
+            self.erreur_saisie.configure(text=self._t("saisie_invalid_total"))
             return
 
         try:
             nombre_x = int(texte_x) if texte_x else 0
         except ValueError:
-            self.erreur_saisie.configure(
-                text="Nombre de X invalide -- un nombre entier est attendu."
-            )
+            self.erreur_saisie.configure(text=self._t("saisie_invalid_x"))
             return
 
         try:
@@ -317,13 +343,12 @@ class EcranSaisie(ctk.CTkFrame):
 
         score = db.get_score_by_inscription(self.conn, self.inscription_selectionnee.id)
         if score is None:
-            self.score_actuel.configure(text="Aucun score saisi pour l'instant.")
+            self.score_actuel.configure(text=self._t("saisie_no_score_yet"))
             return
 
+        statut = self._t(_STATUTS_COURTS[score.statut.value])
         self.score_actuel.configure(
-            text=(
-                f"Score actuel : {score.total} pts, {score.nombre_x} X " f"({score.statut.value})"
-            )
+            text=self._t("saisie_current_score", total=score.total, x=score.nombre_x, statut=statut)
         )
 
     # ================================================ Propositions en ligne ==
@@ -336,10 +361,7 @@ class EcranSaisie(ctk.CTkFrame):
 
         ctk.CTkLabel(
             onglet,
-            text="Un score proposé n'apparaît dans aucun classement tant "
-            "qu'il n'est pas validé ici. Recoupe-le avec la feuille de "
-            "match papier avant de valider -- FletchScore ne vérifie "
-            "rien d'autre que les bornes du barème.",
+            text=self._t("propositions_intro"),
             text_color="gray60",
             wraplength=550,
             justify="left",
@@ -355,17 +377,17 @@ class EcranSaisie(ctk.CTkFrame):
         cadre.grid(row=1, column=0, sticky="ew", pady=(0, 10))
         cadre.grid_columnconfigure(1, weight=1)
 
-        ctk.CTkLabel(cadre, text="Épreuve :").grid(row=0, column=0, padx=(0, 10))
+        ctk.CTkLabel(cadre, text=self._t("epreuve_label")).grid(row=0, column=0, padx=(0, 10))
         self.menu_epreuve_propositions = ctk.CTkOptionMenu(
             cadre,
-            values=["(aucune épreuve)"],
+            values=[self._t("aucune_epreuve")],
             command=lambda _libelle: self._rafraichir_propositions(),
         )
         self.menu_epreuve_propositions.grid(row=0, column=1, sticky="ew", padx=(0, 10))
 
-        ctk.CTkButton(cadre, text="Actualiser", command=self._rafraichir_propositions).grid(
-            row=0, column=2
-        )
+        ctk.CTkButton(
+            cadre, text=self._t("propositions_refresh"), command=self._rafraichir_propositions
+        ).grid(row=0, column=2)
 
     def _rafraichir_epreuves_propositions(self) -> None:
         paires = services.lister_epreuves_toutes(self.conn)
@@ -373,8 +395,8 @@ class EcranSaisie(ctk.CTkFrame):
             libelle_epreuve(competition, epreuve): epreuve for competition, epreuve in paires
         }
         if not self._epreuves_propositions_par_libelle:
-            self.menu_epreuve_propositions.configure(values=["(aucune épreuve)"])
-            self.menu_epreuve_propositions.set("(aucune épreuve)")
+            self.menu_epreuve_propositions.configure(values=[self._t("aucune_epreuve")])
+            self.menu_epreuve_propositions.set(self._t("aucune_epreuve"))
             self._rafraichir_propositions()
             return
 
@@ -409,7 +431,7 @@ class EcranSaisie(ctk.CTkFrame):
 
         propositions = services.lister_propositions_en_attente(self.conn, epreuve.id)
         if not propositions:
-            ctk.CTkLabel(self.liste_propositions, text="Aucune proposition en attente.").grid(
+            ctk.CTkLabel(self.liste_propositions, text=self._t("propositions_none_pending")).grid(
                 row=0, column=0, sticky="w", pady=10
             )
             return
@@ -437,17 +459,17 @@ class EcranSaisie(ctk.CTkFrame):
                     if proposant
                     else score.propose_par_id_federal
                 )
-                texte += f" -- proposé par {nom_proposant}"
+                texte += self._t("propositions_proposed_by", nom=nom_proposant)
             ctk.CTkLabel(ligne, text=texte, anchor="w").grid(row=0, column=0, sticky="ew")
             ctk.CTkButton(
                 ligne,
-                text="Valider",
+                text=self._t("propositions_validate"),
                 width=80,
                 command=lambda s=score: self._valider_proposition(s),
             ).grid(row=0, column=1, padx=(6, 0))
             ctk.CTkButton(
                 ligne,
-                text="Rejeter",
+                text=self._t("propositions_reject"),
                 width=80,
                 fg_color="gray40",
                 command=lambda s=score: self._rejeter_proposition(s),
@@ -462,7 +484,7 @@ class EcranSaisie(ctk.CTkFrame):
             return
 
         self._rafraichir_propositions()
-        self._afficher_info_propositions(f"Score validé -- {score.total} pts officiels.")
+        self._afficher_info_propositions(self._t("propositions_validated", total=score.total))
 
     def _rejeter_proposition(self, score) -> None:
         self._afficher_erreur_propositions("")
@@ -473,4 +495,4 @@ class EcranSaisie(ctk.CTkFrame):
             return
 
         self._rafraichir_propositions()
-        self._afficher_info_propositions("Proposition rejetée.")
+        self._afficher_info_propositions(self._t("propositions_rejected"))
