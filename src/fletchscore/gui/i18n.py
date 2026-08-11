@@ -247,6 +247,28 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         "connexions_token_code_label": "Code d'accès à donner au compétiteur",
         "connexions_qr_unavailable": "(QR code indisponible)",
         "connexions_qr_lib_missing": "(bibliothèque qrcode non installée -- code court uniquement)",
+        # -- Écran Mot de passe -----------------------------------------------
+        "motdepasse_intro": (
+            "Optionnel : protège l'ouverture de FletchScore par un mot de "
+            "passe. Sans mot de passe défini, l'application s'ouvre "
+            "directement -- comportement actuel si tu ne configures rien ici."
+        ),
+        "motdepasse_set_title": "Définir un mot de passe",
+        "motdepasse_new_placeholder": "Nouveau mot de passe",
+        "motdepasse_confirm_placeholder": "Confirmer le mot de passe",
+        "motdepasse_define": "Définir",
+        "motdepasse_change_title": "Un mot de passe est déjà défini",
+        "motdepasse_current_placeholder": "Mot de passe actuel",
+        "motdepasse_confirm_new_placeholder": "Confirmer le nouveau mot de passe",
+        "motdepasse_change": "Changer",
+        "motdepasse_remove_protection": "Supprimer la protection",
+        "motdepasse_empty_error": "Le mot de passe ne peut pas être vide.",
+        "motdepasse_mismatch_error": "Les deux mots de passe ne correspondent pas.",
+        "motdepasse_set_success": ("Mot de passe défini -- il sera demandé au prochain lancement."),
+        "motdepasse_current_incorrect": "Mot de passe actuel incorrect.",
+        "motdepasse_new_empty_error": "Le nouveau mot de passe ne peut pas être vide.",
+        "motdepasse_changed": "Mot de passe changé.",
+        "motdepasse_removed": "Protection par mot de passe désactivée.",
     },
     "en": {
         # -- Panneau latéral (chrome, toujours visible) ------------------
@@ -476,6 +498,28 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         "connexions_token_code_label": "Access code to give to the competitor",
         "connexions_qr_unavailable": "(QR code unavailable)",
         "connexions_qr_lib_missing": "(qrcode library not installed -- short code only)",
+        # -- Écran Mot de passe -----------------------------------------------
+        "motdepasse_intro": (
+            "Optional: protects FletchScore's launch with a password. "
+            "With no password set, the app opens directly -- current "
+            "behavior if you don't configure anything here."
+        ),
+        "motdepasse_set_title": "Set a password",
+        "motdepasse_new_placeholder": "New password",
+        "motdepasse_confirm_placeholder": "Confirm password",
+        "motdepasse_define": "Set",
+        "motdepasse_change_title": "A password is already set",
+        "motdepasse_current_placeholder": "Current password",
+        "motdepasse_confirm_new_placeholder": "Confirm new password",
+        "motdepasse_change": "Change",
+        "motdepasse_remove_protection": "Remove protection",
+        "motdepasse_empty_error": "Password can't be empty.",
+        "motdepasse_mismatch_error": "The two passwords don't match.",
+        "motdepasse_set_success": "Password set -- it will be requested on next launch.",
+        "motdepasse_current_incorrect": "Current password incorrect.",
+        "motdepasse_new_empty_error": "New password can't be empty.",
+        "motdepasse_changed": "Password changed.",
+        "motdepasse_removed": "Password protection disabled.",
     },
 }
 

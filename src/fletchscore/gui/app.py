@@ -357,7 +357,7 @@ class FenetrePrincipale(ctk.CTk):
             return
 
         if cle == "mot_de_passe":
-            ecran = EcranMotDePasse(self.cadre_section)
+            ecran = EcranMotDePasse(self.cadre_section, self.language)
             ecran.grid(row=0, column=0, sticky="nsew")
             return
 
