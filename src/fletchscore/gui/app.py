@@ -497,9 +497,9 @@ class FenetrePrincipale(ctk.CTk):
 
         cadre_boutons = ctk.CTkFrame(dialogue, fg_color="transparent")
         cadre_boutons.pack(pady=10)
-        ctk.CTkButton(cadre_boutons, text=self._t("quitter"), fg_color="gray40", command=confirmer).pack(
-            side="left", padx=5
-        )
+        ctk.CTkButton(
+            cadre_boutons, text=self._t("quitter"), fg_color="gray40", command=confirmer
+        ).pack(side="left", padx=5)
         ctk.CTkButton(cadre_boutons, text=self._t("annuler"), command=dialogue.destroy).pack(
             side="left", padx=5
         )
