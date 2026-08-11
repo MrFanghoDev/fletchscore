@@ -202,7 +202,7 @@ _TEXTES: dict[str, dict[str, str]] = {
         "main ou par QR code) : entre-le dans le champ « Code d'accès » "
         "en bas de l'accueil.",
         "en": "You already have an access code (given by the organiser, "
-        "by hand or via QR code): enter it in the \"Access code\" field "
+        'by hand or via QR code): enter it in the "Access code" field '
         "at the bottom of the home page.",
     },
     "aide_s1_li2": {
@@ -213,8 +213,8 @@ _TEXTES: dict[str, dict[str, str]] = {
         "(carte de licence, pièce d'identité) avant de valider -- le "
         "code n'est généré qu'à ce moment-là, jamais avant.",
         "en": "You don't have a code yet: open the competition's page, "
-        "click \"No access yet? Request access\", find your name in "
-        "the list and click \"That's me\". The organiser will need to "
+        'click "No access yet? Request access", find your name in '
+        'the list and click "That\'s me". The organiser will need to '
         "check your identity (licence card, ID) before validating -- "
         "the code is only generated at that point, never before.",
     },
@@ -240,7 +240,7 @@ _TEXTES: dict[str, dict[str, str]] = {
         "l'a pas validée -- il la recoupe avec la feuille de match "
         "papier avant de confirmer.",
         "en": "Once your access is confirmed, each event's page where "
-        "you're registered shows a \"Propose my score\" form (total + "
+        'you\'re registered shows a "Propose my score" form (total + '
         "number of X's if the scoring scale uses it). Your proposal "
         "doesn't appear in any ranking until the organiser has "
         "validated it -- they cross-check it against the paper match "
@@ -256,7 +256,7 @@ _TEXTES: dict[str, dict[str, str]] = {
         "la demande avant qu'elle ne prenne effet.",
         "en": "If a single person scores for a whole group, they can "
         "request a proxy to propose another competitor's score on "
-        "their behalf (\"Propose another competitor's scores?\" link on "
+        'their behalf ("Propose another competitor\'s scores?" link on '
         "the home page, once identified). As with access, the "
         "organiser approves the request before it takes effect.",
     },
@@ -268,7 +268,7 @@ _TEXTES: dict[str, dict[str, str]] = {
         "via « Voir tous mes messages ».",
         "en": "The organiser can send messages (to you specifically, or "
         "to all competitors) -- the latest one shows on the home page, "
-        "the full history is available via \"See all my messages\".",
+        'the full history is available via "See all my messages".',
     },
     "aide_s6_titre": {"fr": "Thème et langue", "en": "Theme and language"},
     "aide_s6_text": {
@@ -291,7 +291,7 @@ _TEXTES: dict[str, dict[str, str]] = {
         "pendant une compétition chargée. Vois directement avec lui si "
         "le délai te semble long.",
         "en": "First check that you've actually made an access request "
-        "(\"That's me\") -- the code is only issued after manual "
+        '("That\'s me") -- the code is only issued after manual '
         "validation by the organiser, which can take a moment during a "
         "busy competition. Check with them directly if it's taking a "
         "while.",
@@ -310,10 +310,8 @@ _TEXTES: dict[str, dict[str, str]] = {
         "Manually reloading the page also forces an update.",
     },
     "aide_faq_q3": {
-        "fr": "J'ai fait une erreur dans le score que j'ai proposé, "
-        "comment le corriger ?",
-        "en": "I made a mistake in the score I proposed, how do I fix "
-        "it?",
+        "fr": "J'ai fait une erreur dans le score que j'ai proposé, " "comment le corriger ?",
+        "en": "I made a mistake in the score I proposed, how do I fix " "it?",
     },
     "aide_faq_a3": {
         "fr": "Tant que l'organisateur n'a pas validé ta proposition, tu "
