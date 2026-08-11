@@ -143,6 +143,7 @@ class FenetrePrincipale(ctk.CTk):
         self.title(f"FletchScore {__version__}")
         self.geometry("1100x700")
         self.minsize(900, 600)
+        self.protocol("WM_DELETE_WINDOW", self._on_quit)
 
         self.authentifie = True
         if auth.mot_de_passe_defini():
@@ -466,8 +467,47 @@ class FenetrePrincipale(ctk.CTk):
         gui_config.sauvegarder(self.config_gui)
 
     def _on_quit(self) -> None:
+        if not self._confirmer_quitter():
+            return
         self.arreter_serveur_web()
         self.destroy()
+
+    def _confirmer_quitter(self) -> bool:
+        """Popup de confirmation -- évite une fermeture accidentelle (clic
+        malheureux sur « Quitter » ou sur la croix de la fenêtre), même
+        modèle que _demander_mot_de_passe (CTkToplevel + transient +
+        grab_set différé + wait_window)."""
+        resultat = {"ok": False}
+
+        dialogue = ctk.CTkToplevel(self)
+        dialogue.title(self._t("quitter"))
+        dialogue.geometry("340x160")
+        dialogue.protocol("WM_DELETE_WINDOW", dialogue.destroy)
+
+        message = self._t("quit_confirm_message")
+        if self.serveur_web is not None:
+            message += "\n\n" + self._t("quit_confirm_server_note")
+        ctk.CTkLabel(dialogue, text=message, wraplength=300, justify="left").pack(
+            padx=20, pady=(20, 15)
+        )
+
+        def confirmer() -> None:
+            resultat["ok"] = True
+            dialogue.destroy()
+
+        cadre_boutons = ctk.CTkFrame(dialogue, fg_color="transparent")
+        cadre_boutons.pack(pady=10)
+        ctk.CTkButton(cadre_boutons, text=self._t("quitter"), fg_color="gray40", command=confirmer).pack(
+            side="left", padx=5
+        )
+        ctk.CTkButton(cadre_boutons, text=self._t("annuler"), command=dialogue.destroy).pack(
+            side="left", padx=5
+        )
+
+        dialogue.transient(self)
+        dialogue.after(50, dialogue.grab_set)
+        self.wait_window(dialogue)
+        return resultat["ok"]
 
 
 def lancer(chemin_base: Path | str = CHEMIN_BASE_PAR_DEFAUT, http_port: int | None = None) -> None:

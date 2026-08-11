@@ -336,6 +336,9 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         "login_organizer_password": "Mot de passe organisateur",
         "login_incorrect": "Mot de passe incorrect.",
         "login_connect": "Se connecter",
+        # -- Confirmation de fermeture -----------------------------------
+        "quit_confirm_message": "Veux-tu vraiment quitter FletchScore ?",
+        "quit_confirm_server_note": "Le serveur web sera arrêté.",
     },
     "en": {
         # -- Panneau latéral (chrome, toujours visible) ------------------
@@ -649,6 +652,9 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         "login_organizer_password": "Organizer password",
         "login_incorrect": "Incorrect password.",
         "login_connect": "Log in",
+        # -- Confirmation de fermeture -----------------------------------
+        "quit_confirm_message": "Do you really want to quit FletchScore?",
+        "quit_confirm_server_note": "The web server will be stopped.",
     },
 }
 
