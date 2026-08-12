@@ -13,6 +13,7 @@ from unittest import mock
 
 from fletchscore import certificat_https, securite, services
 from fletchscore.api.competiteur import (
+    AFFICHAGE_ROTATION_SECONDES,
     adresse_ip_locale,
     creer_serveur,
     page_accueil,
@@ -613,6 +614,136 @@ class TestPageAffichagePublic(unittest.TestCase):
         page = page_affichage_public(self.conn, competition.id)
         self.assertIn('<meta http-equiv="refresh"', page)
 
+    def test_pas_d_indicateur_de_rotation_si_une_seule_categorie(self):
+        competition = services.creer_competition(
+            self.conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15)
+        )
+        epreuve = services.creer_epreuve(
+            self.conn, competition.id, "Indoor", date(2026, 3, 14), "ifaa-indoor"
+        )
+        services.inscrire(self.conn, "FR-1", epreuve.id)
+        page = page_affichage_public(self.conn, competition.id)
+        self.assertNotIn("rotation-indicateur", page)
+
+    def test_rotation_montre_une_seule_categorie_a_la_fois(self):
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-2",
+                nom="Martin",
+                prenom="Luc",
+                code_club="77123",
+                sexe=Sexe.M,
+                date_naissance=date(1990, 1, 1),
+                code_style="BB-R",
+            ),
+        )
+        competition = services.creer_competition(
+            self.conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15)
+        )
+        epreuve = services.creer_epreuve(
+            self.conn, competition.id, "Indoor", date(2026, 3, 14), "ifaa-indoor"
+        )
+        services.inscrire(self.conn, "FR-1", epreuve.id)
+        services.inscrire(self.conn, "FR-2", epreuve.id)
+
+        with mock.patch("fletchscore.api.competiteur.time.time", return_value=0.0):
+            page_debut = page_affichage_public(self.conn, competition.id)
+        with mock.patch(
+            "fletchscore.api.competiteur.time.time",
+            return_value=float(AFFICHAGE_ROTATION_SECONDES),
+        ):
+            page_suivante = page_affichage_public(self.conn, competition.id)
+
+        self.assertIn("Dupont", page_debut)
+        self.assertNotIn("Martin", page_debut)
+        self.assertIn("1 / 2", page_debut)
+
+        self.assertIn("Martin", page_suivante)
+        self.assertNotIn("Dupont", page_suivante)
+        self.assertIn("2 / 2", page_suivante)
+
+    def test_rotation_synchronisee_entre_deux_chargements_a_la_meme_seconde(self):
+        """Deux « écrans » qui chargent la page au même instant (même
+        valeur d'horloge murale) doivent afficher la même catégorie --
+        c'est tout l'intérêt de dériver l'index de time.time() plutôt que
+        d'un compteur propre à chaque appel."""
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-2",
+                nom="Martin",
+                prenom="Luc",
+                code_club="77123",
+                sexe=Sexe.M,
+                date_naissance=date(1990, 1, 1),
+                code_style="BB-R",
+            ),
+        )
+        competition = services.creer_competition(
+            self.conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15)
+        )
+        epreuve = services.creer_epreuve(
+            self.conn, competition.id, "Indoor", date(2026, 3, 14), "ifaa-indoor"
+        )
+        services.inscrire(self.conn, "FR-1", epreuve.id)
+        services.inscrire(self.conn, "FR-2", epreuve.id)
+
+        with mock.patch("fletchscore.api.competiteur.time.time", return_value=1000.0):
+            page_ecran_1 = page_affichage_public(self.conn, competition.id)
+            page_ecran_2 = page_affichage_public(self.conn, competition.id)
+
+        self.assertEqual(page_ecran_1, page_ecran_2)
+
+    def test_duree_de_rotation_reglable(self):
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-2",
+                nom="Martin",
+                prenom="Luc",
+                code_club="77123",
+                sexe=Sexe.M,
+                date_naissance=date(1990, 1, 1),
+                code_style="BB-R",
+            ),
+        )
+        competition = services.creer_competition(
+            self.conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15)
+        )
+        epreuve = services.creer_epreuve(
+            self.conn, competition.id, "Indoor", date(2026, 3, 14), "ifaa-indoor"
+        )
+        services.inscrire(self.conn, "FR-1", epreuve.id)
+        services.inscrire(self.conn, "FR-2", epreuve.id)
+
+        # À t=40s : avec la durée par défaut (25s), on est déjà passé à la
+        # 2e catégorie (40 // 25 = 1) ; avec une rotation à 60s réglée sur
+        # cet écran précis, on est encore sur la 1re (40 // 60 = 0).
+        with mock.patch("fletchscore.api.competiteur.time.time", return_value=40.0):
+            page_defaut = page_affichage_public(self.conn, competition.id)
+            page_lente = page_affichage_public(self.conn, competition.id, rotation_secondes=60)
+
+        self.assertIn("Martin", page_defaut)
+        self.assertIn("Dupont", page_lente)
+        self.assertNotIn("Martin", page_lente)
+
+    def test_duree_de_rotation_invalide_retombe_sur_le_defaut(self):
+        competition = services.creer_competition(
+            self.conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15)
+        )
+        epreuve = services.creer_epreuve(
+            self.conn, competition.id, "Indoor", date(2026, 3, 14), "ifaa-indoor"
+        )
+        services.inscrire(self.conn, "FR-1", epreuve.id)
+
+        for valeur_invalide in (0, -5):
+            with self.subTest(valeur_invalide=valeur_invalide):
+                page = page_affichage_public(
+                    self.conn, competition.id, rotation_secondes=valeur_invalide
+                )
+                self.assertIn("Dupont", page)  # ne plante pas, retombe sur le défaut
+
 
 class TestPageRattachement(unittest.TestCase):
     def setUp(self):
@@ -1009,6 +1140,14 @@ class TestServeurIntegration(unittest.TestCase):
             contenu = reponse.read().decode("utf-8")
         self.assertIn("Week-end FFTL", contenu)
         self.assertIn('data-theme="dark"', contenu)
+
+    def test_affichage_public_avec_rotation_invalide_repond_200(self):
+        # Une valeur ?rotation= non numérique ne doit jamais casser un
+        # écran laissé sans surveillance -- juste retomber sur le défaut.
+        with urllib.request.urlopen(
+            self._url(f"/affichage/{self.competition_id}?rotation=pas-un-nombre"), timeout=5
+        ) as reponse:
+            self.assertEqual(reponse.status, 200)
 
     def test_preference_redirige_et_pose_des_cookies(self):
         connexion = http.client.HTTPConnection("127.0.0.1", self.serveur.server_port, timeout=5)

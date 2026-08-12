@@ -36,6 +36,7 @@ import html
 import socket
 import sqlite3
 import ssl
+import time
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
@@ -48,6 +49,12 @@ from fletchscore.services import ErreurMetier
 from fletchscore.storage import db
 
 RAFRAICHISSEMENT_SECONDES = 15
+# Durée d'affichage d'une catégorie sur l'écran public avant de passer à la
+# suivante (voir page_affichage_public) -- volontairement plus longue que
+# RAFRAICHISSEMENT_SECONDES : la fraîcheur des données et le rythme de
+# rotation sont deux besoins différents (des scores peuvent changer plus
+# souvent qu'il n'est confortable de lire une catégorie entière).
+AFFICHAGE_ROTATION_SECONDES = 25
 LANGUES_DISPONIBLES = ("fr", "en")
 THEMES_DISPONIBLES = ("dark", "light", "system")
 
@@ -103,6 +110,10 @@ _TEXTES: dict[str, dict[str, str]] = {
     "ecran_affichage_lien": {
         "fr": "Écran d'affichage (spectateurs)",
         "en": "Display screen (spectators)",
+    },
+    "affichage_rotation_position": {
+        "fr": "Catégorie {index} / {total}",
+        "en": "Category {index} / {total}",
     },
     "retour": {"fr": "← Toutes les compétitions", "en": "← All competitions"},
     "retour_competition": {"fr": "← Retour à la compétition", "en": "← Back to competition"},
@@ -902,7 +913,12 @@ def _page_affichage_squelette(titre: str, corps: str, lang: str, rafraichir: boo
 </html>"""
 
 
-def page_affichage_public(conn: sqlite3.Connection, competition_id: str, lang: str = "fr") -> str:
+def page_affichage_public(
+    conn: sqlite3.Connection,
+    competition_id: str,
+    lang: str = "fr",
+    rotation_secondes: int | None = None,
+) -> str:
     """Écran d'affichage public (téléphone en support, ou grand écran,
     laissé ouvert sans surveillance pour des spectateurs) -- voir issue
     #21. Distinct de ``page_competition`` (usage compétiteur identifié,
@@ -910,7 +926,29 @@ def page_affichage_public(conn: sqlite3.Connection, competition_id: str, lang: s
     factorisées dans ``_tableau_classement_global``), mais sans lien de
     retour ni aucune fonctionnalité liée à un compétiteur précis, et sans
     token requis -- même politique d'accès public que ``page_competition``
-    (voir docstring en tête de module)."""
+    (voir docstring en tête de module).
+
+    ``rotation_secondes`` : durée d'affichage d'une catégorie, réglable
+    par écran via ``?rotation=N`` dans l'URL (voir ``do_GET``) --
+    utile si un grand écran doit rester plus longtemps sur chaque
+    catégorie qu'un téléphone en support. ``None`` ou une valeur
+    invalide (pas un entier positif) retombe sur
+    ``AFFICHAGE_ROTATION_SECONDES``, pas d'erreur -- un lien mal formé ne
+    doit jamais casser un écran public laissé sans surveillance.
+
+    Une seule catégorie affichée à la fois (pas tout le classement
+    empilé) quand il y en a plusieurs : évite un écran interminable à
+    faire défiler quand il y a beaucoup de catégories et de
+    compétiteurs. La catégorie active est dérivée de l'horloge murale
+    (``time.time() // AFFICHAGE_ROTATION_SECONDES``), pas d'un compteur
+    local propre à chaque page -- même principe que le diaporama de
+    ``fletchtime/web/display.html`` (``currentSlideshowStep()``) : deux
+    écrans (ex. un téléphone en support et un grand écran) qui chargent à
+    des instants différents affichent quand même la même catégorie au
+    même moment, sans le moindre JS ni synchronisation explicite entre
+    eux -- juste le rechargement automatique déjà en place
+    (``RAFRAICHISSEMENT_SECONDES``) qui, de temps en temps, retombe sur
+    une catégorie différente."""
     competition = db.get_competition(conn, competition_id)
     if competition is None:
         corps = f'<p>{_t("introuvable_competition", lang)}</p>'
@@ -922,8 +960,30 @@ def page_affichage_public(conn: sqlite3.Connection, competition_id: str, lang: s
         corps = f"<p>{_echapper(str(erreur))}</p>"
         return _page_affichage_squelette(_t("erreur", lang), corps, lang, rafraichir=False)
 
-    corps_classement = _tableau_classement_global(epreuves, classement, lang, conn, scrollable=True)
-    corps = f"<h1>{_echapper(competition.nom)}</h1>{corps_classement}"
+    if not classement:
+        corps = f"<h1>{_echapper(competition.nom)}</h1><p>{_t('aucun_classe', lang)}</p>"
+        return _page_affichage_squelette(competition.nom, corps, lang)
+
+    duree_rotation = (
+        rotation_secondes
+        if rotation_secondes is not None and rotation_secondes > 0
+        else AFFICHAGE_ROTATION_SECONDES
+    )
+    categories = sorted(classement)
+    index = int(time.time() // duree_rotation) % len(categories)
+    categorie_active = categories[index]
+
+    indicateur = ""
+    if len(categories) > 1:
+        texte_position = _t("affichage_rotation_position", lang).format(
+            index=index + 1, total=len(categories)
+        )
+        indicateur = f'<p class="rotation-indicateur">{_echapper(texte_position)}</p>'
+
+    corps_classement = _tableau_classement_global(
+        epreuves, {categorie_active: classement[categorie_active]}, lang, conn, scrollable=True
+    )
+    corps = f"<h1>{_echapper(competition.nom)}</h1>{indicateur}{corps_classement}"
     return _page_affichage_squelette(competition.nom, corps, lang)
 
 
@@ -1305,9 +1365,19 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
         if chemin.startswith("/affichage/"):
             # Toujours public, sans token -- même politique que
             # /competition/ (voir docstring de page_affichage_public).
+            # ?rotation=N (secondes) réglable par écran -- voir la
+            # docstring de page_affichage_public pour la validation
+            # (une valeur absente ou invalide retombe sur le défaut).
+            rotation_brute = parse_qs(url.query).get("rotation", [""])[0]
+            try:
+                rotation_secondes = int(rotation_brute)
+            except ValueError:
+                rotation_secondes = None
             conn = self._connexion_lecture_seule()
             try:
-                corps = page_affichage_public(conn, chemin.removeprefix("/affichage/"), lang)
+                corps = page_affichage_public(
+                    conn, chemin.removeprefix("/affichage/"), lang, rotation_secondes
+                )
             finally:
                 conn.close()
             self._repondre_html(corps)

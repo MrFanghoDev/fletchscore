@@ -169,7 +169,14 @@ body.affichage-public { padding: 0; }
   text-align: center; font-size: clamp(1.5rem, 4vw, 3.2rem);
   margin: 0 0 clamp(1rem, 2vw, 2rem); letter-spacing: -0.01em;
 }
-.affichage-page h2.categorie { font-size: clamp(1.1rem, 2.2vw, 1.8rem); }
+.affichage-page .rotation-indicateur {
+  text-align: center; color: var(--text-faint); text-transform: uppercase;
+  letter-spacing: 0.05em; font-size: clamp(0.75rem, 1.3vw, 1.1rem);
+  margin: 0 0 clamp(0.5rem, 1.2vw, 1rem);
+}
+/* Une seule catégorie affichée à la fois (voir page_affichage_public) --
+   son titre porte davantage qu'un simple sous-titre parmi d'autres. */
+.affichage-page h2.categorie { text-align: center; font-size: clamp(1.4rem, 3vw, 2.4rem); }
 .affichage-page table.classement { font-size: clamp(0.95rem, 1.6vw, 1.5rem); }
 .affichage-page table.classement th,
 .affichage-page table.classement td { padding: clamp(0.35rem, 0.9vw, 0.9rem) clamp(0.5rem, 1.2vw, 1.2rem); }
