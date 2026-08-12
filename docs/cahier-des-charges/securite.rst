@@ -104,6 +104,12 @@ Couches de sécurité
         propre* inscription.
       - Seule la vue organisateur peut faire passer un score en
         « validé ».
+      - Lecture du classement (``/competition/{id}``, ``/epreuve/{id}``,
+        et l'écran d'affichage public ``/affichage/{id}`` pour
+        spectateurs sur téléphone en support ou grand écran) : aucun
+        token requis, en lecture seule -- seules les fonctionnalités qui
+        identifient le compétiteur (proposition de score, messages
+        ciblés) exigent un token.
 
    .. tab-item:: Réseau
 

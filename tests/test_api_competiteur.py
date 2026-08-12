@@ -16,6 +16,7 @@ from fletchscore.api.competiteur import (
     adresse_ip_locale,
     creer_serveur,
     page_accueil,
+    page_affichage_public,
     page_aide,
     page_code_invalide,
     page_competition,
@@ -533,6 +534,85 @@ class TestPageCompetition(unittest.TestCase):
         self.assertIn("Accès déjà confirmé", page)
 
 
+class TestPageAffichagePublic(unittest.TestCase):
+    """Écran d'affichage public (issue #21) -- mêmes données que
+    TestPageCompetition, mais jamais de lien de retour ni de bascule
+    langue/thème, quelle que soit l'identité fournie (il n'y en a
+    d'ailleurs pas de paramètre : cet écran n'identifie jamais
+    personne)."""
+
+    def setUp(self):
+        self.conn = db.connect(":memory:")
+        db.init_schema(self.conn)
+        db.seed_baremes_preconfigures(self.conn)
+        db.insert_club(self.conn, Club("77123", "Archers Libres de FLP"))
+        db.seed_referentiel_styles(self.conn)
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-1",
+                nom="Dupont",
+                prenom="Marie",
+                code_club="77123",
+                sexe=Sexe.F,
+                date_naissance=date(1995, 3, 14),
+                code_style="BB-R",
+            ),
+        )
+
+    def tearDown(self):
+        self.conn.close()
+
+    def test_competition_introuvable(self):
+        page = page_affichage_public(self.conn, "competition-fantome")
+        self.assertIn("introuvable", page.lower())
+
+    def test_colonnes_par_epreuve_et_total(self):
+        competition = services.creer_competition(
+            self.conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15)
+        )
+        epreuve1 = services.creer_epreuve(
+            self.conn, competition.id, "Indoor", date(2026, 3, 14), "ifaa-indoor"
+        )
+        epreuve2 = services.creer_epreuve(
+            self.conn, competition.id, "Flint", date(2026, 3, 15), "flint-indoor"
+        )
+        inscription1 = services.inscrire(self.conn, "FR-1", epreuve1.id)
+        inscription2 = services.inscrire(self.conn, "FR-1", epreuve2.id)
+        services.saisir_score_final(self.conn, inscription1.id, 260)
+        services.saisir_score_final(self.conn, inscription2.id, 220)
+
+        page = page_affichage_public(self.conn, competition.id)
+        self.assertIn("Indoor", page)
+        self.assertIn("Flint", page)
+        self.assertIn("260", page)
+        self.assertIn("220", page)
+        self.assertIn("480", page)  # total cumulé
+
+    def test_pas_de_chrome_de_navigation(self):
+        competition = services.creer_competition(
+            self.conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15)
+        )
+        page = page_affichage_public(self.conn, competition.id)
+        self.assertNotIn("top-controls", page)
+        self.assertNotIn("site-footer", page)
+        self.assertNotIn("back", page)
+
+    def test_toujours_theme_sombre(self):
+        competition = services.creer_competition(
+            self.conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15)
+        )
+        page = page_affichage_public(self.conn, competition.id)
+        self.assertIn('data-theme="dark"', page)
+
+    def test_rafraichissement_automatique_conserve(self):
+        competition = services.creer_competition(
+            self.conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15)
+        )
+        page = page_affichage_public(self.conn, competition.id)
+        self.assertIn('<meta http-equiv="refresh"', page)
+
+
 class TestPageRattachement(unittest.TestCase):
     def setUp(self):
         self.conn = db.connect(":memory:")
@@ -919,6 +999,15 @@ class TestServeurIntegration(unittest.TestCase):
             self.assertEqual(reponse.status, 200)
             contenu = reponse.read().decode("utf-8")
         self.assertIn("Obtenir un accès", contenu)
+
+    def test_affichage_public_repond_200_sans_token(self):
+        with urllib.request.urlopen(
+            self._url(f"/affichage/{self.competition_id}"), timeout=5
+        ) as reponse:
+            self.assertEqual(reponse.status, 200)
+            contenu = reponse.read().decode("utf-8")
+        self.assertIn("Week-end FFTL", contenu)
+        self.assertIn('data-theme="dark"', contenu)
 
     def test_preference_redirige_et_pose_des_cookies(self):
         connexion = http.client.HTTPConnection("127.0.0.1", self.serveur.server_port, timeout=5)

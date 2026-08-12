@@ -156,6 +156,30 @@ article.manual-section ul, article.manual-section ol {
 dl.faq dt { font-weight: 600; margin-top: 1rem; font-size: 0.92rem; }
 dl.faq dd { margin: 0.25rem 0 0; color: var(--text-muted); font-size: 0.9rem; line-height: 1.6; }
 
+/* ---------- Écran d'affichage public (spectateurs, laissé sans
+   surveillance -- voir api/competiteur.py::page_affichage_public) ------
+   Inspiré de fletchtime/web/display.html (grande typographie, plein
+   écran, thème sombre) mais responsive : clamp() plutôt que du vw pur,
+   qui donnerait un texte démesuré sur un grand écran (display.html de
+   FletchTime est pensé uniquement pour du grand écran, pas ce cas-ci). */
+
+body.affichage-public { padding: 0; }
+.affichage-page { max-width: 1400px; margin: 0 auto; padding: clamp(1rem, 3vw, 3rem); }
+.affichage-page h1 {
+  text-align: center; font-size: clamp(1.5rem, 4vw, 3.2rem);
+  margin: 0 0 clamp(1rem, 2vw, 2rem); letter-spacing: -0.01em;
+}
+.affichage-page h2.categorie { font-size: clamp(1.1rem, 2.2vw, 1.8rem); }
+.affichage-page table.classement { font-size: clamp(0.95rem, 1.6vw, 1.5rem); }
+.affichage-page table.classement th,
+.affichage-page table.classement td { padding: clamp(0.35rem, 0.9vw, 0.9rem) clamp(0.5rem, 1.2vw, 1.2rem); }
+/* Beaucoup d'épreuves + gros texte peuvent dépasser la largeur d'un
+   téléphone -- un défilement horizontal local au tableau (pas toute la
+   page, pour garder le titre de catégorie visible) plutôt qu'un texte
+   tronqué invisible. */
+.affichage-page .tableau-scroll { overflow-x: auto; }
+.affichage-page .tableau-scroll table.classement { width: max-content; min-width: 100%; }
+
 /* ---------- Champs de formulaire ---------- */
 
 .field-grid { display: grid; grid-template-columns: 1fr; gap: 0.9rem; }

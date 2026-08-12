@@ -648,6 +648,59 @@ def _tableau_classement(classement: dict, lang: str, conn: sqlite3.Connection) -
     return "".join(morceaux)
 
 
+def _tableau_classement_global(
+    epreuves: list,
+    classement: dict,
+    lang: str,
+    conn: sqlite3.Connection,
+    scrollable: bool = False,
+) -> str:
+    """Classement toutes épreuves confondues d'une compétition -- factorisé
+    car utilisé à la fois par ``page_competition`` (usage compétiteur
+    identifié, ``scrollable=False`` -- comportement inchangé) et
+    ``page_affichage_public`` (écran spectateurs, ``scrollable=True`` :
+    beaucoup d'épreuves + gros texte peuvent dépasser la largeur d'un
+    téléphone, voir issue #21) : même données, seule la mise en page
+    autour diffère."""
+    if not classement:
+        return f'<p>{_t("aucun_classe", lang)}</p>'
+
+    entetes_epreuves = "".join(f"<th>{_echapper(e.nom)}</th>" for e in epreuves)
+    noms_clubs = _noms_clubs_par_code(conn)
+    ouverture_tableau = (
+        '<div class="tableau-scroll"><table class="classement">'
+        if scrollable
+        else '<table class="classement">'
+    )
+    fermeture_tableau = "</table></div>" if scrollable else "</table>"
+    morceaux = []
+    for categorie in sorted(classement):
+        lignes_html = ""
+        for ligne in classement[categorie]:
+            colonnes_epreuves = "".join(
+                f"<td>{ligne.totaux_par_epreuve.get(e.id, 0)}</td>" for e in epreuves
+            )
+            nom_club = noms_clubs.get(ligne.competiteur.code_club, ligne.competiteur.code_club)
+            lignes_html += (
+                f"<tr><td>{ligne.rang}</td>"
+                f"<td>{_echapper(ligne.competiteur.prenom)} "
+                f"{_echapper(ligne.competiteur.nom)}</td>"
+                f"<td>{_echapper(nom_club)}</td>"
+                f"{colonnes_epreuves}"
+                f"<td>{ligne.total_global}</td>"
+                f"<td>{ligne.nombre_x_global or ''}</td></tr>"
+            )
+        morceaux.append(
+            f'<h2 class="categorie">{_echapper(categorie)}</h2>'
+            f"{ouverture_tableau}"
+            f'<tr><th>{_t("rang", lang)}</th><th>{_t("nom", lang)}</th>'
+            f'<th>{_t("club", lang)}</th>'
+            f'{entetes_epreuves}<th>{_t("total", lang)}</th><th>X</th></tr>'
+            f"{lignes_html}{fermeture_tableau}"
+        )
+    return "".join(morceaux)
+
+
 def _section_proposer_score(
     conn: sqlite3.Connection, epreuve, identite: tuple[str, str] | None, lang: str
 ) -> str:
@@ -789,37 +842,7 @@ def page_competition(
             _t("erreur", lang), corps, lang, theme, chemin_retour, rafraichir=False
         )
 
-    entetes_epreuves = "".join(f"<th>{_echapper(e.nom)}</th>" for e in epreuves)
-    if not classement:
-        corps_classement = f'<p>{_t("aucun_classe", lang)}</p>'
-    else:
-        noms_clubs = _noms_clubs_par_code(conn)
-        morceaux = []
-        for categorie in sorted(classement):
-            lignes_html = ""
-            for ligne in classement[categorie]:
-                colonnes_epreuves = "".join(
-                    f"<td>{ligne.totaux_par_epreuve.get(e.id, 0)}</td>" for e in epreuves
-                )
-                nom_club = noms_clubs.get(ligne.competiteur.code_club, ligne.competiteur.code_club)
-                lignes_html += (
-                    f"<tr><td>{ligne.rang}</td>"
-                    f"<td>{_echapper(ligne.competiteur.prenom)} "
-                    f"{_echapper(ligne.competiteur.nom)}</td>"
-                    f"<td>{_echapper(nom_club)}</td>"
-                    f"{colonnes_epreuves}"
-                    f"<td>{ligne.total_global}</td>"
-                    f"<td>{ligne.nombre_x_global or ''}</td></tr>"
-                )
-            morceaux.append(
-                f'<h2 class="categorie">{_echapper(categorie)}</h2>'
-                '<table class="classement">'
-                f'<tr><th>{_t("rang", lang)}</th><th>{_t("nom", lang)}</th>'
-                f'<th>{_t("club", lang)}</th>'
-                f'{entetes_epreuves}<th>{_t("total", lang)}</th><th>X</th></tr>'
-                f"{lignes_html}</table>"
-            )
-        corps_classement = "".join(morceaux)
+    corps_classement = _tableau_classement_global(epreuves, classement, lang, conn)
 
     if identite is not None and identite[1] == competition_id:
         ligne_acces = (
@@ -840,6 +863,58 @@ def page_competition(
         f"{corps_classement}"
     )
     return _mise_en_page(competition.nom, corps, lang, theme, chemin_retour)
+
+
+def _page_affichage_squelette(titre: str, corps: str, lang: str, rafraichir: bool = True) -> str:
+    """Squelette dédié à l'écran d'affichage public -- volontairement sans
+    top-controls ni pied de page (voir ``page_affichage_public`` : pas de
+    chrome pensé pour un individu qui navigue, juste un classement laissé
+    à l'écran) et thème toujours forcé à sombre, cohérent avec
+    ``fletchtime/web/display.html`` qui n'a lui non plus aucune bascule."""
+    meta_refresh = (
+        f'<meta http-equiv="refresh" content="{RAFRAICHISSEMENT_SECONDES}">' if rafraichir else ""
+    )
+    return f"""<!DOCTYPE html>
+<html lang="{lang}" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{meta_refresh}
+<title>{_echapper(titre)} -- FletchScore</title>
+<link rel="stylesheet" href="/theme.css">
+<link rel="stylesheet" href="/classement.css">
+</head>
+<body class="affichage-public">
+<div class="affichage-page">
+{corps}
+</div>
+</body>
+</html>"""
+
+
+def page_affichage_public(conn: sqlite3.Connection, competition_id: str, lang: str = "fr") -> str:
+    """Écran d'affichage public (téléphone en support, ou grand écran,
+    laissé ouvert sans surveillance pour des spectateurs) -- voir issue
+    #21. Distinct de ``page_competition`` (usage compétiteur identifié,
+    inchangé) : mêmes données de classement (``services.classement_global_competition``,
+    factorisées dans ``_tableau_classement_global``), mais sans lien de
+    retour ni aucune fonctionnalité liée à un compétiteur précis, et sans
+    token requis -- même politique d'accès public que ``page_competition``
+    (voir docstring en tête de module)."""
+    competition = db.get_competition(conn, competition_id)
+    if competition is None:
+        corps = f'<p>{_t("introuvable_competition", lang)}</p>'
+        return _page_affichage_squelette(_t("introuvable", lang), corps, lang, rafraichir=False)
+
+    try:
+        epreuves, classement = services.classement_global_competition(conn, competition_id)
+    except ErreurMetier as erreur:
+        corps = f"<p>{_echapper(str(erreur))}</p>"
+        return _page_affichage_squelette(_t("erreur", lang), corps, lang, rafraichir=False)
+
+    corps_classement = _tableau_classement_global(epreuves, classement, lang, conn, scrollable=True)
+    corps = f"<h1>{_echapper(competition.nom)}</h1>{corps_classement}"
+    return _page_affichage_squelette(competition.nom, corps, lang)
 
 
 def _competiteurs_de_la_competition(
@@ -1215,6 +1290,17 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
 
         if chemin == "/aide":
             self._repondre_html(page_aide(lang, theme))
+            return
+
+        if chemin.startswith("/affichage/"):
+            # Toujours public, sans token -- même politique que
+            # /competition/ (voir docstring de page_affichage_public).
+            conn = self._connexion_lecture_seule()
+            try:
+                corps = page_affichage_public(conn, chemin.removeprefix("/affichage/"), lang)
+            finally:
+                conn.close()
+            self._repondre_html(corps)
             return
 
         if chemin == "/mes-messages":
