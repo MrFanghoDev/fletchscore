@@ -403,6 +403,7 @@ def _mise_en_page(
 <meta name="viewport" content="width=device-width, initial-scale=1">
 {meta_refresh}
 <title>{_echapper(titre)} -- FletchScore</title>
+<link rel="icon" type="image/png" href="/logo.png">
 <link rel="stylesheet" href="/theme.css">
 <link rel="stylesheet" href="/classement.css">
 </head>
@@ -918,6 +919,7 @@ def _page_affichage_squelette(titre: str, corps: str, lang: str, rafraichir: boo
 <meta name="viewport" content="width=device-width, initial-scale=1">
 {meta_refresh}
 <title>{_echapper(titre)} -- FletchScore</title>
+<link rel="icon" type="image/png" href="/logo.png">
 <link rel="stylesheet" href="/theme.css">
 <link rel="stylesheet" href="/classement.css">
 </head>

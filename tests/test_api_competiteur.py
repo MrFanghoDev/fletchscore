@@ -53,6 +53,11 @@ class TestPageAccueil(unittest.TestCase):
         self.assertIn("card-aide", page)
         self.assertIn('href="/aide"', page)
 
+    def test_favicon_present(self):
+        page = page_accueil(self.conn)
+        self.assertIn('rel="icon"', page)
+        self.assertIn('href="/logo.png"', page)
+
     def test_carte_aide_presente_avec_competitions(self):
         services.creer_competition(self.conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15))
         page = page_accueil(self.conn)
