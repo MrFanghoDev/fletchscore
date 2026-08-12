@@ -100,6 +100,10 @@ _TEXTES: dict[str, dict[str, str]] = {
         "fr": "Classement global de la compétition",
         "en": "Overall competition ranking",
     },
+    "ecran_affichage_lien": {
+        "fr": "Écran d'affichage (spectateurs)",
+        "en": "Display screen (spectators)",
+    },
     "retour": {"fr": "← Toutes les compétitions", "en": "← All competitions"},
     "retour_competition": {"fr": "← Retour à la compétition", "en": "← Back to competition"},
     "retour_epreuve": {"fr": "← Retour à l'épreuve", "en": "← Back to event"},
@@ -569,6 +573,12 @@ def page_accueil(
                 if epreuves
                 else ""
             )
+            lien_affichage = (
+                f'<p><a href="/affichage/{competition.id}">'
+                f'{_t("ecran_affichage_lien", lang)}</a></p>'
+                if epreuves
+                else ""
+            )
             if identifie_ici:
                 # Déjà identifié pour cette compétition précise -- proposer
                 # de redemander un accès n'aurait aucun sens (et
@@ -589,7 +599,7 @@ def page_accueil(
                 '<div class="section-competition">'
                 f"<h2>{_echapper(competition.nom)}</h2>"
                 f'<p class="dates">{competition.date_debut} -- {competition.date_fin}</p>'
-                f'<ul class="liste-epreuves">{liens_epreuves}</ul>{lien_global}'
+                f'<ul class="liste-epreuves">{liens_epreuves}</ul>{lien_global}{lien_affichage}'
                 f"{ligne_acces}"
                 "</div>"
             )

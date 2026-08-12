@@ -212,6 +212,8 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
             "pas installée. Décoche la case et réessaie pour démarrer en HTTP simple."
         ),
         "connexions_server_start_error": "Impossible de démarrer le serveur sur ce port : {erreur}",
+        "connexions_open_display": "Écran d'affichage",
+        "connexions_open_display_no_server": "Démarre d'abord le serveur.",
         "connexions_tab_requests": "Demandes en attente",
         "connexions_tab_active": "Accès actifs",
         "connexions_tab_proxies": "Procurations",
@@ -533,6 +535,8 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
             "Uncheck the box and try again to start in plain HTTP."
         ),
         "connexions_server_start_error": "Couldn't start the server on this port: {erreur}",
+        "connexions_open_display": "Display screen",
+        "connexions_open_display_no_server": "Start the server first.",
         "connexions_tab_requests": "Pending requests",
         "connexions_tab_active": "Active access",
         "connexions_tab_proxies": "Proxies",

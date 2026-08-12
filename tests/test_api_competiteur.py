@@ -59,6 +59,7 @@ class TestPageAccueil(unittest.TestCase):
         self.assertIn("IFAA Indoor", page)
         self.assertIn(f"/epreuve/{epreuve.id}", page)
         self.assertIn(f"/competition/{competition.id}", page)
+        self.assertIn(f"/affichage/{competition.id}", page)
 
     def test_echappe_le_html_dans_les_noms(self):
         services.creer_competition(

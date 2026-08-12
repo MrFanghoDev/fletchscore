@@ -12,6 +12,8 @@ le code court/QR retourné par ``services.valider_rattachement()``.
 
 from __future__ import annotations
 
+import webbrowser
+
 import customtkinter as ctk
 
 from fletchscore import services
@@ -181,6 +183,27 @@ class EcranConnexions(ctk.CTkFrame):
         ctk.CTkButton(
             cadre, text=self._t("classement_refresh"), command=self._rafraichir_tout
         ).grid(row=0, column=2)
+
+        ctk.CTkButton(
+            cadre, text=self._t("connexions_open_display"), command=self._ouvrir_affichage
+        ).grid(row=0, column=3, padx=(10, 0))
+
+    def _ouvrir_affichage(self) -> None:
+        """Ouvre l'écran d'affichage public (voir issue #21,
+        api.competiteur.page_affichage_public) dans le navigateur, pour
+        la compétition actuellement sélectionnée dans ce même menu --
+        évite à l'organisateur de devoir composer l'URL à la main
+        (id de compétition, pas un identifiant mémorisable)."""
+        self._afficher_erreur("")
+        competition = self._competitions_par_libelle.get(self.menu_competition.get())
+        if competition is None:
+            self._afficher_erreur(self._t("connexions_choose_competition_first"))
+            return
+        url = self.fenetre_principale.url_serveur_web()
+        if url is None:
+            self._afficher_erreur(self._t("connexions_open_display_no_server"))
+            return
+        webbrowser.open(f"{url}affichage/{competition.id}")
 
     def _rafraichir_competitions(self) -> None:
         # Même logique que l'export global du classement : dérivée de
