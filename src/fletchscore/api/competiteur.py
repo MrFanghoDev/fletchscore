@@ -206,6 +206,11 @@ _TEXTES: dict[str, dict[str, str]] = {
     "footer_license": {"fr": "Licence GPLv3", "en": "GPLv3 License"},
     "footer_aide": {"fr": "Aide", "en": "Help"},
     "aide_titre": {"fr": "Aide", "en": "Help"},
+    "aide_carte_desc": {
+        "fr": "Comment obtenir un accès, suivre le classement, ou proposer un score.",
+        "en": "How to get access, follow the rankings, or propose a score.",
+    },
+    "aide_carte_bouton": {"fr": "Consulter l'aide", "en": "See the help"},
     "aide_toc_label": {"fr": "Sommaire", "en": "Contents"},
     "aide_s1_titre": {"fr": "Obtenir un accès", "en": "Getting access"},
     "aide_s1_intro": {
@@ -560,8 +565,19 @@ def page_accueil(
                 "</div>"
             )
 
+    carte_aide = (
+        '<div class="section-competition card-aide">'
+        '<div class="icon">📖</div>'
+        f"<h2>{_t('aide_titre', lang)}</h2>"
+        f"<p>{_t('aide_carte_desc', lang)}</p>"
+        f'<a class="btn-primary" href="/aide">{_t("aide_carte_bouton", lang)}</a>'
+        "</div>"
+    )
+
     if not competitions:
-        corps_competitions = f'<p>{_t("aucune_competition", lang)}</p>'
+        corps_competitions = (
+            f'<p>{_t("aucune_competition", lang)}</p><div class="cards">{carte_aide}</div>'
+        )
     else:
         sections = []
         for competition in competitions:
@@ -614,7 +630,7 @@ def page_accueil(
                 f"{ligne_acces}"
                 "</div>"
             )
-        corps_competitions = f'<div class="cards">{"".join(sections)}</div>'
+        corps_competitions = f'<div class="cards">{"".join(sections)}{carte_aide}</div>'
 
     if identite is not None:
         # Déjà une session active -- resaisir un code n'a plus lieu

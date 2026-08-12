@@ -48,6 +48,17 @@ class TestPageAccueil(unittest.TestCase):
         page = page_accueil(self.conn)
         self.assertIn("Aucune compétition", page)
 
+    def test_carte_aide_presente_sans_competition(self):
+        page = page_accueil(self.conn)
+        self.assertIn("card-aide", page)
+        self.assertIn('href="/aide"', page)
+
+    def test_carte_aide_presente_avec_competitions(self):
+        services.creer_competition(self.conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15))
+        page = page_accueil(self.conn)
+        self.assertIn("card-aide", page)
+        self.assertIn('href="/aide"', page)
+
     def test_liste_les_competitions_et_epreuves(self):
         competition = services.creer_competition(
             self.conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15)
