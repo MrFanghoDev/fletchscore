@@ -13,7 +13,10 @@ directement sur le code.
 
 - **Stockage** : SQLite local, fichier unique, poste organisateur unique
   (pas d'écriture concurrente en v1). Implémenté (`storage/db.py`) :
-  schéma complet, clés étrangères actives, CRUD pour les 10 entités.
+  schéma complet, clés étrangères actives, CRUD pour les 10 entités,
+  migrations de schéma séquentielles (table `schema_version`, liste
+  `MIGRATIONS`, appliquées automatiquement par `init_schema()`/
+  `ouvrir_base()` -- voir issue #5 et la décision plus bas).
 - **Modèle de données** : implémenté (`models/`) -- 10 entités, calcul de
   catégorie d'âge, code de catégorie combiné (ex. `AMBB-R`).
 - **Import CSV** : implémenté (`io/import_csv.py`) -- clubs et
@@ -982,6 +985,21 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   traçabilité correcte → validation organisateur → le compétiteur
   mandant apparaît bien au classement, dans sa propre catégorie, avec
   le bon total.
+
+  **Suite du point précédent, résolu par l'issue #5 (2026-08-12) :**
+  système de migration ajouté (`storage/db.py::MIGRATIONS`, table
+  `schema_version`) -- pur SQL/Python, pas de dépendance externe
+  (Alembic...), cohérent avec la philosophie "stdlib d'abord" du
+  projet. `init_schema()` distingue une base neuve (part directement de
+  la dernière version, `_SCHEMA` créant déjà tout à jour) d'une base
+  préexistante sans `schema_version` (part de la version 0, migrations
+  rejouées dans l'ordre). La colonne `propose_par_id_federal` devient la
+  première migration (`MIGRATIONS[0]`), rétroactivement. Vérifié sur un
+  vrai fichier SQLite (pas seulement `:memory:`) : base créée avec
+  l'ancien schéma (sans la colonne, sans `schema_version`), rouverte via
+  `ouvrir_base()` (le vrai point d'entrée de production) -- données
+  préservées, colonne ajoutée, version correcte, stable à une 2e
+  réouverture.
 
 - **Procuration côté web : la cible peut venir du formulaire, le
   mandataire jamais.** Même distinction que pour la proposition de

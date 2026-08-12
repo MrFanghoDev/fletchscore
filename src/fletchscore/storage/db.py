@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from collections.abc import Callable
 from datetime import date, datetime
 
 from fletchscore.models import (
@@ -146,6 +147,10 @@ CREATE TABLE IF NOT EXISTS messages (
     id_federal TEXT,
     envoye_le TEXT
 );
+
+CREATE TABLE IF NOT EXISTS schema_version (
+    version INTEGER NOT NULL
+);
 """
 
 
@@ -159,9 +164,77 @@ def connect(path: str) -> sqlite3.Connection:
     return conn
 
 
+def _table_existe(conn: sqlite3.Connection, nom: str) -> bool:
+    ligne = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name=?", (nom,)
+    ).fetchone()
+    return ligne is not None
+
+
+def _colonne_existe(conn: sqlite3.Connection, table: str, colonne: str) -> bool:
+    lignes = conn.execute(f"PRAGMA table_info({table})").fetchall()
+    return any(ligne["name"] == colonne for ligne in lignes)
+
+
+def _migration_0001_propose_par_id_federal(conn: sqlite3.Connection) -> None:
+    """Ajoute ``scores.propose_par_id_federal`` -- absente des bases
+    créées avant l'introduction de la procuration (voir
+    docs/architecture.md, section sur ``Score.propose_par_id_federal``).
+    ``CREATE TABLE IF NOT EXISTS`` ne suffisait pas : sur une base déjà
+    existante, il ne touche jamais aux colonnes d'une table déjà créée
+    -- d'où ce ticket."""
+    if not _colonne_existe(conn, "scores", "propose_par_id_federal"):
+        conn.execute("ALTER TABLE scores ADD COLUMN propose_par_id_federal TEXT")
+
+
+# Migrations séquentielles, appliquées dans l'ordre à partir de la
+# version stockée en base -- pur SQL/Python, pas de dépendance externe
+# (type Alembic), cohérent avec la philosophie "stdlib d'abord" du
+# projet (voir CLAUDE.md). Chaque migration doit être idempotente
+# (voir _migration_0001_*, qui vérifie avant d'agir) : une base déjà
+# passée par une version ultérieure du code peut arriver ici avec la
+# colonne déjà présente mais sans ligne schema_version (ex. créée entre
+# l'ajout de la colonne dans _SCHEMA et l'introduction de ce mécanisme).
+MIGRATIONS: list[tuple[int, str, Callable[[sqlite3.Connection], None]]] = [
+    (1, "ajoute scores.propose_par_id_federal", _migration_0001_propose_par_id_federal),
+]
+SCHEMA_VERSION_ACTUELLE = MIGRATIONS[-1][0]
+
+
+def _appliquer_migrations(conn: sqlite3.Connection) -> None:
+    version = conn.execute("SELECT version FROM schema_version").fetchone()["version"]
+    for cible, _description, migration in MIGRATIONS:
+        if version < cible:
+            migration(conn)
+            conn.execute("UPDATE schema_version SET version = ?", (cible,))
+            version = cible
+    conn.commit()
+
+
 def init_schema(conn: sqlite3.Connection) -> None:
+    """Crée le schéma s'il n'existe pas encore, puis applique les
+    migrations en attente (voir ``MIGRATIONS``) -- idempotent, peut être
+    rappelée à chaque démarrage sans risque, que la base soit neuve,
+    déjà à jour, ou dans un état intermédiaire laissé par une version
+    antérieure du code.
+
+    Distingue une base neuve (aucune migration à rejouer : ``_SCHEMA``
+    crée déjà tout dans son état le plus récent) d'une base préexistante
+    créée avant ce mécanisme (``scores`` déjà là mais pas
+    ``schema_version`` -- part de la version 0, migrations rejouées).
+    Sans cette distinction, une base neuve se verrait inutilement
+    rejouer des migrations déjà satisfaites par ``_SCHEMA``."""
+    base_preexistante = _table_existe(conn, "scores")
     conn.executescript(_SCHEMA)
     conn.commit()
+
+    ligne = conn.execute("SELECT version FROM schema_version").fetchone()
+    if ligne is None:
+        version_initiale = 0 if base_preexistante else SCHEMA_VERSION_ACTUELLE
+        conn.execute("INSERT INTO schema_version (version) VALUES (?)", (version_initiale,))
+        conn.commit()
+
+    _appliquer_migrations(conn)
 
 
 def seed_referentiel_styles(conn: sqlite3.Connection) -> None:
