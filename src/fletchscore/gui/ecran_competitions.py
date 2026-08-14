@@ -226,7 +226,7 @@ class EcranCompetitions(ctk.CTkFrame):
             ctk.CTkButton(
                 ligne,
                 text=self._t("modifier"),
-                width=80,
+                width=36,
                 command=lambda c=competition: self._passer_en_edition_competition(c),
             ).grid(row=0, column=1, padx=(6, 0))
             ctk.CTkButton(
@@ -561,7 +561,7 @@ class EcranCompetitions(ctk.CTkFrame):
             ctk.CTkButton(
                 ligne,
                 text=self._t("modifier"),
-                width=80,
+                width=36,
                 command=lambda e=epreuve: self._passer_en_edition_epreuve(e),
             ).grid(row=0, column=1, padx=(6, 0))
             ctk.CTkButton(

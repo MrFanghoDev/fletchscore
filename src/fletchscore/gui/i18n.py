@@ -35,7 +35,10 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         # -- Textes génériques réutilisés sur plusieurs écrans ------------
         "creer": "Créer",
         "annuler": "Annuler",
-        "modifier": "Modifier",
+        # Icône plutôt que texte (issue #47) -- même logique que 💾/📦/🗑
+        # sur ces mêmes lignes de liste, pour garder la ligne lisible.
+        # Identique en FR/EN : c'est une icône, pas un mot à traduire.
+        "modifier": "✏️",
         "choisir": "Choisir",
         "enregistrer_modifications": "Enregistrer les modifications",
         "modifier_avec_nom": "Modifier -- {nom}",
@@ -299,7 +302,7 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         "aide_desc_competitions": (
             "Crée une compétition (dates, lieu, catégories Veteran/Senior "
             "optionnelles), puis une ou plusieurs épreuves avec un barème "
-            "(IFAA Indoor, Flint Indoor...). Un bouton « Modifier » permet "
+            "(IFAA Indoor, Flint Indoor...). Un bouton « ✏️ » permet "
             "de corriger une compétition ou une épreuve existante."
         ),
         "aide_desc_competiteurs": (
@@ -375,7 +378,7 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         # -- Textes génériques réutilisés sur plusieurs écrans ------------
         "creer": "Create",
         "annuler": "Cancel",
-        "modifier": "Edit",
+        "modifier": "✏️",  # icône, pas de traduction -- voir la clé FR
         "choisir": "Choose",
         "enregistrer_modifications": "Save changes",
         "modifier_avec_nom": "Edit -- {nom}",
@@ -632,7 +635,7 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         "aide_desc_competitions": (
             "Create a competition (dates, place, optional Veteran/Senior "
             "categories), then one or more events with a scoring scale "
-            '(IFAA Indoor, Flint Indoor...). An "Edit" button lets you '
+            '(IFAA Indoor, Flint Indoor...). An "✏️" button lets you '
             "correct an existing competition or event."
         ),
         "aide_desc_competiteurs": (

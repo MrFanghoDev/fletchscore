@@ -30,8 +30,9 @@ Deux colonnes.
 **Colonne de gauche -- Compétitions**
    En haut, bouton **📥 Restaurer** : recharge une compétition
    sauvegardée (voir encadré ci-dessous). Ensuite, liste des
-   compétitions existantes (boutons **Modifier**, **💾** -- enregistrer
-   comme modèle -- et **📦** -- sauvegarder -- sur chacune) et un
+   compétitions existantes (boutons **✏️** -- modifier --, **💾** --
+   enregistrer comme modèle -- et **📦** -- sauvegarder -- sur chacune)
+   et un
    formulaire de création (nom, lieu, dates, catégories Veteran/Senior),
    avec un menu **Modèle** : choisis-en un pour générer d'un coup toutes
    les épreuves d'un modèle de compétition enregistré précédemment (la
@@ -54,8 +55,9 @@ Deux colonnes.
 
 **Colonne de droite -- Épreuves**
    Une fois une compétition sélectionnée à gauche : liste de ses
-   épreuves (boutons **Modifier** et **💾** -- enregistrer comme modèle
-   -- sur chacune) et un formulaire de création, avec un menu **Modèle**
+   épreuves (boutons **✏️** -- modifier -- et **💾** -- enregistrer comme
+   modèle -- sur chacune) et un formulaire de création, avec un menu
+   **Modèle**
    qui préremplit nom et barème si tu en as déjà enregistré un.
 
 .. admonition:: Modifier ne change jamais l'identifiant
@@ -79,7 +81,7 @@ coup (sans passer par un CSV) : **Ajouter un club** (avec un sélecteur
 pour en charger un existant à modifier) et **Ajouter un compétiteur**.
 
 Enfin, la liste de tous les compétiteurs enregistrés, avec un bouton
-**Modifier** et un bouton **🗑** sur chacun.
+**✏️** (modifier) et un bouton **🗑** sur chacun.
 
 .. admonition:: Répondre à une demande RGPD (droit à l'effacement)
    :class: important

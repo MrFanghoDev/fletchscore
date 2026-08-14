@@ -943,6 +943,21 @@ confirmer par un vrai lancement.
       disponible, décochée et grisée sinon -- état lu sur un vrai widget
       `CTkCheckBox` après rendu, dans les deux scénarios.
 
+- [x] **Bouton "Modifier" -> icône ✏️ (issue #47, 2026-08-15)**. Clé
+      i18n `modifier` (FR/EN, une seule valeur -- c'est une icône, pas
+      un mot à traduire) remplacée par `"✏️"` sur les 4 lignes de liste
+      concernées (compétiteurs, sélecteur de club, compétitions,
+      épreuves), largeur de bouton ramenée de 80 à 36px comme les
+      autres boutons icône seule de ces mêmes lignes (💾/📦/🗑, issus
+      des #7/#37/#42). La clé distincte `modifier_avec_nom` (titre du
+      formulaire en mode édition, ex. "Modifier -- ALFP 2028") n'est
+      pas concernée -- reste du texte, pas un bouton. Texte d'aide
+      (écran Aide, guide utilisateur) mis à jour partout où "Modifier"
+      décrivait le bouton. Vérifié réellement (Xvfb) : les deux écrans
+      construits avec de vraies données, texte et largeur des boutons
+      lus sur les widgets réels après rendu, pas seulement relus dans
+      le code.
+
 ## Points ouverts transverses
 
 Voir le [cahier des charges](cahier-des-charges/roadmap.rst) pour le

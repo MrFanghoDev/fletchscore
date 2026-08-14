@@ -176,7 +176,7 @@ class EcranCompetiteurs(ctk.CTkFrame):
         ctk.CTkButton(
             cadre_selection,
             text=self._t("modifier"),
-            width=80,
+            width=36,
             command=self._charger_club_pour_edition,
         ).grid(row=0, column=1)
 
@@ -583,7 +583,7 @@ class EcranCompetiteurs(ctk.CTkFrame):
             ctk.CTkButton(
                 ligne,
                 text=self._t("modifier"),
-                width=80,
+                width=36,
                 command=lambda c=competiteur: self._passer_en_edition_competiteur(c),
             ).grid(row=0, column=1, padx=(6, 0))
             ctk.CTkButton(
