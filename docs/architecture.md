@@ -1036,3 +1036,35 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   utilisé pour l'onglet "Accès actifs"), avec une seconde liste
   "Procurations actives" + bouton Révoquer dans l'onglet
   "Procurations".
+
+- **`CompetitionTemplate` : même principe qu'`EpreuveTemplate`, un cran
+  au-dessus** (issue
+  [#25](https://github.com/MrFanghoDev/fletchscore/issues/25), 2026-08-14).
+  Un modèle de compétition est un bundle de plusieurs `(nom, bareme_id)`
+  -- `CompetitionTemplateEpreuve` porte un `ordre` explicite (pas
+  l'ordre d'insertion en base seul, pas garanti stable) pour préserver
+  l'ordre voulu par l'organisateur en enregistrant le modèle. Changement
+  de schéma purement additif (deux nouvelles tables) -- pas besoin d'une
+  entrée dans `storage.db.MIGRATIONS` (voir issue #5) : `CREATE TABLE IF
+  NOT EXISTS` s'applique identiquement à une base neuve ou déjà
+  existante, contrairement à l'ajout d'une colonne sur une table déjà
+  créée. `creer_competition_depuis_template()` délègue à
+  `creer_competition()` puis `creer_epreuve()` en boucle -- même principe
+  que `creer_epreuve_depuis_template()`, ne duplique aucune validation.
+  Chaque épreuve générée prend `date_debut` de la compétition comme date
+  par défaut (un modèle ne porte aucune date, même raison que pour
+  `EpreuveTemplate`) ; pas de mécanisme de dates par épreuve dans le
+  modèle envisagé pour ce cas -- l'organisateur ajuste après coup via
+  `modifier_epreuve()`, déjà existant, plutôt que d'complexifier le
+  modèle pour un besoin marginal (compétitions sur plusieurs jours avec
+  des épreuves à des dates différentes). GUI : sélecteur de modèle
+  ajouté au formulaire de compétition (ne préremplit rien, contrairement
+  au sélecteur d'épreuve -- un modèle de compétition n'a ni nom ni
+  dates à préremplir, juste mémorisé jusqu'à la soumission), désactivé
+  et réinitialisé en mode édition (un modèle n'a de sens qu'à la
+  création). **Rendu vérifié réellement** (Xvfb + capture d'écran, pas
+  seulement les tests unitaires) : scénario complet démarré via le vrai
+  écran GUI (`EcranCompetitions`) -- enregistrer une compétition à deux
+  épreuves comme modèle, sélectionner ce modèle, soumettre une nouvelle
+  compétition, confirmer que les deux épreuves attendues apparaissent
+  bien dans la colonne de droite avec les bons noms/barèmes/dates.

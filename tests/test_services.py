@@ -9,6 +9,7 @@ from fletchscore.models import (
     Club,
     Competiteur,
     Competition,
+    CompetitionTemplate,
     Sexe,
     StatutCompetition,
     StatutDemandeRattachement,
@@ -1147,6 +1148,124 @@ class TestTemplateEpreuve(ServiceTestCase):
         with self.assertRaises(ErreurMetier):
             services.creer_epreuve_depuis_template(
                 self.conn, competition.id, "template-fantome", date(2026, 3, 14)
+            )
+
+
+class TestTemplateCompetition(ServiceTestCase):
+    def test_creer_template_valide(self):
+        template = services.creer_template_competition(
+            self.conn,
+            "Week-end FFTL type",
+            [("Indoor 18m", "ifaa-indoor"), ("Flint", "flint-indoor")],
+        )
+        self.assertEqual(template.nom, "Week-end FFTL type")
+        self.assertIn(template, services.lister_templates_competition(self.conn))
+
+        epreuves = services.lister_epreuves_du_template_competition(self.conn, template.id)
+        self.assertEqual([e.nom for e in epreuves], ["Indoor 18m", "Flint"])
+        self.assertEqual([e.bareme_id for e in epreuves], ["ifaa-indoor", "flint-indoor"])
+
+    def test_nom_vide_refuse(self):
+        with self.assertRaises(ErreurMetier):
+            services.creer_template_competition(self.conn, "   ", [("Indoor", "ifaa-indoor")])
+
+    def test_sans_epreuve_refuse(self):
+        with self.assertRaises(ErreurMetier):
+            services.creer_template_competition(self.conn, "Modèle vide", [])
+
+    def test_nom_epreuve_vide_refuse(self):
+        with self.assertRaises(ErreurMetier):
+            services.creer_template_competition(self.conn, "Modèle", [("   ", "ifaa-indoor")])
+
+    def test_bareme_inconnu_refuse(self):
+        with self.assertRaises(ErreurMetier):
+            services.creer_template_competition(self.conn, "Modèle", [("Indoor", "bareme-fantome")])
+
+    def test_creer_template_depuis_competition_existante(self):
+        competition = self._competition()
+        self._epreuve(competition, nom="Indoor 18m", bareme_id="ifaa-indoor")
+        self._epreuve(
+            competition, nom="Flint", bareme_id="flint-indoor", date_epreuve=date(2026, 3, 15)
+        )
+
+        template = services.creer_template_depuis_competition(self.conn, competition.id)
+        self.assertEqual(template.nom, competition.nom)
+        epreuves = services.lister_epreuves_du_template_competition(self.conn, template.id)
+        self.assertEqual({e.nom for e in epreuves}, {"Indoor 18m", "Flint"})
+
+    def test_creer_template_depuis_competition_avec_nom_personnalise(self):
+        competition = self._competition()
+        self._epreuve(competition)
+        template = services.creer_template_depuis_competition(
+            self.conn, competition.id, nom_template="Modèle maison"
+        )
+        self.assertEqual(template.nom, "Modèle maison")
+
+    def test_creer_template_depuis_competition_sans_epreuve_refuse(self):
+        competition = self._competition()
+        with self.assertRaises(ErreurMetier):
+            services.creer_template_depuis_competition(self.conn, competition.id)
+
+    def test_creer_template_depuis_competition_inconnue_refuse(self):
+        with self.assertRaises(ErreurMetier):
+            services.creer_template_depuis_competition(self.conn, "competition-fantome")
+
+    def test_creer_competition_depuis_template(self):
+        template = services.creer_template_competition(
+            self.conn,
+            "Week-end FFTL type",
+            [("Indoor 18m", "ifaa-indoor"), ("Flint", "flint-indoor")],
+        )
+
+        competition, epreuves = services.creer_competition_depuis_template(
+            self.conn,
+            template.id,
+            "Week-end FFTL -- mars",
+            date(2026, 3, 14),
+            date(2026, 3, 15),
+        )
+
+        self.assertEqual(competition.nom, "Week-end FFTL -- mars")
+        self.assertEqual(len(epreuves), 2)
+        self.assertEqual([e.nom for e in epreuves], ["Indoor 18m", "Flint"])
+        self.assertEqual([e.bareme_id for e in epreuves], ["ifaa-indoor", "flint-indoor"])
+        for epreuve in epreuves:
+            self.assertEqual(epreuve.competition_id, competition.id)
+            self.assertEqual(epreuve.date, date(2026, 3, 14))  # date_debut par défaut
+
+        # Les épreuves générées sont bien rattachées en base, pas seulement
+        # retournées par la fonction.
+        self.assertEqual(len(db.list_epreuves_by_competition(self.conn, competition.id)), 2)
+
+    def test_creer_competition_depuis_template_reprend_les_validations_de_creer_competition(self):
+        template = services.creer_template_competition(
+            self.conn, "Modèle", [("Indoor", "ifaa-indoor")]
+        )
+        with self.assertRaises(ErreurMetier):
+            services.creer_competition_depuis_template(
+                self.conn, template.id, "", date(2026, 3, 14), date(2026, 3, 15)
+            )
+
+    def test_template_inconnu_refuse(self):
+        with self.assertRaises(ErreurMetier):
+            services.creer_competition_depuis_template(
+                self.conn,
+                "template-fantome",
+                "Compétition",
+                date(2026, 3, 14),
+                date(2026, 3, 15),
+            )
+
+    def test_template_sans_epreuve_refuse(self):
+        # Cas normalement impossible via creer_template_competition (qui
+        # refuse un modèle vide) -- vérifié quand même directement au
+        # niveau stockage, pour couvrir le garde-fou de
+        # creer_competition_depuis_template lui-même.
+        template = CompetitionTemplate(id="t-vide", nom="Modèle vide")
+        db.insert_competition_template(self.conn, template)
+        with self.assertRaises(ErreurMetier):
+            services.creer_competition_depuis_template(
+                self.conn, "t-vide", "Compétition", date(2026, 3, 14), date(2026, 3, 15)
             )
 
 

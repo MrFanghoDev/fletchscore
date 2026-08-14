@@ -21,6 +21,8 @@ from fletchscore.models import (
     Club,
     Competiteur,
     Competition,
+    CompetitionTemplate,
+    CompetitionTemplateEpreuve,
     DemandeRattachement,
     Epreuve,
     EpreuveTemplate,
@@ -94,6 +96,19 @@ CREATE TABLE IF NOT EXISTS epreuve_templates (
     id TEXT PRIMARY KEY,
     nom TEXT NOT NULL,
     bareme_id TEXT NOT NULL REFERENCES baremes(id)
+);
+
+CREATE TABLE IF NOT EXISTS competition_templates (
+    id TEXT PRIMARY KEY,
+    nom TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS competition_template_epreuves (
+    id TEXT PRIMARY KEY,
+    competition_template_id TEXT NOT NULL REFERENCES competition_templates(id),
+    nom TEXT NOT NULL,
+    bareme_id TEXT NOT NULL REFERENCES baremes(id),
+    ordre INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS inscriptions (
@@ -597,6 +612,71 @@ def get_epreuve_template(conn: sqlite3.Connection, template_id: str) -> EpreuveT
 def list_epreuve_templates(conn: sqlite3.Connection) -> list[EpreuveTemplate]:
     rows = conn.execute("SELECT * FROM epreuve_templates ORDER BY nom").fetchall()
     return [EpreuveTemplate(id=r["id"], nom=r["nom"], bareme_id=r["bareme_id"]) for r in rows]
+
+
+# ------------------------------------------------ Modèle de compétition --
+
+
+def insert_competition_template(conn: sqlite3.Connection, template: CompetitionTemplate) -> None:
+    conn.execute(
+        "INSERT INTO competition_templates (id, nom) VALUES (?, ?)",
+        (template.id, template.nom),
+    )
+    conn.commit()
+
+
+def get_competition_template(
+    conn: sqlite3.Connection, template_id: str
+) -> CompetitionTemplate | None:
+    row = conn.execute(
+        "SELECT * FROM competition_templates WHERE id = ?", (template_id,)
+    ).fetchone()
+    if not row:
+        return None
+    return CompetitionTemplate(id=row["id"], nom=row["nom"])
+
+
+def list_competition_templates(conn: sqlite3.Connection) -> list[CompetitionTemplate]:
+    rows = conn.execute("SELECT * FROM competition_templates ORDER BY nom").fetchall()
+    return [CompetitionTemplate(id=r["id"], nom=r["nom"]) for r in rows]
+
+
+def insert_competition_template_epreuve(
+    conn: sqlite3.Connection, epreuve_template: CompetitionTemplateEpreuve
+) -> None:
+    conn.execute(
+        """INSERT INTO competition_template_epreuves
+           (id, competition_template_id, nom, bareme_id, ordre)
+           VALUES (?, ?, ?, ?, ?)""",
+        (
+            epreuve_template.id,
+            epreuve_template.competition_template_id,
+            epreuve_template.nom,
+            epreuve_template.bareme_id,
+            epreuve_template.ordre,
+        ),
+    )
+    conn.commit()
+
+
+def list_competition_template_epreuves(
+    conn: sqlite3.Connection, competition_template_id: str
+) -> list[CompetitionTemplateEpreuve]:
+    rows = conn.execute(
+        """SELECT * FROM competition_template_epreuves
+           WHERE competition_template_id = ? ORDER BY ordre""",
+        (competition_template_id,),
+    ).fetchall()
+    return [
+        CompetitionTemplateEpreuve(
+            id=r["id"],
+            competition_template_id=r["competition_template_id"],
+            nom=r["nom"],
+            bareme_id=r["bareme_id"],
+            ordre=r["ordre"],
+        )
+        for r in rows
+    ]
 
 
 # --------------------------------------------------------- Inscription --

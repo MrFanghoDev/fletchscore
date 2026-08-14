@@ -11,6 +11,7 @@ from fletchscore.models.bareme import (
 from fletchscore.models.club import Club
 from fletchscore.models.competiteur import Competiteur, categorie_age
 from fletchscore.models.competition import Competition
+from fletchscore.models.competition_template import CompetitionTemplate, CompetitionTemplateEpreuve
 from fletchscore.models.demande_rattachement import DemandeRattachement
 from fletchscore.models.enums import (
     DivisionAge,
@@ -43,6 +44,8 @@ __all__ = [
     "Competiteur",
     "categorie_age",
     "Competition",
+    "CompetitionTemplate",
+    "CompetitionTemplateEpreuve",
     "DemandeRattachement",
     "DivisionAge",
     "Sexe",

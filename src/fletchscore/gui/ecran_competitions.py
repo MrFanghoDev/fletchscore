@@ -32,6 +32,7 @@ class EcranCompetitions(ctk.CTkFrame):
         self.epreuve_en_edition: str | None = None
         self._baremes_par_nom: dict[str, str] = {}
         self._templates_par_libelle: dict = {}
+        self._templates_competition_par_libelle: dict = {}
         self._aucun_modele = self._t("epreuves_no_model")
         self._aucun_bareme = self._t("epreuves_no_bareme")
 
@@ -63,6 +64,7 @@ class EcranCompetitions(ctk.CTkFrame):
         self.liste_competitions.grid_columnconfigure(0, weight=1)
 
         self._construire_formulaire_competition(colonne)
+        self._rafraichir_choix_modeles_competition()
 
     def _construire_formulaire_competition(self, parent: ctk.CTkBaseClass) -> None:
         cadre = ctk.CTkFrame(parent)
@@ -75,13 +77,22 @@ class EcranCompetitions(ctk.CTkFrame):
         )
         self.titre_formulaire_competition.grid(row=0, column=0, sticky="w", padx=10, pady=(10, 5))
 
+        # Modèle de compétition (bundle de plusieurs épreuves, voir
+        # services.creer_competition_depuis_template) -- même principe que
+        # le sélecteur de modèle d'épreuve plus bas, mais ne préremplit
+        # rien ici (un modèle de compétition ne porte ni nom ni dates,
+        # seulement des épreuves) : juste mémorisé, appliqué à la
+        # soumission du formulaire.
+        self.menu_modele_competition = ctk.CTkOptionMenu(cadre, values=[self._aucun_modele])
+        self.menu_modele_competition.grid(row=1, column=0, sticky="ew", padx=10, pady=2)
+
         self.champ_nom_competition = ctk.CTkEntry(cadre, placeholder_text=self._t("champ_nom"))
-        self.champ_nom_competition.grid(row=1, column=0, sticky="ew", padx=10, pady=2)
+        self.champ_nom_competition.grid(row=2, column=0, sticky="ew", padx=10, pady=2)
 
         self.champ_lieu_competition = ctk.CTkEntry(
             cadre, placeholder_text=self._t("competitions_place_placeholder")
         )
-        self.champ_lieu_competition.grid(row=2, column=0, sticky="ew", padx=10, pady=2)
+        self.champ_lieu_competition.grid(row=3, column=0, sticky="ew", padx=10, pady=2)
 
         # "Date de début"/"Date de fin" (nom_champ ci-dessous) restent en
         # français en dur, volontairement : ils alimentent le message
@@ -96,7 +107,7 @@ class EcranCompetitions(ctk.CTkFrame):
             titre_calendrier=self._t("competitions_start_date_title"),
             lang=self.lang,
         )
-        self.champ_date_debut.grid(row=3, column=0, sticky="ew", padx=10, pady=2)
+        self.champ_date_debut.grid(row=4, column=0, sticky="ew", padx=10, pady=2)
         self.champ_date_debut.bind(
             "<FocusOut>",
             lambda _e: self._valider_date_en_direct(
@@ -110,7 +121,7 @@ class EcranCompetitions(ctk.CTkFrame):
             titre_calendrier=self._t("competitions_end_date_title"),
             lang=self.lang,
         )
-        self.champ_date_fin.grid(row=4, column=0, sticky="ew", padx=10, pady=2)
+        self.champ_date_fin.grid(row=5, column=0, sticky="ew", padx=10, pady=2)
         self.champ_date_fin.bind(
             "<FocusOut>",
             lambda _e: self._valider_date_en_direct(
@@ -119,13 +130,13 @@ class EcranCompetitions(ctk.CTkFrame):
         )
 
         self.case_veteran = ctk.CTkCheckBox(cadre, text=self._t("competitions_veteran_checkbox"))
-        self.case_veteran.grid(row=5, column=0, sticky="w", padx=10, pady=(5, 2))
+        self.case_veteran.grid(row=6, column=0, sticky="w", padx=10, pady=(5, 2))
 
         self.erreur_competition = ctk.CTkLabel(cadre, text="", text_color="red", wraplength=280)
-        self.erreur_competition.grid(row=6, column=0, sticky="w", padx=10)
+        self.erreur_competition.grid(row=7, column=0, sticky="w", padx=10)
 
         cadre_boutons = ctk.CTkFrame(cadre, fg_color="transparent")
-        cadre_boutons.grid(row=7, column=0, sticky="ew", padx=10, pady=10)
+        cadre_boutons.grid(row=8, column=0, sticky="ew", padx=10, pady=10)
         cadre_boutons.grid_columnconfigure(0, weight=1)
 
         self.bouton_soumettre_competition = ctk.CTkButton(
@@ -200,6 +211,31 @@ class EcranCompetitions(ctk.CTkFrame):
                 width=80,
                 command=lambda c=competition: self._passer_en_edition_competition(c),
             ).grid(row=0, column=1, padx=(6, 0))
+            ctk.CTkButton(
+                ligne,
+                text=self._t("epreuves_save_as_template"),
+                width=170,
+                command=lambda c=competition: self._enregistrer_comme_modele_competition(c),
+            ).grid(row=0, column=2, padx=(6, 0))
+
+    def _rafraichir_choix_modeles_competition(self) -> None:
+        templates = services.lister_templates_competition(self.conn)
+        self._templates_competition_par_libelle = {t.nom: t for t in templates}
+        self.menu_modele_competition.configure(
+            values=[self._aucun_modele, *self._templates_competition_par_libelle.keys()]
+        )
+        self.menu_modele_competition.set(self._aucun_modele)
+
+    def _enregistrer_comme_modele_competition(self, competition: Competition) -> None:
+        self._afficher_erreur_competition("")
+        try:
+            template = services.creer_template_depuis_competition(self.conn, competition.id)
+        except ErreurMetier as erreur:
+            self._afficher_erreur_competition(str(erreur))
+            return
+
+        self._rafraichir_choix_modeles_competition()
+        self._afficher_info_competition(self._t("epreuves_template_saved", nom=template.nom))
 
     def _passer_en_edition_competition(self, competition: Competition) -> None:
         self.competition_en_edition = competition.id
@@ -209,6 +245,11 @@ class EcranCompetitions(ctk.CTkFrame):
         self.bouton_soumettre_competition.configure(text=self._t("enregistrer_modifications"))
         self.bouton_annuler_competition.grid(row=0, column=1, padx=(8, 0))
         self._afficher_erreur_competition("")
+
+        # Un modèle n'a de sens qu'à la création -- même principe que
+        # _passer_en_edition_epreuve avec menu_modele.
+        self.menu_modele_competition.set(self._aucun_modele)
+        self.menu_modele_competition.configure(state="disabled")
 
         self.champ_nom_competition.delete(0, "end")
         self.champ_nom_competition.insert(0, competition.nom)
@@ -229,6 +270,8 @@ class EcranCompetitions(ctk.CTkFrame):
         self.bouton_soumettre_competition.configure(text=self._t("creer"))
         self.bouton_annuler_competition.grid_forget()
         self._afficher_erreur_competition("")
+        self.menu_modele_competition.configure(state="normal")
+        self.menu_modele_competition.set(self._aucun_modele)
         self.champ_nom_competition.delete(0, "end")
         self.champ_lieu_competition.delete(0, "end")
         self.champ_date_debut.delete(0, "end")
@@ -242,14 +285,28 @@ class EcranCompetitions(ctk.CTkFrame):
             date_fin = parser_date(self.champ_date_fin.get(), "Date de fin")
 
             if self.competition_en_edition is None:
-                competition = services.creer_competition(
-                    self.conn,
-                    nom=self.champ_nom_competition.get(),
-                    date_debut=date_debut,
-                    date_fin=date_fin,
-                    lieu=self.champ_lieu_competition.get(),
-                    categories_veteran_actives=bool(self.case_veteran.get()),
+                template = self._templates_competition_par_libelle.get(
+                    self.menu_modele_competition.get()
                 )
+                if template is not None:
+                    competition, _epreuves = services.creer_competition_depuis_template(
+                        self.conn,
+                        template.id,
+                        nom=self.champ_nom_competition.get(),
+                        date_debut=date_debut,
+                        date_fin=date_fin,
+                        lieu=self.champ_lieu_competition.get(),
+                        categories_veteran_actives=bool(self.case_veteran.get()),
+                    )
+                else:
+                    competition = services.creer_competition(
+                        self.conn,
+                        nom=self.champ_nom_competition.get(),
+                        date_debut=date_debut,
+                        date_fin=date_fin,
+                        lieu=self.champ_lieu_competition.get(),
+                        categories_veteran_actives=bool(self.case_veteran.get()),
+                    )
             else:
                 competition = services.modifier_competition(
                     self.conn,

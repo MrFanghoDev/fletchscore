@@ -463,6 +463,23 @@ Avancement :
       "(aucun modèle -- saisie libre)" par défaut) ; bouton "Enregistrer
       comme modèle" sur chaque épreuve listée. ⚠️ **rendu non vérifié**
       -- comme toute la GUI, pas d'affichage disponible ici
+- [x] **Modèles de compétition (issue #25, un cran au-dessus des modèles
+      d'épreuve)** : `CompetitionTemplate`/`CompetitionTemplateEpreuve`
+      (bundle de plusieurs `(nom, bareme_id)`, toujours sans date, même
+      principe qu'`EpreuveTemplate`). `services.creer_template_competition()`,
+      `creer_template_depuis_competition()`, `creer_competition_depuis_template()`
+      (crée la compétition puis génère toutes ses épreuves en une fois --
+      délègue à `creer_competition()`/`creer_epreuve()`, ne duplique pas
+      leurs validations ; chaque épreuve générée prend `date_debut` comme
+      date par défaut, ajustable ensuite via `modifier_epreuve()`). GUI :
+      sélecteur de modèle dans le formulaire de création de compétition
+      (n'préremplit rien, juste mémorisé jusqu'à la soumission -- un
+      modèle de compétition ne porte ni nom ni dates), bouton "Enregistrer
+      comme modèle" sur chaque compétition listée. 23 tests (10 stockage +
+      13 services). **Rendu vérifié réellement** (Xvfb + capture d'écran,
+      scénario complet : enregistrer un modèle depuis une compétition à
+      deux épreuves, l'appliquer à une nouvelle compétition, confirmer les
+      épreuves générées avec les bons noms/barèmes/dates).
 - [ ] Besoin 1 -- sauvegarde/restauration d'une compétition complète
 - [ ] Besoin 3 -- export fédération tout-en-un
 

@@ -26,6 +26,8 @@ from fletchscore.models import (
     Club,
     Competiteur,
     Competition,
+    CompetitionTemplate,
+    CompetitionTemplateEpreuve,
     DemandeRattachement,
     Epreuve,
     EpreuveTemplate,
@@ -445,6 +447,118 @@ def creer_epreuve_depuis_template(
         date_epreuve=date_epreuve,
         bareme_id=template.bareme_id,
     )
+
+
+# ---------------------------------------------- Modèle de compétition --
+
+
+def creer_template_competition(
+    conn: sqlite3.Connection, nom: str, epreuves: list[tuple[str, str]]
+) -> CompetitionTemplate:
+    """Crée un modèle de compétition réutilisable -- un bundle de
+    plusieurs épreuves (nom, bareme_id), toujours sans date (même
+    principe qu'``EpreuveTemplate``, voir son docstring).
+
+    ``epreuves`` : liste de ``(nom, bareme_id)`` dans l'ordre souhaité --
+    au moins une, un modèle vide n'aurait rien à générer."""
+    nom = nom.strip()
+    if not nom:
+        raise ErreurMetier("Le nom du modèle ne peut pas être vide.")
+    if not epreuves:
+        raise ErreurMetier("Un modèle de compétition doit contenir au moins une épreuve.")
+    for nom_epreuve, bareme_id in epreuves:
+        if not nom_epreuve.strip():
+            raise ErreurMetier("Le nom d'une épreuve du modèle ne peut pas être vide.")
+        if db.get_bareme(conn, bareme_id) is None:
+            raise ErreurMetier(f"Barème inconnu : {bareme_id}")
+
+    template = CompetitionTemplate(id=_nouvel_id(), nom=nom)
+    db.insert_competition_template(conn, template)
+    for ordre, (nom_epreuve, bareme_id) in enumerate(epreuves):
+        db.insert_competition_template_epreuve(
+            conn,
+            CompetitionTemplateEpreuve(
+                id=_nouvel_id(),
+                competition_template_id=template.id,
+                nom=nom_epreuve.strip(),
+                bareme_id=bareme_id,
+                ordre=ordre,
+            ),
+        )
+    return template
+
+
+def creer_template_depuis_competition(
+    conn: sqlite3.Connection, competition_id: str, nom_template: str | None = None
+) -> CompetitionTemplate:
+    """Enregistre les épreuves d'une compétition existante comme modèle
+    réutilisable -- reprend le nom de la compétition par défaut
+    (personnalisable via ``nom_template``, même principe que
+    ``creer_template_depuis_epreuve``)."""
+    competition = db.get_competition(conn, competition_id)
+    if competition is None:
+        raise ErreurMetier("Compétition introuvable.")
+    epreuves = db.list_epreuves_by_competition(conn, competition_id)
+    if not epreuves:
+        raise ErreurMetier("Cette compétition n'a aucune épreuve à enregistrer comme modèle.")
+
+    paires = [(epreuve.nom, epreuve.bareme_id) for epreuve in epreuves]
+    return creer_template_competition(conn, nom_template or competition.nom, paires)
+
+
+def lister_templates_competition(conn: sqlite3.Connection) -> list[CompetitionTemplate]:
+    return db.list_competition_templates(conn)
+
+
+def lister_epreuves_du_template_competition(
+    conn: sqlite3.Connection, template_id: str
+) -> list[CompetitionTemplateEpreuve]:
+    return db.list_competition_template_epreuves(conn, template_id)
+
+
+def creer_competition_depuis_template(
+    conn: sqlite3.Connection,
+    template_id: str,
+    nom: str,
+    date_debut: date,
+    date_fin: date,
+    *,
+    lieu: str = "",
+    categories_veteran_actives: bool = False,
+) -> tuple[Competition, list[Epreuve]]:
+    """Crée une compétition puis génère en une fois toutes ses épreuves à
+    partir du modèle -- délègue à ``creer_competition()``/``creer_epreuve()``
+    pour ne pas dupliquer leurs validations, même principe que
+    ``creer_epreuve_depuis_template``.
+
+    Chaque épreuve générée prend ``date_debut`` comme date par défaut --
+    un modèle de compétition ne porte aucune date (voir docstring de
+    ``CompetitionTemplate``). Si les épreuves ne tombent pas toutes le
+    même jour, l'organisateur ajuste ensuite individuellement via
+    ``modifier_epreuve()``, déjà existant -- pas la peine d'un mécanisme
+    de dates par épreuve dans le modèle rien que pour ce cas."""
+    template = db.get_competition_template(conn, template_id)
+    if template is None:
+        raise ErreurMetier("Modèle de compétition introuvable.")
+    epreuves_template = db.list_competition_template_epreuves(conn, template_id)
+    if not epreuves_template:
+        raise ErreurMetier("Ce modèle de compétition n'a aucune épreuve.")
+
+    competition = creer_competition(
+        conn,
+        nom,
+        date_debut,
+        date_fin,
+        lieu=lieu,
+        categories_veteran_actives=categories_veteran_actives,
+    )
+    epreuves = [
+        creer_epreuve(
+            conn, competition.id, epreuve_template.nom, date_debut, epreuve_template.bareme_id
+        )
+        for epreuve_template in epreuves_template
+    ]
+    return competition, epreuves
 
 
 # ------------------------------------------------------- Inscription --
