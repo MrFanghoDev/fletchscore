@@ -213,8 +213,8 @@ class EcranCompetitions(ctk.CTkFrame):
             ).grid(row=0, column=1, padx=(6, 0))
             ctk.CTkButton(
                 ligne,
-                text=self._t("epreuves_save_as_template"),
-                width=170,
+                text="💾",
+                width=36,
                 command=lambda c=competition: self._enregistrer_comme_modele_competition(c),
             ).grid(row=0, column=2, padx=(6, 0))
 
@@ -501,8 +501,8 @@ class EcranCompetitions(ctk.CTkFrame):
             ).grid(row=0, column=1, padx=(6, 0))
             ctk.CTkButton(
                 ligne,
-                text=self._t("epreuves_save_as_template"),
-                width=170,
+                text="💾",
+                width=36,
                 command=lambda e=epreuve: self._enregistrer_comme_modele(e),
             ).grid(row=0, column=2, padx=(6, 0))
 
