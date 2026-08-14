@@ -1190,3 +1190,50 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   même), sur une vraie seconde base construite à la volée pour simuler
   une autre machine -- compétition, score et inscription confirmés
   après coup.
+
+- **HTTPS activé par défaut sur la vue compétiteur** (issue
+  [#39](https://github.com/MrFanghoDev/fletchscore/issues/39),
+  2026-08-14). `ConfigGui.https_actif` passe de `False` à `True` --
+  article 32 RGPD (mesures techniques "appropriées" pour la sécurité du
+  traitement) : sans HTTPS, ce qui transite sur le wifi du club (noms,
+  scores, cookies de session) est en clair. `SECURITY.md` documentait
+  déjà le certificat auto-signé (avertissement navigateur à accepter
+  une fois) comme comportement attendu -- ce ticket ne change que le
+  réglage de départ, pas le mécanisme.
+
+  Deux pièges trouvés et corrigés avant même de lancer un test, en
+  relisant le mécanisme existant à la lumière du nouveau défaut :
+  - `ConfigGui.sauvegarder()` n'écrivait `https_actif` dans le TOML que
+    lorsqu'il valait `True` (`if config.https_actif: ...`) -- inoffensif
+    tant que le défaut était `False` (un `False` explicite et une
+    absence de préférence se confondaient sans dommage), mais aurait
+    silencieusement effacé un désactivement explicite au prochain
+    lancement une fois le défaut passé à `True`
+    (`charger()` serait retombé sur `True` faute de clé écrite). Corrigé
+    en écrivant désormais toujours la clé, comme n'importe quel booléen
+    sans "non défini" légitime (contrairement à `http_port`, où `None`
+    a un sens réel).
+  - `gui/ecran_connexions.py` sélectionnait la case à cocher *avant* de
+    vérifier si `cryptography` est disponible -- avec l'ancien défaut
+    `False`, la case ne se retrouvait jamais cochée+désactivée en même
+    temps ; avec `True`, l'ordre inversé aurait produit une case cochée
+    puis immédiatement grisée (`state="disabled"` empêche toute
+    interaction), un blocage sans issue pour l'utilisateur au moment de
+    démarrer le serveur. Corrigé en vérifiant la disponibilité
+    *d'abord* : case décochée et grisée si `cryptography` manque, quel
+    que soit `https_actif` enregistré ; sélectionnée seulement dans la
+    branche "disponible".
+
+  Le texte d'aide de l'écran Connexions et le résumé de l'écran Aide
+  (`gui/i18n.py`, clés `connexions_https_note`/`aide_desc_connexions`)
+  ainsi que `docs/guide-utilisateur/ecrans.rst` présentaient HTTPS comme
+  une simple option -- mis à jour pour refléter le nouveau défaut.
+  `TestServeurIntegration` (démarre volontairement en HTTP simple pour
+  les tests automatisés) confirmé inchangé -- il construit son serveur
+  directement via `creer_serveur(..., https=False)`, sans passer par
+  `ConfigGui`. Vérifié réellement (Xvfb) : les deux scénarios de
+  `gui/ecran_connexions.py::EcranConnexions` construits avec un vrai
+  `CTk()`, `cryptography` simulée disponible puis indisponible via
+  `unittest.mock.patch` sur `CRYPTOGRAPHY_DISPONIBLE` -- état réel de la
+  case (`cget("state")`/`get()`) lu sur le widget vivant après un délai
+  de rendu, pas seulement relu dans le code.

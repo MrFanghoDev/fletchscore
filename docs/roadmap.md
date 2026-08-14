@@ -920,8 +920,28 @@ confirmer par un vrai lancement.
       3e en 2e place). Vérifié réellement (Xvfb) : dialogue de
       confirmation ouvert et cliqué via le vrai écran GUI, état de la
       base confirmé après coup. Voir les autres tickets RGPD (#38 droit
-      d'accès, #39 HTTPS par défaut, #40 conservation, #41
-      documentation) pour la suite du chantier.
+      d'accès, #40 conservation, #41 documentation) pour la suite du
+      chantier.
+
+- [x] **RGPD -- HTTPS activé par défaut (issue #39, 2026-08-14)**.
+      `ConfigGui.https_actif` par défaut : `False` -> `True` (article 32
+      RGPD -- éviter que noms/scores/cookies de session transitent en
+      clair sur le wifi du club). Deux pièges trouvés en relisant le
+      mécanisme existant avant de coder, pas après coup : `sauvegarder()`
+      n'écrivait `https_actif` que quand il valait `True`, ce qui aurait
+      silencieusement effacé un désactivement explicite au prochain
+      lancement -- corrigé en écrivant toujours la clé ; la case à
+      cocher de `ecran_connexions.py` se sélectionnait avant de vérifier
+      si `cryptography` est disponible, ce qui aurait pu la laisser
+      cochée et grisée en même temps (bloquée, sans façon de la
+      décocher) -- corrigé en vérifiant la disponibilité en premier.
+      Texte d'aide (écran Connexions, écran Aide, guide utilisateur) mis
+      à jour, présentait HTTPS comme une simple option. `HTTP` reste
+      possible (case décochable, et forcé si `cryptography` manque) --
+      `TestServeurIntegration` confirmé inchangé. Vérifié réellement
+      (Xvfb) : case cochée par défaut quand `cryptography` est
+      disponible, décochée et grisée sinon -- état lu sur un vrai widget
+      `CTkCheckBox` après rendu, dans les deux scénarios.
 
 ## Points ouverts transverses
 

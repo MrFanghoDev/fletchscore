@@ -155,8 +155,12 @@ garder toujours la même adresse d'une session à l'autre -- mémorisé
 automatiquement pour la prochaine fois), une case **Activer HTTPS**
 (certificat auto-signé généré automatiquement -- le navigateur du
 compétiteur affichera un avertissement "connexion non sécurisée" à
-accepter manuellement une fois, normal pour ce type de certificat), et
-un bouton **Démarrer le serveur** / **Arrêter le serveur**. Une fois
+accepter manuellement une fois, normal pour ce type de certificat),
+**cochée par défaut** (RGPD/article 32 -- sinon les données qui
+transitent sur le wifi du club -- noms, scores, cookies de session --
+sont en clair ; décochable si besoin, ex. si la bibliothèque
+``cryptography`` n'est pas disponible, auquel cas la case est grisée),
+et un bouton **Démarrer le serveur** / **Arrêter le serveur**. Une fois
 démarré, l'adresse à donner aux compétiteurs s'affiche (à taper dans le
 navigateur de leur téléphone, sur le même wifi que le club).
 

@@ -39,13 +39,20 @@ class ConfigGui:
     l'autre). Un port fixe évite de redonner une nouvelle adresse aux
     compétiteurs à chaque fois."""
 
-    https_actif: bool = False
+    https_actif: bool = True
     """Sert la vue compétiteur en HTTPS (certificat auto-signé, généré
     au besoin) plutôt qu'en HTTP simple -- voir
-    ``fletchscore.certificat_https``. Faux par défaut : le certificat
-    auto-signé déclenche un avertissement "connexion non sécurisée"
-    dans le navigateur du compétiteur, à accepter manuellement une
-    fois -- pas le comportement souhaité par tout le monde."""
+    ``fletchscore.certificat_https``. Vrai par défaut depuis l'issue
+    #39 (RGPD/article 32 -- chiffrer le transport quand c'est possible
+    et peu coûteux, même sur un réseau WiFi jugé "de confiance") :
+    sinon les données qui transitent (noms, scores, cookies de
+    session) sont en clair. Le certificat auto-signé déclenche un
+    avertissement "connexion non sécurisée" dans le navigateur du
+    compétiteur, à accepter manuellement une fois -- documenté comme
+    comportement attendu (voir SECURITY.md), pas une faille. Reste
+    désactivable (case à décocher sur l'écran Connexions) -- ex. si
+    ``cryptography`` n'est pas installée, voir
+    ``gui/ecran_connexions.py``."""
 
     def __post_init__(self) -> None:
         if self.theme not in THEMES_VALIDES:
@@ -95,9 +102,13 @@ def charger(chemin: Path | str = CHEMIN_PAR_DEFAUT) -> ConfigGui:
     if http_port is not None and not (1 <= http_port <= 65535):
         http_port = None  # valeur corrompue -- repli sur "auto" plutôt que planter
 
-    https_actif = donnees.get("https_actif", False)
+    # Absent (fichier créé avant #39, ou jamais explicitement touché) ->
+    # True, le nouveau défaut -- voir sauvegarder(), qui écrit désormais
+    # toujours cette clé pour qu'un "False" explicite reste distinct
+    # d'une absence de préférence.
+    https_actif = donnees.get("https_actif", True)
     if not isinstance(https_actif, bool):
-        https_actif = False  # valeur corrompue -- repli sur False plutôt que planter
+        https_actif = True  # valeur corrompue -- repli sur le défaut plutôt que planter
 
     return ConfigGui(theme=theme, language=language, http_port=http_port, https_actif=https_actif)
 
@@ -120,8 +131,13 @@ def sauvegarder(config: ConfigGui, chemin: Path | str = CHEMIN_PAR_DEFAUT) -> No
     )
     if config.http_port is not None:
         contenu += f"http_port = {config.http_port}\n"
-    if config.https_actif:
-        contenu += f"https_actif = {str(config.https_actif).lower()}\n"
+    # Toujours écrit (contrairement à http_port, qui a un "non défini"
+    # légitime -- None) : depuis que le défaut est True (#39), un "False"
+    # explicite doit être distingué d'une absence de préférence, sinon
+    # décocher la case ne resterait pas décoché au lancement suivant
+    # (donnees.get("https_actif", True) dans charger() retomberait sur
+    # True faute de valeur écrite).
+    contenu += f"https_actif = {str(config.https_actif).lower()}\n"
 
     temporaire = chemin.with_suffix(chemin.suffix + ".tmp")
     temporaire.write_text(contenu, encoding="utf-8")

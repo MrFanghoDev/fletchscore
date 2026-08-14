@@ -82,20 +82,34 @@ class TestConfigGui(unittest.TestCase):
         restes = list(Path(self._dossier.name).glob("*.tmp"))
         self.assertEqual(restes, [])
 
-    def test_https_actif_faux_par_defaut(self):
-        self.assertFalse(ConfigGui().https_actif)
+    def test_https_actif_vrai_par_defaut(self):
+        # Défaut changé par l'issue #39 (RGPD/article 32) -- HTTPS
+        # activé de base plutôt qu'une option à cocher.
+        self.assertTrue(ConfigGui().https_actif)
 
-    def test_https_actif_aller_retour(self):
+    def test_https_actif_aller_retour_vrai(self):
         sauvegarder(ConfigGui(theme="dark", https_actif=True), self.chemin)
         self.assertTrue(charger(self.chemin).https_actif)
 
-    def test_https_actif_absent_du_fichier_donne_faux(self):
-        self.chemin.write_text('theme = "dark"\n', encoding="utf-8")
+    def test_https_actif_aller_retour_faux(self):
+        # Un désactivement explicite doit rester désactivé au
+        # rechargement -- pas retomber sur le nouveau défaut (True)
+        # faute d'avoir été écrit dans le fichier. Voir sauvegarder(),
+        # qui écrit désormais toujours cette clé (contrairement à
+        # avant #39, où seul un True était écrit).
+        sauvegarder(ConfigGui(theme="dark", https_actif=False), self.chemin)
         self.assertFalse(charger(self.chemin).https_actif)
 
-    def test_https_actif_corrompu_retombe_sur_faux(self):
+    def test_https_actif_absent_du_fichier_donne_vrai(self):
+        # Fichier d'avant #39 (ou jamais explicitement touché) : la clé
+        # n'existe pas -- retombe sur le nouveau défaut plutôt que sur
+        # l'ancien.
+        self.chemin.write_text('theme = "dark"\n', encoding="utf-8")
+        self.assertTrue(charger(self.chemin).https_actif)
+
+    def test_https_actif_corrompu_retombe_sur_vrai(self):
         self.chemin.write_text('theme = "dark"\nhttps_actif = "oui"\n', encoding="utf-8")
-        self.assertFalse(charger(self.chemin).https_actif)
+        self.assertTrue(charger(self.chemin).https_actif)
 
     def test_langue_invalide_refuse_a_la_construction(self):
         with self.assertRaises(ValueError):

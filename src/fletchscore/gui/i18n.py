@@ -327,8 +327,9 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         ),
         "aide_desc_connexions": (
             "Démarre un petit serveur web (bouton, port fixe ou "
-            "automatique, HTTPS optionnel si la bibliothèque cryptography "
-            "est installée) pour que les compétiteurs consultent le "
+            "automatique, HTTPS activé par défaut -- désactivable -- si "
+            "la bibliothèque cryptography est installée) pour que les "
+            "compétiteurs consultent le "
             "classement live depuis leur téléphone, sur le wifi du club. "
             "En dessous, quatre onglets : Demandes en attente (valide "
             "seulement après avoir vérifié l'identité de visu -- un code, "
@@ -659,7 +660,8 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         ),
         "aide_desc_connexions": (
             "Starts a small web server (button, fixed or automatic port, "
-            "optional HTTPS if the cryptography library is installed) so "
+            "HTTPS enabled by default -- can be turned off -- if the "
+            "cryptography library is installed) so "
             "competitors can check the live rankings from their phone, on "
             "the club's wifi. Below, four tabs: Pending requests (only "
             "validate after checking identity in person -- a code, and a "

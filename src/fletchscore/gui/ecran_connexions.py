@@ -78,10 +78,16 @@ class EcranConnexions(ctk.CTkFrame):
         ).grid(row=0, column=2, padx=(8, 0))
 
         self.case_https = ctk.CTkCheckBox(cadre, text=self._t("connexions_https_checkbox"))
-        if self.fenetre_principale.config_gui.https_actif:
-            self.case_https.select()
         if not CRYPTOGRAPHY_DISPONIBLE:
+            # Priorité à cette branche : si cryptography est indisponible,
+            # la case reste décochée ET désactivée, même si https_actif=True
+            # est enregistré (défaut depuis #39) -- sinon elle se
+            # retrouverait cochée mais impossible à décocher (state=
+            # "disabled" empêche l'interaction), un blocage sans issue
+            # pour l'utilisateur au moment de démarrer le serveur.
             self.case_https.configure(state="disabled")
+        elif self.fenetre_principale.config_gui.https_actif:
+            self.case_https.select()
         self.case_https.grid(row=2, column=0, sticky="w", padx=15, pady=(0, 5))
 
         texte_note_https = (
