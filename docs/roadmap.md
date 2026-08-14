@@ -480,7 +480,30 @@ Avancement :
       scénario complet : enregistrer un modèle depuis une compétition à
       deux épreuves, l'appliquer à une nouvelle compétition, confirmer les
       épreuves générées avec les bons noms/barèmes/dates).
-- [ ] Besoin 1 -- sauvegarde/restauration d'une compétition complète
+- [x] **Besoin 1 -- sauvegarde/restauration d'une compétition complète
+      (issue #7, 2026-08-14)**. `io/sauvegarde_competition.py` : format
+      JSON auto-descriptif (pas de dépendance externe), autoportant --
+      en plus de la compétition/épreuves/inscriptions/scores, embarque
+      aussi les clubs/compétiteurs/barèmes référencés, sans quoi
+      réimporter sur une machine qui ne les connaît pas déjà échouerait
+      sur des clés étrangères manquantes. `exporter_competition()`,
+      `importer_competition()` -- refuse si l'id de compétition existe
+      déjà (pas de fusion, un import réussi ou pas du tout), réutilise
+      (sans dupliquer) les clubs/compétiteurs/barèmes déjà présents côté
+      cible. `db.importer_donnees_competition()` écrit tout en une seule
+      transaction (même pattern que `db.anonymiser_competiteur()`,
+      issue #37) -- une compétition à moitié restaurée serait pire
+      qu'un échec net. Volontairement hors périmètre : tokens, demandes
+      de rattachement, procurations, messages -- état d'accès propre à
+      la machine d'origine, pas des données "de compétition". GUI :
+      bouton **📦** sur chaque compétition listée (export), bouton
+      **📥 Restaurer** dans l'en-tête de la colonne. 8 tests (export,
+      restauration sur base neuve, réutilisation de référentiels
+      partagés, conflit d'id, version de format invalide, classement
+      recalculable après restauration). Vérifié réellement (Xvfb) :
+      sauvegarde et restauration déclenchées via les vrais boutons GUI
+      (popup de chemin simulé), sur une vraie seconde base "cible"
+      construite à la volée pour simuler une autre machine.
 - [ ] Besoin 3 -- export fédération tout-en-un
 
 ## Extension -- Modification de compétitions/épreuves existantes

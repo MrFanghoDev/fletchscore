@@ -1052,6 +1052,128 @@ def list_messages_by_competition(conn: sqlite3.Connection, competition_id: str) 
     return [_row_to_message(r) for r in rows]
 
 
+# -------------------------------------- Restauration de compétition --
+
+
+def importer_donnees_competition(
+    conn: sqlite3.Connection,
+    *,
+    competition: Competition,
+    epreuves: list[Epreuve],
+    clubs_a_creer: list[Club],
+    competiteurs_a_creer: list[Competiteur],
+    baremes_a_creer: list[Bareme],
+    inscriptions: list[Inscription],
+    scores: list[Score],
+) -> None:
+    """Écrit en une seule transaction tout ce qu'il faut pour restaurer
+    une compétition complète (issue #7) -- voir
+    ``io.sauvegarde_competition.importer_competition``, qui résout en
+    amont quels clubs/compétiteurs/barèmes doivent réellement être créés
+    (ceux déjà présents sur cette base sont réutilisés, jamais passés
+    ici). Compétition/épreuves/inscriptions/scores toujours neufs.
+
+    Ordre d'insertion contraint par les clés étrangères : clubs avant
+    compétiteurs (``competiteurs.code_club``), barèmes avant épreuves
+    (``epreuves.bareme_id``), compétition avant épreuves
+    (``epreuves.competition_id``), compétiteurs+épreuves avant
+    inscriptions, inscriptions avant scores. Rollback complet si un seul
+    insert échoue -- une compétition à moitié restaurée serait pire
+    qu'un échec net."""
+    try:
+        for club in clubs_a_creer:
+            conn.execute(
+                "INSERT INTO clubs (code_club, nom, ville) VALUES (?, ?, ?)",
+                (club.code_club, club.nom, club.ville),
+            )
+        for bareme in baremes_a_creer:
+            conn.execute(
+                """INSERT INTO baremes
+                   (id, nom, nb_series, volees_par_serie, fleches_par_volee,
+                    valeurs_zones, departage_par_x)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    bareme.id,
+                    bareme.nom,
+                    bareme.nb_series,
+                    bareme.volees_par_serie,
+                    bareme.fleches_par_volee,
+                    json.dumps(bareme.valeurs_zones),
+                    int(bareme.departage_par_x),
+                ),
+            )
+        for competiteur in competiteurs_a_creer:
+            conn.execute(
+                """INSERT INTO competiteurs
+                   (id_federal, nom, prenom, code_club, sexe, date_naissance,
+                    code_style, licence_valide_jusqu_au)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    competiteur.id_federal,
+                    competiteur.nom,
+                    competiteur.prenom,
+                    competiteur.code_club,
+                    competiteur.sexe.value,
+                    competiteur.date_naissance.isoformat(),
+                    competiteur.code_style,
+                    (
+                        competiteur.licence_valide_jusqu_au.isoformat()
+                        if competiteur.licence_valide_jusqu_au
+                        else None
+                    ),
+                ),
+            )
+        conn.execute(
+            """INSERT INTO competitions
+               (id, nom, date_debut, date_fin, lieu, statut, categories_veteran_actives)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (
+                competition.id,
+                competition.nom,
+                competition.date_debut.isoformat(),
+                competition.date_fin.isoformat(),
+                competition.lieu,
+                competition.statut.value,
+                int(competition.categories_veteran_actives),
+            ),
+        )
+        for epreuve in epreuves:
+            conn.execute(
+                """INSERT INTO epreuves (id, competition_id, nom, date, bareme_id)
+                   VALUES (?, ?, ?, ?, ?)""",
+                (
+                    epreuve.id,
+                    epreuve.competition_id,
+                    epreuve.nom,
+                    epreuve.date.isoformat(),
+                    epreuve.bareme_id,
+                ),
+            )
+        for inscription in inscriptions:
+            conn.execute(
+                "INSERT INTO inscriptions (id, id_federal, epreuve_id) VALUES (?, ?, ?)",
+                (inscription.id, inscription.id_federal, inscription.epreuve_id),
+            )
+        for score in scores:
+            conn.execute(
+                """INSERT INTO scores
+                   (id, inscription_id, total, nombre_x, statut, propose_par_id_federal)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (
+                    score.id,
+                    score.inscription_id,
+                    score.total,
+                    score.nombre_x,
+                    score.statut.value,
+                    score.propose_par_id_federal,
+                ),
+            )
+    except Exception:
+        conn.rollback()
+        raise
+    conn.commit()
+
+
 # ------------------------------------------------- Ouverture complète --
 
 

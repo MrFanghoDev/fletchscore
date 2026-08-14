@@ -14,7 +14,14 @@ import customtkinter as ctk
 
 from fletchscore import services
 from fletchscore.gui.champ_date import ChampDate
+from fletchscore.gui.dialogue_fichier import demander_chemin
 from fletchscore.gui.i18n import traduire
+from fletchscore.io.sauvegarde_competition import (
+    ErreurSauvegarde,
+    exporter_competition,
+    formater_rapport_restauration,
+    importer_competition,
+)
 from fletchscore.models import Competition, Epreuve
 from fletchscore.services import ErreurMetier, parser_date
 from fletchscore.storage import db
@@ -55,9 +62,20 @@ class EcranCompetitions(ctk.CTkFrame):
         colonne.grid_rowconfigure(1, weight=1)
         colonne.grid_columnconfigure(0, weight=1)
 
+        entete = ctk.CTkFrame(colonne, fg_color="transparent")
+        entete.grid(row=0, column=0, sticky="ew", padx=15, pady=(15, 5))
+        entete.grid_columnconfigure(0, weight=1)
+
         ctk.CTkLabel(
-            colonne, text=self._t("section_competitions"), font=ctk.CTkFont(size=16, weight="bold")
-        ).grid(row=0, column=0, sticky="w", padx=15, pady=(15, 5))
+            entete, text=self._t("section_competitions"), font=ctk.CTkFont(size=16, weight="bold")
+        ).grid(row=0, column=0, sticky="w")
+        ctk.CTkButton(
+            entete,
+            text=self._t("competitions_restore_button"),
+            width=110,
+            fg_color="gray40",
+            command=self._restaurer_competition,
+        ).grid(row=0, column=1, sticky="e")
 
         self.liste_competitions = ctk.CTkScrollableFrame(colonne, fg_color="transparent")
         self.liste_competitions.grid(row=1, column=0, sticky="nsew", padx=15)
@@ -217,6 +235,53 @@ class EcranCompetitions(ctk.CTkFrame):
                 width=36,
                 command=lambda c=competition: self._enregistrer_comme_modele_competition(c),
             ).grid(row=0, column=2, padx=(6, 0))
+            ctk.CTkButton(
+                ligne,
+                text="📦",
+                width=36,
+                fg_color="gray40",
+                command=lambda c=competition: self._sauvegarder_competition(c),
+            ).grid(row=0, column=3, padx=(6, 0))
+
+    def _sauvegarder_competition(self, competition: Competition) -> None:
+        """Export complet (issue #7) -- épreuves/inscriptions/scores +
+        clubs/compétiteurs/barèmes référencés, pour un fichier
+        réimportable seul sur une autre machine."""
+        self._afficher_erreur_competition("")
+        nom_fichier = f"{competition.nom.replace(' ', '_')}.json"
+        chemin = demander_chemin(
+            self, self._t("competitions_backup_prompt"), nom_fichier, self.lang
+        )
+        if not chemin:
+            return  # annulé -- pas une erreur
+
+        try:
+            exporter_competition(self.conn, competition.id, chemin)
+        except ErreurSauvegarde as erreur:
+            self._afficher_erreur_competition(str(erreur))
+            return
+
+        self._afficher_info_competition(self._t("competitions_backed_up", chemin=chemin))
+
+    def _restaurer_competition(self) -> None:
+        """Import complet (issue #7) -- refuse si l'id de compétition
+        existe déjà (voir ErreurSauvegarde dans
+        io.sauvegarde_competition), clubs/compétiteurs/barèmes déjà
+        présents réutilisés plutôt que dupliqués."""
+        self._afficher_erreur_competition("")
+        chemin = demander_chemin(self, self._t("competitions_restore_prompt"), "", self.lang)
+        if not chemin:
+            return
+
+        try:
+            rapport = importer_competition(self.conn, chemin)
+        except (ErreurSauvegarde, OSError, ValueError) as erreur:
+            self._afficher_erreur_competition(str(erreur))
+            return
+
+        self._rafraichir_competitions()
+        self._rafraichir_choix_modeles_competition()
+        self._afficher_info_competition(formater_rapport_restauration(rapport))
 
     def _rafraichir_choix_modeles_competition(self) -> None:
         templates = services.lister_templates_competition(self.conn)

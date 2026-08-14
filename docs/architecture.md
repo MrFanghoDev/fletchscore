@@ -1118,3 +1118,75 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   dans `self.winfo_children()`, pas dans `root.winfo_children()`),
   bouton "Anonymiser" cliqué via `.invoke()`, état de la base confirmé
   après coup (nom/prénom modifiés, score et total inchangés).
+
+- **Sauvegarde/restauration d'une compétition : format JSON autoportant,
+  pas un simple export des tables demandées** (issue
+  [#7](https://github.com/MrFanghoDev/fletchscore/issues/7),
+  2026-08-14). Le critère d'acceptation initial ne nommait que
+  "épreuves, inscriptions, scores" -- insuffisant en pratique pour
+  "transférer d'une machine à une autre" (le besoin explicitement noté
+  dans `docs/roadmap.md`, section import/export) : une `Inscription`
+  référence un `id_federal` par clé étrangère, qui doit exister côté
+  cible. Étendu pour embarquer aussi les clubs/compétiteurs/barèmes
+  référencés -- sans ça, réimporter sur une machine qui ne les connaît
+  pas déjà échouerait sur des clés étrangères manquantes dès la première
+  ligne.
+
+  **Résolution des conflits, décidée par catégorie d'entité plutôt
+  qu'une règle unique :**
+  - `Competition` (identifiant aléatoire, une seule origine légitime) :
+    refusé si l'id existe déjà côté cible -- pas de fusion, un import
+    réussi ou pas du tout (`ErreurSauvegarde` explicite : "déjà
+    restaurée précédemment ?").
+  - `Club`/`Competiteur`/`Bareme` (identifiants stables, réels --
+    `code_club`, `id_federal`, souvent un barème préconfiguré déjà
+    seedé au démarrage normal) : réutilisés tels quels s'ils existent
+    déjà côté cible, jamais dupliqués ni écrasés -- le cas normal étant
+    justement que le club/compétiteur soit déjà connu de la machine
+    cible (même club, même archer).
+
+  `db.importer_donnees_competition()` écrit tout en une seule
+  transaction (`try`/`except`/`rollback`, un seul `commit()` final --
+  même pattern que `db.anonymiser_competiteur()` de l'issue #37 et
+  `_appliquer_migrations()` de l'issue #5) : une compétition à moitié
+  restaurée serait pire qu'un échec net. Ordre d'insertion contraint par
+  les clés étrangères (clubs avant compétiteurs, barèmes avant
+  épreuves, compétition avant épreuves, compétiteurs+épreuves avant
+  inscriptions, inscriptions avant scores) -- la résolution
+  "réutiliser ou créer" (lecture seule, `db.get_club`/`get_competiteur`/
+  `get_bareme`) vit dans `io/sauvegarde_competition.py`, en amont de
+  cet appel unique, pour garder la fonction `db.py` simple (une liste
+  déjà tranchée de ce qu'il faut réellement écrire, rien à décider sur
+  place).
+
+  Volontairement **hors périmètre** : tokens, demandes de rattachement,
+  procurations, messages -- état d'accès/session propre à la machine
+  d'origine, pas des données "de compétition" à proprement parler (un
+  token exporté serait de toute façon inutilisable, seul son hash est
+  stocké, jamais le secret en clair).
+
+  Format JSON choisi plutôt qu'un format binaire ou une copie du
+  fichier SQLite entier -- lisible/diffable à la main en cas de souci,
+  pas de dépendance externe (cohérent avec la philosophie "stdlib
+  d'abord" du projet), et surtout **scopé à une seule compétition**
+  (contrairement à une copie du `.db` complet, qui embarquerait tout le
+  reste de la base -- pas ce qui était demandé). Champ
+  `format_version` dès la v1, pour permettre de faire évoluer le format
+  plus tard sans casser silencieusement la restauration d'anciennes
+  sauvegardes.
+
+  GUI (`gui/ecran_competitions.py`) : bouton **📦** sur chaque
+  compétition listée (export), bouton **📥 Restaurer** dans l'en-tête de
+  la colonne Compétitions (pas par ligne -- une restauration crée une
+  compétition, elle n'en modifie pas une existante). 8 tests, dont un
+  qui construit une vraie base "cible" sans aucun barème préchargé pour
+  vérifier que le barème vient bien de la sauvegarde et pas d'un
+  référentiel déjà là, et un qui vérifie qu'un `classement_epreuve()`
+  fonctionne normalement sur des données fraîchement restaurées (pas
+  seulement que les lignes existent en base). Vérifié réellement (Xvfb)
+  : `_sauvegarder_competition()`/`_restaurer_competition()` invoquées
+  depuis les vrais boutons GUI (popup de saisie de chemin simulé par
+  substitution ciblée de `demander_chemin`, pas la logique testée elle-
+  même), sur une vraie seconde base construite à la volée pour simuler
+  une autre machine -- compétition, score et inscription confirmés
+  après coup.

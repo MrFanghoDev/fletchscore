@@ -28,13 +28,29 @@ Compétitions
 Deux colonnes.
 
 **Colonne de gauche -- Compétitions**
-   Liste des compétitions existantes (boutons **Modifier** et **💾** --
-   enregistrer comme modèle -- sur chacune) et un formulaire de création
-   (nom, lieu, dates, catégories Veteran/Senior), avec un menu
-   **Modèle** : choisis-en un pour générer d'un coup toutes les épreuves
-   d'un modèle de compétition enregistré précédemment (la date choisie
-   ici sert de date par défaut à chaque épreuve générée -- à corriger
-   ensuite individuellement si elles ne sont pas toutes le même jour).
+   En haut, bouton **📥 Restaurer** : recharge une compétition
+   sauvegardée (voir encadré ci-dessous). Ensuite, liste des
+   compétitions existantes (boutons **Modifier**, **💾** -- enregistrer
+   comme modèle -- et **📦** -- sauvegarder -- sur chacune) et un
+   formulaire de création (nom, lieu, dates, catégories Veteran/Senior),
+   avec un menu **Modèle** : choisis-en un pour générer d'un coup toutes
+   les épreuves d'un modèle de compétition enregistré précédemment (la
+   date choisie ici sert de date par défaut à chaque épreuve générée --
+   à corriger ensuite individuellement si elles ne sont pas toutes le
+   même jour).
+
+.. admonition:: Sauvegarder/restaurer une compétition complète
+   :class: tip
+
+   Le bouton **📦** exporte une compétition entière (épreuves,
+   inscriptions, scores, et les clubs/compétiteurs/barèmes nécessaires
+   pour que le fichier soit réimportable seul) dans un fichier
+   ``.json`` -- utile pour archiver, ou transférer vers un autre poste.
+   Le bouton **📥 Restaurer** recharge un tel fichier : les clubs/
+   compétiteurs/barèmes déjà connus de ce poste sont réutilisés sans
+   doublon, seuls ceux manquants sont ajoutés. Restaurer une sauvegarde
+   déjà présente sur ce même poste est refusé (pas de fusion) -- pensé
+   avant tout pour transférer vers un poste qui ne l'a pas encore.
 
 **Colonne de droite -- Épreuves**
    Une fois une compétition sélectionnée à gauche : liste de ses
