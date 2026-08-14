@@ -28,15 +28,19 @@ Compétitions
 Deux colonnes.
 
 **Colonne de gauche -- Compétitions**
-   Liste des compétitions existantes (bouton **Modifier** sur chacune)
-   et un formulaire de création (nom, lieu, dates, catégories
-   Veteran/Senior).
+   Liste des compétitions existantes (boutons **Modifier** et **💾** --
+   enregistrer comme modèle -- sur chacune) et un formulaire de création
+   (nom, lieu, dates, catégories Veteran/Senior), avec un menu
+   **Modèle** : choisis-en un pour générer d'un coup toutes les épreuves
+   d'un modèle de compétition enregistré précédemment (la date choisie
+   ici sert de date par défaut à chaque épreuve générée -- à corriger
+   ensuite individuellement si elles ne sont pas toutes le même jour).
 
 **Colonne de droite -- Épreuves**
    Une fois une compétition sélectionnée à gauche : liste de ses
-   épreuves (boutons **Modifier** et **Enregistrer comme modèle** sur
-   chacune) et un formulaire de création, avec un menu **Modèle** qui
-   préremplit nom et barème si tu en as déjà enregistré un.
+   épreuves (boutons **Modifier** et **💾** -- enregistrer comme modèle
+   -- sur chacune) et un formulaire de création, avec un menu **Modèle**
+   qui préremplit nom et barème si tu en as déjà enregistré un.
 
 .. admonition:: Modifier ne change jamais l'identifiant
    :class: note
@@ -59,7 +63,28 @@ coup (sans passer par un CSV) : **Ajouter un club** (avec un sélecteur
 pour en charger un existant à modifier) et **Ajouter un compétiteur**.
 
 Enfin, la liste de tous les compétiteurs enregistrés, avec un bouton
-**Modifier** sur chacun.
+**Modifier** et un bouton **🗑** sur chacun.
+
+.. admonition:: Répondre à une demande RGPD (droit à l'effacement)
+   :class: important
+
+   Le bouton **🗑** anonymise le compétiteur : nom et prénom remplacés
+   par ``Compétiteur/{id fédéral}``, licence effacée, et tous ses accès
+   (codes, procurations, demandes en attente) révoqués. Une confirmation
+   est demandée avant, l'action est irréversible.
+
+   Ses scores et son rang dans les classements ne sont **volontairement
+   pas supprimés** : effacer purement et simplement un compétiteur
+   classé ferait remonter les rangs suivants, faussant rétroactivement
+   un classement peut-être déjà publié ou imprimé. La ligne reste donc
+   visible dans les classements, juste sous un nom anonymisé.
+
+   ``id_federal`` (le numéro de licence fédérale) est conservé comme
+   identifiant technique -- ce n'est donc pas une anonymisation complète
+   au sens strict (la fédération pourrait toujours faire le lien via ce
+   numéro dans son propre système), mais les données les plus
+   directement identifiantes -- nom, prénom, date de licence -- ont bien
+   disparu de l'application.
 
 Saisie
 =========

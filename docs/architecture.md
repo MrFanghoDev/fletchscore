@@ -1068,3 +1068,53 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   épreuves comme modèle, sélectionner ce modèle, soumettre une nouvelle
   compétition, confirmer que les deux épreuves attendues apparaissent
   bien dans la colonne de droite avec les bons noms/barèmes/dates.
+
+- **Droit à l'effacement RGPD : anonymisation plutôt que suppression
+  complète** (issue
+  [#37](https://github.com/MrFanghoDev/fletchscore/issues/37),
+  2026-08-14). Décision cadrée directement avec l'utilisateur avant de
+  coder, comme demandé par le ticket : sa crainte concrète était qu'une
+  suppression pure et simple d'un compétiteur déjà classé fasse
+  "remonter" silencieusement les rangs suivants, faussant
+  rétroactivement un classement peut-être déjà publié ou imprimé.
+  `services.anonymiser_competiteur()` garde donc `Score`/`Inscription`
+  intacts -- seuls nom/prénom (remplacés par
+  `Compétiteur/{id_federal}`) et licence sont effacés sur la fiche
+  `Competiteur`, qui elle-même reste en base (pas de suppression de la
+  ligne). `id_federal` conservé comme clé technique référencée partout
+  (tokens, inscriptions...) plutôt que remplacé -- **documenté
+  explicitement comme une pseudonymisation, pas une anonymisation RGPD
+  stricte** : la fédération pourrait toujours faire le lien via ce
+  numéro dans son propre système. Une vraie anonymisation aurait
+  demandé soit de garder `id_federal` (même limite), soit de le
+  remplacer en cascade dans toutes les tables qui le référencent --
+  jugé disproportionné pour le gain, la cible principale (nom/prénom,
+  les données les plus directement identifiantes) étant déjà atteinte.
+
+  Tokens, procurations (comme mandataire *et* comme mandant), demandes
+  de rattachement et messages ciblés (`messages.id_federal` égal à
+  cette personne, jamais les messages diffusés à tous où ce champ est
+  `NULL`) sont en revanche supprimés -- l'accès de ce compétiteur doit
+  cesser après une demande d'effacement, aucune raison légitime de
+  garder un token ou une procuration active pour quelqu'un qui a
+  demandé à être oublié. `db.anonymiser_competiteur()` fait tout ça en
+  une seule transaction (`try`/`except`/`rollback` autour de plusieurs
+  `conn.execute()`, un seul `commit()` final, même pattern que
+  `_appliquer_migrations()` de l'issue #5) -- un état à moitié
+  anonymisé (nom déjà effacé mais token encore valide) serait pire que
+  l'état de départ.
+
+  GUI (`gui/ecran_competiteurs.py`) : bouton **🗑** sur chaque ligne de
+  la liste des compétiteurs, confirmation obligatoire (même pattern que
+  `FenetrePrincipale._confirmer_quitter` -- `CTkToplevel` + `transient`
+  + `grab_set` différé + `wait_window`) avant toute action, irréversible
+  une fois confirmée. 10 tests, dont un qui reproduit exactement le
+  scénario redouté par l'utilisateur (3 compétiteurs classés 1er/2e/3e,
+  le 2e anonymisé, vérifie que le 3e reste 3e -- pas de décalage de
+  rang). Vérifié réellement (Xvfb) : `_anonymiser_competiteur()` invoqué
+  depuis le vrai écran GUI, dialogue retrouvé dans la hiérarchie de
+  widgets réelle (piège découvert en écrivant ce test : un
+  `CTkToplevel(self)` créé avec `self` = l'écran comme parent apparaît
+  dans `self.winfo_children()`, pas dans `root.winfo_children()`),
+  bouton "Anonymiser" cliqué via `.invoke()`, état de la base confirmé
+  après coup (nom/prénom modifiés, score et total inchangés).

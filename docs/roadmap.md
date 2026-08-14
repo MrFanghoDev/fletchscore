@@ -880,6 +880,26 @@ confirmer par un vrai lancement.
       soumission du formulaire, réactivation de la colonne Épreuves --
       tout fonctionne sans erreur.
 
+- [x] **RGPD -- droit à l'effacement (issue #37, 2026-08-14)**.
+      `services.anonymiser_competiteur()` : nom/prénom remplacés par
+      `Compétiteur/{id_federal}`, licence effacée, tokens/procurations
+      (mandataire et mandant)/demandes de rattachement/messages ciblés
+      supprimés. Décision cadrée avec l'utilisateur avant de coder :
+      **anonymisation plutôt que suppression complète**, pour ne pas
+      fausser un classement déjà publié en faisant remonter les rangs
+      suivants -- scores et inscriptions volontairement conservés.
+      `id_federal` conservé comme clé technique (pseudonymisation, pas
+      une anonymisation stricte au sens RGPD -- documenté comme tel).
+      GUI : bouton **🗑** sur chaque compétiteur (écran Compétiteurs),
+      confirmation obligatoire avant l'action irréversible. 10 tests,
+      dont un qui reproduit exactement le scénario redouté (un
+      compétiteur classé 2e anonymisé ne doit pas faire "remonter" le
+      3e en 2e place). Vérifié réellement (Xvfb) : dialogue de
+      confirmation ouvert et cliqué via le vrai écran GUI, état de la
+      base confirmé après coup. Voir les autres tickets RGPD (#38 droit
+      d'accès, #39 HTTPS par défaut, #40 conservation, #41
+      documentation) pour la suite du chantier.
+
 ## Points ouverts transverses
 
 Voir le [cahier des charges](cahier-des-charges/roadmap.rst) pour le

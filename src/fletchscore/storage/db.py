@@ -405,6 +405,41 @@ def update_competiteur(conn: sqlite3.Connection, competiteur: Competiteur) -> No
     conn.commit()
 
 
+def anonymiser_competiteur(conn: sqlite3.Connection, id_federal: str, nom_anonyme: str) -> None:
+    """Anonymise un compétiteur -- droit à l'effacement RGPD (issue #37).
+
+    Nom/prénom remplacés par ``nom_anonyme`` (prénom vidé) ; scores et
+    inscriptions volontairement conservés, pour ne pas fausser les
+    classements déjà publiés (le rang d'un tiers ne doit pas se
+    retrouver décalé par la suppression d'un autre compétiteur). Tokens,
+    procurations (comme mandataire et comme mandant) et demandes de
+    rattachement supprimés -- l'accès de ce compétiteur doit cesser,
+    aucune raison de le garder après une demande d'effacement. Messages
+    qui lui étaient adressés supprimés aussi (jamais les messages
+    diffusés à tous, ``id_federal IS NULL``, sans lien avec lui).
+
+    Transaction unique (tout ou rien) -- un état à moitié anonymisé
+    (ex. nom effacé mais token encore valide) serait pire que l'état de
+    départ."""
+    try:
+        conn.execute(
+            """UPDATE competiteurs SET nom = ?, prenom = '', licence_valide_jusqu_au = NULL
+               WHERE id_federal = ?""",
+            (nom_anonyme, id_federal),
+        )
+        conn.execute("DELETE FROM tokens WHERE id_federal = ?", (id_federal,))
+        conn.execute(
+            "DELETE FROM procurations WHERE id_federal_mandataire = ? OR id_federal_mandant = ?",
+            (id_federal, id_federal),
+        )
+        conn.execute("DELETE FROM demandes_rattachement WHERE id_federal = ?", (id_federal,))
+        conn.execute("DELETE FROM messages WHERE id_federal = ?", (id_federal,))
+    except Exception:
+        conn.rollback()
+        raise
+    conn.commit()
+
+
 # -------------------------------------------------------------- Barème --
 
 

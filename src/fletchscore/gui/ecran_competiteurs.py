@@ -586,3 +586,71 @@ class EcranCompetiteurs(ctk.CTkFrame):
                 width=80,
                 command=lambda c=competiteur: self._passer_en_edition_competiteur(c),
             ).grid(row=0, column=1, padx=(6, 0))
+            ctk.CTkButton(
+                ligne,
+                text="🗑",
+                width=36,
+                fg_color="gray40",
+                command=lambda c=competiteur: self._anonymiser_competiteur(c),
+            ).grid(row=0, column=2, padx=(6, 0))
+
+    def _anonymiser_competiteur(self, competiteur) -> None:
+        """Droit à l'effacement RGPD (issue #37) -- confirmation
+        obligatoire, action irréversible. Nom/prénom effacés ; scores et
+        inscriptions volontairement conservés (voir
+        services.anonymiser_competiteur), donc la ligne reste dans la
+        liste après coup, juste sous un nom anonymisé."""
+        self._afficher_erreur_competiteur("")
+        if not self._confirmer_anonymisation(competiteur):
+            return
+        try:
+            services.anonymiser_competiteur(self.conn, competiteur.id_federal)
+        except ErreurMetier as erreur:
+            self._afficher_erreur_competiteur(str(erreur))
+            return
+
+        self._rafraichir_liste()
+        self._afficher_info_competiteur(
+            self._t("competiteurs_anonymized", id_federal=competiteur.id_federal)
+        )
+
+    def _confirmer_anonymisation(self, competiteur) -> bool:
+        """Même modèle que FenetrePrincipale._confirmer_quitter
+        (CTkToplevel + transient + grab_set différé + wait_window) --
+        une anonymisation ne doit jamais partir d'un clic malheureux."""
+        resultat = {"ok": False}
+
+        dialogue = ctk.CTkToplevel(self)
+        dialogue.title(self._t("competiteurs_anonymize_title"))
+        dialogue.geometry("360x200")
+        dialogue.protocol("WM_DELETE_WINDOW", dialogue.destroy)
+
+        message = self._t(
+            "competiteurs_anonymize_confirm",
+            prenom=competiteur.prenom,
+            nom=competiteur.nom,
+        )
+        ctk.CTkLabel(dialogue, text=message, wraplength=320, justify="left").pack(
+            padx=20, pady=(20, 15)
+        )
+
+        def confirmer() -> None:
+            resultat["ok"] = True
+            dialogue.destroy()
+
+        cadre_boutons = ctk.CTkFrame(dialogue, fg_color="transparent")
+        cadre_boutons.pack(pady=10)
+        ctk.CTkButton(
+            cadre_boutons,
+            text=self._t("competiteurs_anonymize_confirm_button"),
+            fg_color="gray40",
+            command=confirmer,
+        ).pack(side="left", padx=5)
+        ctk.CTkButton(cadre_boutons, text=self._t("annuler"), command=dialogue.destroy).pack(
+            side="left", padx=5
+        )
+
+        dialogue.transient(self)
+        dialogue.after(50, dialogue.grab_set)
+        self.wait_window(dialogue)
+        return resultat["ok"]

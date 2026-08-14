@@ -105,6 +105,16 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         "competiteurs_add_club_first": "Ajoute d'abord un club.",
         "competiteurs_no_style_available": "Aucun style disponible.",
         "competiteurs_updated": "Compétiteur mis à jour.",
+        "competiteurs_anonymize_title": "Anonymiser (RGPD)",
+        "competiteurs_anonymize_confirm": (
+            "Effacer les données personnelles de {prenom} {nom} ?\n\n"
+            "Le nom et le prénom seront remplacés, la licence effacée, tous "
+            "les accès (codes, procurations, demandes en attente) révoqués. "
+            "Les scores et le classement restent inchangés -- action "
+            "irréversible."
+        ),
+        "competiteurs_anonymize_confirm_button": "Anonymiser",
+        "competiteurs_anonymized": "Compétiteur {id_federal} anonymisé.",
         "competiteurs_none_yet": "Aucun compétiteur importé pour l'instant.",
         # -- Écran Saisie ----------------------------------------------------
         "saisie_tab_manuelle": "Saisie manuelle",
@@ -430,6 +440,15 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         "competiteurs_add_club_first": "Add a club first.",
         "competiteurs_no_style_available": "No style available.",
         "competiteurs_updated": "Competitor updated.",
+        "competiteurs_anonymize_title": "Anonymize (GDPR)",
+        "competiteurs_anonymize_confirm": (
+            "Erase {prenom} {nom}'s personal data?\n\n"
+            "Name and first name will be replaced, the license cleared, all "
+            "access (codes, proxies, pending requests) revoked. Scores and "
+            "rankings stay unchanged -- this action can't be undone."
+        ),
+        "competiteurs_anonymize_confirm_button": "Anonymize",
+        "competiteurs_anonymized": "Competitor {id_federal} anonymized.",
         "competiteurs_none_yet": "No competitor imported yet.",
         # -- Écran Saisie ----------------------------------------------------
         "saisie_tab_manuelle": "Manual entry",

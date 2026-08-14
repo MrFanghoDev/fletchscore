@@ -220,6 +220,24 @@ def modifier_competiteur(
     return competiteur
 
 
+def anonymiser_competiteur(conn: sqlite3.Connection, id_federal: str) -> None:
+    """Anonymise un compétiteur -- droit à l'effacement RGPD (issue #37).
+
+    Choix délibéré : anonymisation plutôt que suppression complète, pour
+    ne pas fausser un classement déjà publié en faisant "remonter" les
+    rangs suivants (voir docstring de ``db.anonymiser_competiteur`` pour
+    le détail de ce qui est conservé/supprimé). Le nom devient
+    ``Compétiteur/{id_federal}`` -- reste techniquement rattaché à
+    l'identifiant fédéral (conservé comme clé, voir discussion issue
+    #37) plutôt qu'un texte totalement générique, pour qu'un
+    organisateur retrouve facilement quelle ligne correspond à quelle
+    demande d'effacement s'il doit s'y référer plus tard."""
+    if db.get_competiteur(conn, id_federal) is None:
+        raise ErreurMetier(f"Compétiteur introuvable : {id_federal}")
+
+    db.anonymiser_competiteur(conn, id_federal, f"Compétiteur/{id_federal}")
+
+
 # ------------------------------------------------------- Compétition --
 
 
