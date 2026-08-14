@@ -18,6 +18,7 @@ popup maison du projet) : ``CTkToplevel`` + ``transient()`` +
 
 from __future__ import annotations
 
+import warnings
 from datetime import date
 
 import customtkinter as ctk
@@ -25,7 +26,16 @@ import customtkinter as ctk
 from fletchscore.gui.i18n import traduire
 
 try:
-    from tkcalendar import Calendar
+    # tkcalendar 1.6.1 (dernière version publiée) contient encore une
+    # séquence d'échappement invalide ("Liberation\ Sans 9") qui
+    # déclenche un SyntaxWarning sous Python 3.12+ au moment de
+    # l'import -- bug dans la dépendance elle-même, rien à corriger côté
+    # FletchScore ni de version plus récente disponible sur PyPI
+    # (vérifié 2026-08-14). Supprimé localement, seulement autour de cet
+    # import précis, pour ne pas inquiéter l'utilisateur au lancement.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", SyntaxWarning)
+        from tkcalendar import Calendar
 
     TKCALENDAR_DISPONIBLE = True
 except ImportError:
