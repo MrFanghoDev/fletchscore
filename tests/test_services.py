@@ -205,6 +205,91 @@ class TestModifierCompetition(ServiceTestCase):
         self.assertEqual(modifiee.statut, StatutCompetition.OUVERTE)
 
 
+class TestSupprimerCompetition(ServiceTestCase):
+    def test_suppression_reussie_si_vide(self):
+        competition = self._competition()
+        services.supprimer_competition(self.conn, competition.id)
+        self.assertIsNone(db.get_competition(self.conn, competition.id))
+
+    def test_competition_inconnue_refusee(self):
+        with self.assertRaises(ErreurMetier):
+            services.supprimer_competition(self.conn, "inconnue")
+
+    def test_suppression_reussie_avec_epreuves_et_inscriptions_sans_score(self):
+        competition = self._competition()
+        epreuve = self._epreuve(competition)
+        inscription = services.inscrire(self.conn, "FR-1", epreuve.id)
+
+        services.supprimer_competition(self.conn, competition.id)
+
+        self.assertIsNone(db.get_competition(self.conn, competition.id))
+        self.assertIsNone(db.get_epreuve(self.conn, epreuve.id))
+        self.assertIsNone(db.get_inscription_par_competiteur_epreuve(self.conn, "FR-1", epreuve.id))
+        self.assertIsNone(db.get_score_by_inscription(self.conn, inscription.id))
+
+    def test_refuse_si_un_score_existe_dans_une_epreuve(self):
+        competition = self._competition()
+        epreuve1 = self._epreuve(competition, nom="Épreuve 1")
+        epreuve2 = self._epreuve(competition, nom="Épreuve 2")
+        inscription = services.inscrire(self.conn, "FR-1", epreuve2.id)
+        services.saisir_score_final(self.conn, inscription.id, 260)
+
+        with self.assertRaises(ErreurMetier):
+            services.supprimer_competition(self.conn, competition.id)
+        # Rien supprimé -- ni la compétition, ni l'épreuve vide sœur.
+        self.assertIsNotNone(db.get_competition(self.conn, competition.id))
+        self.assertIsNotNone(db.get_epreuve(self.conn, epreuve1.id))
+        self.assertIsNotNone(db.get_epreuve(self.conn, epreuve2.id))
+
+    def test_token_supprime(self):
+        competition = self._competition()
+        demande = services.demander_rattachement(self.conn, "FR-1", competition.id)
+        services.valider_rattachement(self.conn, demande.id)
+        self.assertTrue(db.list_tokens_by_competition(self.conn, competition.id))
+
+        services.supprimer_competition(self.conn, competition.id)
+
+        self.assertEqual(db.list_tokens_by_competition(self.conn, competition.id), [])
+
+    def test_procuration_supprimee(self):
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-2",
+                nom="Martin",
+                prenom="Luc",
+                code_club="77123",
+                sexe=Sexe.M,
+                date_naissance=date(1990, 1, 1),
+                code_style="BB-R",
+            ),
+        )
+        competition = self._competition()
+        services.demander_procuration(self.conn, "FR-1", "FR-2", competition.id)
+        self.assertTrue(services.lister_procurations_en_attente(self.conn, competition.id))
+
+        services.supprimer_competition(self.conn, competition.id)
+
+        self.assertEqual(services.lister_procurations_en_attente(self.conn, competition.id), [])
+
+    def test_demande_rattachement_supprimee(self):
+        competition = self._competition()
+        services.demander_rattachement(self.conn, "FR-1", competition.id)
+        self.assertTrue(services.lister_demandes_en_attente(self.conn, competition.id))
+
+        services.supprimer_competition(self.conn, competition.id)
+
+        self.assertEqual(services.lister_demandes_en_attente(self.conn, competition.id), [])
+
+    def test_messages_supprimes(self):
+        competition = self._competition()
+        services.envoyer_message(self.conn, competition.id, "Message pour tous")
+
+        services.supprimer_competition(self.conn, competition.id)
+
+        self.assertEqual(db.list_messages_by_competition(self.conn, competition.id), [])
+
+
 class TestModifierEpreuve(ServiceTestCase):
     def test_modification_valide(self):
         competition = self._competition()

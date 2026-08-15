@@ -332,6 +332,30 @@ def modifier_competition(
     return modifiee
 
 
+def supprimer_competition(conn: sqlite3.Connection, competition_id: str) -> None:
+    """Supprime une compétition vide -- issue #45. Refusée dès qu'un
+    score existe dans n'importe laquelle de ses épreuves, même un
+    seul -- pas de cascade forcée sur des données notées. En
+    l'absence de score, cascade complète sur épreuves, inscriptions et
+    accès (voir ``db.supprimer_competition``). Contrairement à
+    ``supprimer_epreuve`` (#44), le statut de la compétition n'est pas
+    vérifié ici -- ``modifier_competition`` ne bloque déjà pas sur une
+    compétition clôturée (clôturer est une action à part, pas un champ
+    comme un autre), pas de raison d'introduire une règle plus stricte
+    à la suppression."""
+    competition = db.get_competition(conn, competition_id)
+    if competition is None:
+        raise ErreurMetier("Compétition introuvable.")
+
+    for epreuve in db.list_epreuves_by_competition(conn, competition_id):
+        if db.epreuve_a_des_scores(conn, epreuve.id):
+            raise ErreurMetier(
+                "Impossible de supprimer une compétition où au moins un " "score a été saisi."
+            )
+
+    db.supprimer_competition(conn, competition_id)
+
+
 # ----------------------------------------------------------- Épreuve --
 
 

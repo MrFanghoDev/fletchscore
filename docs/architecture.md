@@ -1320,3 +1320,34 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   (message d'erreur affiché) sur une épreuve notée, déclenchés depuis
   les vrais boutons et le vrai dialogue de confirmation du GUI, état de
   la base confirmé après coup dans les deux cas.
+
+- **Supprimer une compétition vide** (issue
+  [#45](https://github.com/MrFanghoDev/fletchscore/issues/45),
+  2026-08-15). `services.supprimer_competition()` refuse dès qu'un
+  score existe dans n'importe laquelle des épreuves de la compétition,
+  même un seul (réutilise `db.epreuve_a_des_scores()` épreuve par
+  épreuve, même fonction que pour le #44) -- pas de cascade forcée sur
+  des données notées. En l'absence de score, cascade complète : ses
+  épreuves, leurs inscriptions (aucune n'a de score si on arrive là) et
+  son état d'accès propre (tokens, procurations, demandes de
+  rattachement, messages) -- sans objet une fois la compétition partie.
+  Contrairement au #44, le statut de la compétition (clôturée ou non)
+  n'est volontairement pas vérifié : `modifier_competition()` ne bloque
+  déjà pas dessus (clôturer est une action à part, pas un simple champ,
+  voir sa docstring), pas de raison d'introduire une règle plus stricte
+  côté suppression que celle déjà en place côté modification.
+  `db.supprimer_competition()` écrit tout en une seule transaction, même
+  pattern que les autres suppressions de ce lot.
+
+  GUI (`gui/ecran_competitions.py`, colonne Compétitions) : bouton **❌**
+  ajouté à côté de ✏️/💾/📦, même modèle de confirmation. Si la
+  compétition supprimée était celle sélectionnée, la colonne Épreuves
+  revient à son état initial (aucune sélection, désactivée) plutôt que
+  de garder une référence à une compétition qui n'existe plus. 8 tests
+  (`TestSupprimerCompetition`), dont un qui vérifie qu'un score dans
+  *une* épreuve bloque toute la suppression même si une épreuve sœur de
+  la même compétition est vide. Vérifié réellement (Xvfb) : suppression
+  réussie avec cascade (épreuve + inscription sans score) et refus
+  (message d'erreur affiché, sélection intacte) sur une compétition
+  notée, déclenchés depuis les vrais boutons et le vrai dialogue du
+  GUI, état de la base confirmé après coup dans les deux cas.

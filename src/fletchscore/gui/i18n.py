@@ -74,6 +74,16 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         "competitions_backup_prompt": "Chemin où sauvegarder cette compétition (.json)",
         "competitions_restore_prompt": "Chemin du fichier de sauvegarde à restaurer",
         "competitions_backed_up": "Compétition sauvegardée dans {chemin}",
+        "competitions_delete_title": "Supprimer la compétition",
+        "competitions_delete_confirm": (
+            "Supprimer définitivement la compétition « {nom} » ?\n\n"
+            "Ses épreuves, les inscriptions sans score et les accès "
+            "compétiteurs (codes, procurations, demandes) associés seront "
+            "supprimés avec -- refusé s'il existe le moindre score. Action "
+            "irréversible."
+        ),
+        "competitions_delete_confirm_button": "Supprimer",
+        "competitions_deleted": "Compétition « {nom} » supprimée.",
         "epreuves_title_avec_competition": "Épreuves -- {nom}",
         "epreuves_new": "Nouvelle épreuve",
         "epreuves_no_model": "(aucun modèle -- saisie libre)",
@@ -431,6 +441,16 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         "competitions_backup_prompt": "Path to save this competition to (.json)",
         "competitions_restore_prompt": "Path to the backup file to restore",
         "competitions_backed_up": "Competition backed up to {chemin}",
+        "competitions_delete_title": "Delete competition",
+        "competitions_delete_confirm": (
+            "Permanently delete the competition “{nom}”?\n\n"
+            "Its events, registrations without a score, and related "
+            "competitor access (codes, proxies, requests) will be deleted "
+            "with it -- refused if any score exists. This action can't be "
+            "undone."
+        ),
+        "competitions_delete_confirm_button": "Delete",
+        "competitions_deleted": "Competition “{nom}” deleted.",
         "epreuves_title_avec_competition": "Events -- {nom}",
         "epreuves_new": "New event",
         "epreuves_no_model": "(no template -- free entry)",

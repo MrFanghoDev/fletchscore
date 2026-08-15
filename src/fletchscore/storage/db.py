@@ -581,6 +581,38 @@ def update_competition(conn: sqlite3.Connection, competition: Competition) -> No
     conn.commit()
 
 
+def supprimer_competition(conn: sqlite3.Connection, competition_id: str) -> None:
+    """Supprime une compétition et tout ce qui en dépend sans avoir de
+    score -- issue #45, réservée à une compétition sans aucun score
+    (vérifié en amont par ``services.supprimer_competition`` via
+    ``epreuve_a_des_scores`` sur chacune de ses épreuves, jamais ici).
+
+    Cascade complète : épreuves, leurs inscriptions (aucune n'a de
+    score si on arrive ici, même logique que ``supprimer_epreuve``), et
+    l'état d'accès propre à cette compétition -- tokens, procurations,
+    demandes de rattachement, messages -- sans objet une fois la
+    compétition partie. Transaction unique, même pattern que les autres
+    suppressions de ce lot."""
+    try:
+        conn.execute(
+            """DELETE FROM inscriptions
+               WHERE epreuve_id IN (SELECT id FROM epreuves WHERE competition_id = ?)""",
+            (competition_id,),
+        )
+        conn.execute("DELETE FROM epreuves WHERE competition_id = ?", (competition_id,))
+        conn.execute("DELETE FROM tokens WHERE competition_id = ?", (competition_id,))
+        conn.execute("DELETE FROM procurations WHERE competition_id = ?", (competition_id,))
+        conn.execute(
+            "DELETE FROM demandes_rattachement WHERE competition_id = ?", (competition_id,)
+        )
+        conn.execute("DELETE FROM messages WHERE competition_id = ?", (competition_id,))
+        conn.execute("DELETE FROM competitions WHERE id = ?", (competition_id,))
+    except Exception:
+        conn.rollback()
+        raise
+    conn.commit()
+
+
 # ------------------------------------------------------------- Épreuve --
 
 

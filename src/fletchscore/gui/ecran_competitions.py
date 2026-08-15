@@ -242,6 +242,79 @@ class EcranCompetitions(ctk.CTkFrame):
                 fg_color="gray40",
                 command=lambda c=competition: self._sauvegarder_competition(c),
             ).grid(row=0, column=3, padx=(6, 0))
+            ctk.CTkButton(
+                ligne,
+                text="❌",
+                width=36,
+                fg_color="gray40",
+                command=lambda c=competition: self._supprimer_competition(c),
+            ).grid(row=0, column=4, padx=(6, 0))
+
+    def _supprimer_competition(self, competition: Competition) -> None:
+        """Suppression d'une compétition vide (issue #45) -- refusée par
+        services.supprimer_competition dès qu'un score existe quelque
+        part dans ses épreuves. Cascade sur épreuves/inscriptions/accès
+        en l'absence de score, annoncée dans le dialogue de
+        confirmation. Même modèle que les suppressions du #43/#44."""
+        self._afficher_erreur_competition("")
+        if not self._confirmer_suppression_competition(competition):
+            return
+        try:
+            services.supprimer_competition(self.conn, competition.id)
+        except ErreurMetier as erreur:
+            self._afficher_erreur_competition(str(erreur))
+            return
+
+        if (
+            self.competition_selectionnee is not None
+            and self.competition_selectionnee.id == competition.id
+        ):
+            # La compétition sélectionnée vient de disparaître -- la
+            # colonne Épreuves n'a plus de sujet, retour à l'état
+            # initial (comme au premier lancement, aucune sélection).
+            self.competition_selectionnee = None
+            self.titre_epreuves.configure(text=self._t("epreuves"))
+            self._activer_colonne_epreuves(False)
+
+        self._rafraichir_competitions()
+        self._afficher_info_competition(self._t("competitions_deleted", nom=competition.nom))
+
+    def _confirmer_suppression_competition(self, competition: Competition) -> bool:
+        """Même modèle que les autres dialogues de confirmation de
+        suppression -- CTkToplevel + transient + grab_set différé +
+        wait_window."""
+        resultat = {"ok": False}
+
+        dialogue = ctk.CTkToplevel(self)
+        dialogue.title(self._t("competitions_delete_title"))
+        dialogue.geometry("380x240")
+        dialogue.protocol("WM_DELETE_WINDOW", dialogue.destroy)
+
+        message = self._t("competitions_delete_confirm", nom=competition.nom)
+        ctk.CTkLabel(dialogue, text=message, wraplength=340, justify="left").pack(
+            padx=20, pady=(20, 15)
+        )
+
+        def confirmer() -> None:
+            resultat["ok"] = True
+            dialogue.destroy()
+
+        cadre_boutons = ctk.CTkFrame(dialogue, fg_color="transparent")
+        cadre_boutons.pack(pady=10)
+        ctk.CTkButton(
+            cadre_boutons,
+            text=self._t("competitions_delete_confirm_button"),
+            fg_color="gray40",
+            command=confirmer,
+        ).pack(side="left", padx=5)
+        ctk.CTkButton(cadre_boutons, text=self._t("annuler"), command=dialogue.destroy).pack(
+            side="left", padx=5
+        )
+
+        dialogue.transient(self)
+        dialogue.after(50, dialogue.grab_set)
+        self.wait_window(dialogue)
+        return resultat["ok"]
 
     def _sauvegarder_competition(self, competition: Competition) -> None:
         """Export complet (issue #7) -- épreuves/inscriptions/scores +

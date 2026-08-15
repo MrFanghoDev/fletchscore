@@ -985,6 +985,22 @@ confirmer par un vrai lancement.
       vide et refus sur une épreuve notée, déclenchés depuis les vrais
       boutons GUI, état de la base confirmé après coup.
 
+- [x] **Supprimer une compétition vide (issue #45, 2026-08-15)**.
+      Refusée dès qu'un score existe dans n'importe laquelle de ses
+      épreuves, même un seul. En l'absence de score, cascade complète
+      sur épreuves, inscriptions et accès (tokens/procurations/demandes
+      de rattachement/messages) -- sans objet une fois la compétition
+      partie. Contrairement au #44, le statut clôturé n'est pas
+      vérifié ici : `modifier_competition()` ne bloque déjà pas dessus,
+      pas de raison d'être plus strict à la suppression. Bouton **❌**
+      sur chaque compétition de l'écran Compétitions -- si c'était la
+      compétition sélectionnée, la colonne Épreuves revient à son état
+      initial plutôt que de garder une référence morte. 8 tests.
+      Vérifié réellement (Xvfb) : suppression réussie avec cascade et
+      refus (erreur affichée, sélection intacte) sur une compétition
+      notée, déclenchés depuis les vrais boutons GUI, état de la base
+      confirmé après coup.
+
 ## Points ouverts transverses
 
 Voir le [cahier des charges](cahier-des-charges/roadmap.rst) pour le

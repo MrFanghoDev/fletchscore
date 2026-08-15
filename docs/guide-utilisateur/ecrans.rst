@@ -31,8 +31,8 @@ Deux colonnes.
    En haut, bouton **📥 Restaurer** : recharge une compétition
    sauvegardée (voir encadré ci-dessous). Ensuite, liste des
    compétitions existantes (boutons **✏️** -- modifier --, **💾** --
-   enregistrer comme modèle -- et **📦** -- sauvegarder -- sur chacune)
-   et un
+   enregistrer comme modèle --, **📦** -- sauvegarder -- et **❌** --
+   supprimer -- sur chacune) et un
    formulaire de création (nom, lieu, dates, catégories Veteran/Senior),
    avec un menu **Modèle** : choisis-en un pour générer d'un coup toutes
    les épreuves d'un modèle de compétition enregistré précédemment (la
@@ -52,6 +52,17 @@ Deux colonnes.
    doublon, seuls ceux manquants sont ajoutés. Restaurer une sauvegarde
    déjà présente sur ce même poste est refusé (pas de fusion) -- pensé
    avant tout pour transférer vers un poste qui ne l'a pas encore.
+
+.. admonition:: Supprimer une compétition vide
+   :class: note
+
+   Le bouton **❌** supprime la compétition. Refusé dès qu'un score
+   existe dans n'importe laquelle de ses épreuves, même un seul --
+   aucune cascade forcée sur des données notées. En l'absence de score,
+   la suppression entraîne aussi celle de ses épreuves, des inscriptions
+   sans score, et des accès compétiteurs associés (codes, procurations,
+   demandes en attente). Confirmation demandée avant, action
+   irréversible.
 
 **Colonne de droite -- Épreuves**
    Une fois une compétition sélectionnée à gauche : liste de ses
