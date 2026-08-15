@@ -41,6 +41,16 @@ Hors périmètre (comportement attendu, pas une faille) :
   FletchScore fait confiance à l'organisateur authentifié comme autorité
   finale sur le classement, ce n'est pas une faille technique à corriger
 
+## Données personnelles (RGPD)
+
+FletchScore ne collecte, ne reçoit, ni ne traite lui-même aucune donnée
+personnelle -- pas de serveur central, pas de télémétrie. Le club qui
+installe et utilise FletchScore est responsable de traitement au sens
+RGPD pour les données de ses compétiteurs, pas MrFanghoDev ni les
+contributeurs du projet. Détail complet (données traitées, droits déjà
+couverts par l'application, modèle de notice pour les compétiteurs) :
+[cahier des charges -- RGPD](https://mrfanghodev.github.io/fletchscore/cahier-des-charges/rgpd.html).
+
 ## Signaler une faille
 
 **Ne pas** ouvrir une Issue publique pour une faille de sécurité tant
@@ -102,6 +112,17 @@ Out of scope (expected behavior, not a vulnerability):
 - A malicious organizer deliberately validating an incorrect score --
   FletchScore trusts the authenticated organizer as the final authority
   over the ranking; this isn't a technical flaw to fix
+
+## Personal data (GDPR)
+
+FletchScore itself doesn't collect, receive, or process any personal
+data -- no central server, no telemetry. The club that installs and
+uses FletchScore is the data controller under GDPR for its competitors'
+data, not MrFanghoDev or the project's contributors. Full detail (data
+processed, rights already covered by the application, notice template
+for competitors):
+[cahier des charges -- GDPR](https://mrfanghodev.github.io/fletchscore/cahier-des-charges/rgpd.html)
+(French only for now).
 
 ## Reporting a vulnerability
 

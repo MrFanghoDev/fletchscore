@@ -128,6 +128,12 @@ Couches de sécurité
 Conservation des données -- politique RGPD (issue #40)
 ===========================================================
 
+.. seealso::
+
+   :doc:`rgpd` pour la vue d'ensemble RGPD (qui est responsable de
+   traitement, quelles données, quels droits déjà couverts) -- cette
+   section-ci ne détaille que la durée de conservation retenue.
+
 Décision prise avec l'utilisateur le 2026-08-15, en réponse à l'article
 5.1.e du RGPD ("limitation de la conservation" -- les données ne doivent
 pas être conservées plus longtemps que nécessaire au regard de la

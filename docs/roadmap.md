@@ -1055,6 +1055,33 @@ confirmer par un vrai lancement.
       depuis un vrai DOM rendu, contenu de page confirmé, export JSON
       téléchargé et recoupé avec le HTML affiché.
 
+- [x] **RGPD -- documenter les obligations du club (issue #41,
+      2026-08-15)**. Dernier ticket du chantier RGPD -- purement
+      documentaire, aucun changement de code. Nouvelle page
+      `docs/cahier-des-charges/rgpd.rst` : qui est responsable de
+      traitement (le club, pas MrFanghoDev ni les contributeurs --
+      FletchScore est un outil, il ne collecte ni ne reçoit rien
+      lui-même), tableau des données traitées (donnée / finalité /
+      table), section dédiée sur les mineurs (catégories Cub/Junior
+      couvrent des mineurs, FletchScore n'a aucun mécanisme technique
+      propre à leur traitement -- à la charge du club), tableau honnête
+      des droits RGPD déjà couverts par l'application (#37/#38/#39/#40)
+      et de ceux qui ne le sont pas (rectification en libre-service,
+      information au moment de la collecte, registre des traitements)
+      plutôt que de sur-promettre une conformité complète. Modèle de
+      notice texte, pensé pour être copié-collé par le club dans sa
+      propre communication -- FletchScore n'a pas vocation à imposer un
+      flux de consentement dans son interface.
+
+      `SECURITY.md` (FR/EN) pointe désormais vers cette page -- la
+      recherche exhaustive qui a motivé ce ticket (2026-08-14) n'y
+      trouvait aucune mention RGPD. `docs/cahier-des-charges/index.rst`
+      et le renvoi croisé dans `securite.rst` (section conservation,
+      #40) mis à jour. Vérifié : build Sphinx propre (page générée à
+      `cahier-des-charges/rgpd.html`, correspond exactement au lien
+      utilisé dans `SECURITY.md`), aucune nouvelle alerte au-delà de
+      l'avertissement préexistant déjà connu.
+
 ## Points ouverts transverses
 
 Voir le [cahier des charges](cahier-des-charges/roadmap.rst) pour le

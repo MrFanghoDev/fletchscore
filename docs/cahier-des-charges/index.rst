@@ -54,6 +54,13 @@ FletchScore — Cahier des charges
 
       Flux de validation des scores, tokens, rattachement a posteriori.
 
+   .. grid-item-card:: 🛡️ RGPD -- rôles et obligations
+      :link: rgpd
+      :link-type: doc
+
+      Qui est responsable de traitement, quelles données, droits déjà
+      couverts, modèle de notice pour le club.
+
 .. toctree::
    :maxdepth: 2
    :hidden:
@@ -64,6 +71,7 @@ FletchScore — Cahier des charges
    modele-donnees
    architecture
    securite
+   rgpd
    roadmap
 
 Vue d'ensemble éclair
