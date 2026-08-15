@@ -825,6 +825,22 @@ def get_inscription_par_competiteur_epreuve(
     return Inscription(row["id"], row["id_federal"], row["epreuve_id"]) if row else None
 
 
+def get_inscription(conn: sqlite3.Connection, inscription_id: str) -> Inscription | None:
+    row = conn.execute("SELECT * FROM inscriptions WHERE id = ?", (inscription_id,)).fetchone()
+    return Inscription(row["id"], row["id_federal"], row["epreuve_id"]) if row else None
+
+
+def supprimer_inscription(conn: sqlite3.Connection, inscription_id: str) -> None:
+    """Annule une inscription sans score -- issue #46, réservée à une
+    inscription sans score (vérifié en amont par
+    ``services.annuler_inscription`` via ``get_score_by_inscription``,
+    jamais ici). Une seule instruction -- pas de transaction dédiée
+    nécessaire, contrairement aux suppressions en cascade du même lot
+    (#43/#44/#45)."""
+    conn.execute("DELETE FROM inscriptions WHERE id = ?", (inscription_id,))
+    conn.commit()
+
+
 # --------------------------------------------------------------- Score --
 
 

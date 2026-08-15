@@ -159,6 +159,14 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         "saisie_choose_event_first": "Choisis d'abord une épreuve.",
         "saisie_no_competitor_to_register": "Aucun compétiteur à inscrire.",
         "saisie_no_one_registered": "Personne d'inscrit pour l'instant.",
+        "saisie_cancel_title": "Annuler l'inscription",
+        "saisie_cancel_confirm": (
+            "Annuler l'inscription de {nom} à cette épreuve ?\n\n"
+            "Possible uniquement tant qu'aucun score n'a été saisi. "
+            "Action irréversible."
+        ),
+        "saisie_cancel_confirm_button": "Annuler l'inscription",
+        "saisie_registration_cancelled": "Inscription de {nom} annulée.",
         "saisie_score_final_title": "Score final épreuve",
         "saisie_total_label": "Score total",
         "saisie_x_label": "Nombre de X",
@@ -525,6 +533,14 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         "saisie_choose_event_first": "Choose an event first.",
         "saisie_no_competitor_to_register": "No competitor to register.",
         "saisie_no_one_registered": "No one registered yet.",
+        "saisie_cancel_title": "Cancel registration",
+        "saisie_cancel_confirm": (
+            "Cancel {nom}'s registration for this event?\n\n"
+            "Only possible as long as no score has been entered. This "
+            "action can't be undone."
+        ),
+        "saisie_cancel_confirm_button": "Cancel registration",
+        "saisie_registration_cancelled": "{nom}'s registration cancelled.",
         "saisie_score_final_title": "Event final score",
         "saisie_total_label": "Total score",
         "saisie_x_label": "Number of X's",

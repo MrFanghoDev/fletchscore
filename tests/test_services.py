@@ -531,6 +531,42 @@ class TestInscrire(ServiceTestCase):
         self.assertIn("déjà inscrit", str(contexte.exception))
 
 
+class TestAnnulerInscription(ServiceTestCase):
+    def test_annulation_reussie_sans_score(self):
+        epreuve = self._epreuve(self._competition())
+        inscription = services.inscrire(self.conn, "FR-1", epreuve.id)
+
+        services.annuler_inscription(self.conn, inscription.id)
+
+        self.assertIsNone(db.get_inscription_par_competiteur_epreuve(self.conn, "FR-1", epreuve.id))
+
+    def test_inscription_inconnue_refusee(self):
+        with self.assertRaises(ErreurMetier):
+            services.annuler_inscription(self.conn, "inconnue")
+
+    def test_refuse_si_un_score_existe(self):
+        epreuve = self._epreuve(self._competition())
+        inscription = services.inscrire(self.conn, "FR-1", epreuve.id)
+        services.saisir_score_final(self.conn, inscription.id, 260)
+
+        with self.assertRaises(ErreurMetier):
+            services.annuler_inscription(self.conn, inscription.id)
+        self.assertIsNotNone(
+            db.get_inscription_par_competiteur_epreuve(self.conn, "FR-1", epreuve.id)
+        )
+
+    def test_apres_annulation_le_competiteur_redevient_inscriptible(self):
+        # Vérifie qu'on peut réinscrire le même compétiteur ensuite --
+        # pas de résidu (contrainte UNIQUE id_federal/epreuve_id) laissé
+        # par l'annulation.
+        epreuve = self._epreuve(self._competition())
+        inscription = services.inscrire(self.conn, "FR-1", epreuve.id)
+        services.annuler_inscription(self.conn, inscription.id)
+
+        nouvelle_inscription = services.inscrire(self.conn, "FR-1", epreuve.id)
+        self.assertNotEqual(nouvelle_inscription.id, inscription.id)
+
+
 class TestSaisirScoreFinal(ServiceTestCase):
     def setUp(self):
         super().setUp()

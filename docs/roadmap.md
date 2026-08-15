@@ -1001,6 +1001,21 @@ confirmer par un vrai lancement.
       notée, déclenchés depuis les vrais boutons GUI, état de la base
       confirmé après coup.
 
+- [x] **Annuler une inscription sans score (issue #46, 2026-08-15)**.
+      Dernier ticket du lot suppression -- refusée dès qu'un score
+      existe pour cette inscription. Bouton **❌** sur chaque ligne
+      d'inscrit·e de l'écran Saisie (onglet Saisie manuelle) --
+      **masqué** plutôt que désactivé une fois un score saisi, la ligne
+      l'affichant déjà. 4 tests. Vérifié réellement (Xvfb) : bouton
+      absent sur une inscription notée, annulation réussie sur une
+      inscription sans score, depuis le vrai écran GUI.
+
+  Ce ticket clôt le lot des quatre suppressions manquantes identifiées
+  après la fin du chantier RGPD (#43 compétiteur, #44 épreuve, #45
+  compétition, #46 inscription) -- même principe partout : bloqué dès
+  qu'une donnée notée/publiée serait affectée, cascade sans risque
+  sinon, confirmation obligatoire, action irréversible.
+
 ## Points ouverts transverses
 
 Voir le [cahier des charges](cahier-des-charges/roadmap.rst) pour le

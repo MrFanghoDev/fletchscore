@@ -147,7 +147,9 @@ peu importe lequel : les deux se retrouvent au même endroit ensuite
    Un sélecteur d'épreuve en haut, puis deux colonnes : à gauche un
    menu déroulant des compétiteurs pas encore inscrits, un bouton
    **Inscrire**, et la liste des inscrit·e·s (avec leur score s'il est
-   déjà saisi) ; à droite, une fois un·e inscrit·e sélectionné·e, deux
+   déjà saisi, et un bouton **❌** pour annuler l'inscription tant
+   qu'aucun score n'est encore saisi -- disparaît de la ligne dès qu'un
+   score existe) ; à droite, une fois un·e inscrit·e sélectionné·e, deux
    champs (score total, nombre de X) et un bouton **Enregistrer**. Le
    score actuellement enregistré s'affiche en dessous.
 

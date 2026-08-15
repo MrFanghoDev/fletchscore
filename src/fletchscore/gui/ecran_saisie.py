@@ -216,6 +216,7 @@ class EcranSaisie(ctk.CTkFrame):
             )
             return
 
+        self.liste_inscrits.grid_columnconfigure(0, weight=1)
         for index, inscription in enumerate(inscriptions):
             competiteur = db.get_competiteur(self.conn, inscription.id_federal)
             texte = libelle_competiteur(competiteur) if competiteur else inscription.id_federal
@@ -226,19 +227,106 @@ class EcranSaisie(ctk.CTkFrame):
                 self.inscription_selectionnee is not None
                 and self.inscription_selectionnee.id == inscription.id
             )
+
+            ligne = ctk.CTkFrame(self.liste_inscrits, fg_color="transparent")
+            ligne.grid(row=index, column=0, sticky="ew", pady=3)
+            ligne.grid_columnconfigure(0, weight=1)
+
             bouton = ctk.CTkButton(
-                self.liste_inscrits,
+                ligne,
                 text=texte,
                 anchor="w",
                 fg_color="gray30" if selectionne else None,
                 command=lambda i=inscription: self._selectionner_inscription(i),
             )
-            bouton.grid(row=index, column=0, sticky="ew", pady=3)
+            bouton.grid(row=0, column=0, sticky="ew")
+
+            # Bouton d'annulation masqué (pas juste désactivé) dès qu'un
+            # score existe -- la ligne l'affiche déjà ("-- N pts"), pas
+            # besoin d'un clic-puis-erreur pour faire découvrir un état
+            # déjà visible (contrairement aux suppressions du #43/#44/#45,
+            # où l'état n'était pas visible d'un coup d'œil sur la ligne).
+            if score is None:
+                ctk.CTkButton(
+                    ligne,
+                    text="❌",
+                    width=36,
+                    fg_color="gray40",
+                    command=lambda i=inscription: self._annuler_inscription(i),
+                ).grid(row=0, column=1, padx=(6, 0))
 
     def _selectionner_inscription(self, inscription: Inscription) -> None:
         self.inscription_selectionnee = inscription
         self._rafraichir_inscrits()
         self._rafraichir_score_actuel()
+
+    def _annuler_inscription(self, inscription: Inscription) -> None:
+        """Annulation d'une inscription sans score (issue #46) --
+        confirmation obligatoire, même modèle que les autres
+        suppressions de ce lot (#43/#44/#45)."""
+        self.erreur_inscription.configure(text="", text_color="red")
+        competiteur = db.get_competiteur(self.conn, inscription.id_federal)
+        nom_competiteur = (
+            libelle_competiteur(competiteur) if competiteur else inscription.id_federal
+        )
+        if not self._confirmer_annulation_inscription(nom_competiteur):
+            return
+        try:
+            services.annuler_inscription(self.conn, inscription.id)
+        except ErreurMetier as erreur:
+            self.erreur_inscription.configure(text=str(erreur), text_color="red")
+            return
+
+        if (
+            self.inscription_selectionnee is not None
+            and self.inscription_selectionnee.id == inscription.id
+        ):
+            self.inscription_selectionnee = None
+            self._rafraichir_score_actuel()
+
+        self._rafraichir_inscription_disponibles()
+        self._rafraichir_inscrits()
+        self.erreur_inscription.configure(
+            text=self._t("saisie_registration_cancelled", nom=nom_competiteur),
+            text_color="green",
+        )
+
+    def _confirmer_annulation_inscription(self, nom_competiteur: str) -> bool:
+        """Même modèle que les autres dialogues de confirmation de
+        suppression -- CTkToplevel + transient + grab_set différé +
+        wait_window."""
+        resultat = {"ok": False}
+
+        dialogue = ctk.CTkToplevel(self)
+        dialogue.title(self._t("saisie_cancel_title"))
+        dialogue.geometry("360x200")
+        dialogue.protocol("WM_DELETE_WINDOW", dialogue.destroy)
+
+        message = self._t("saisie_cancel_confirm", nom=nom_competiteur)
+        ctk.CTkLabel(dialogue, text=message, wraplength=320, justify="left").pack(
+            padx=20, pady=(20, 15)
+        )
+
+        def confirmer() -> None:
+            resultat["ok"] = True
+            dialogue.destroy()
+
+        cadre_boutons = ctk.CTkFrame(dialogue, fg_color="transparent")
+        cadre_boutons.pack(pady=10)
+        ctk.CTkButton(
+            cadre_boutons,
+            text=self._t("saisie_cancel_confirm_button"),
+            fg_color="gray40",
+            command=confirmer,
+        ).pack(side="left", padx=5)
+        ctk.CTkButton(cadre_boutons, text=self._t("annuler"), command=dialogue.destroy).pack(
+            side="left", padx=5
+        )
+
+        dialogue.transient(self)
+        dialogue.after(50, dialogue.grab_set)
+        self.wait_window(dialogue)
+        return resultat["ok"]
 
     # -- Colonne de droite : saisie du score final -----------------------
 

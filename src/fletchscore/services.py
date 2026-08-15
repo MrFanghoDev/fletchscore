@@ -670,6 +670,21 @@ def inscrire(conn: sqlite3.Connection, id_federal: str, epreuve_id: str) -> Insc
     return inscription
 
 
+def annuler_inscription(conn: sqlite3.Connection, inscription_id: str) -> None:
+    """Annule une inscription -- issue #46. Refusée dès qu'un score a
+    déjà été saisi : il faut d'abord le traiter (mécanisme existant côté
+    saisie) avant de pouvoir annuler l'inscription elle-même."""
+    inscription = db.get_inscription(conn, inscription_id)
+    if inscription is None:
+        raise ErreurMetier("Inscription introuvable.")
+    if db.get_score_by_inscription(conn, inscription_id) is not None:
+        raise ErreurMetier(
+            "Impossible d'annuler une inscription pour laquelle un score a déjà été saisi."
+        )
+
+    db.supprimer_inscription(conn, inscription_id)
+
+
 def lister_competiteurs_non_inscrits(
     conn: sqlite3.Connection, epreuve_id: str
 ) -> list[Competiteur]:

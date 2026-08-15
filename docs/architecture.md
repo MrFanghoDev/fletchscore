@@ -1351,3 +1351,31 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   (message d'erreur affiché, sélection intacte) sur une compétition
   notée, déclenchés depuis les vrais boutons et le vrai dialogue du
   GUI, état de la base confirmé après coup dans les deux cas.
+
+- **Annuler une inscription sans score** (issue
+  [#46](https://github.com/MrFanghoDev/fletchscore/issues/46),
+  2026-08-15). Dernier ticket du lot suppression -- le plus simple des
+  quatre : `services.annuler_inscription()` refuse dès qu'un score
+  existe pour cette inscription (`db.get_score_by_inscription()`, déjà
+  utilisée ailleurs). `db.get_inscription()` (nouvelle, recherche par
+  id primaire -- seule `get_inscription_par_competiteur_epreuve()`
+  existait) et `db.supprimer_inscription()` (une seule instruction,
+  pas de transaction dédiée nécessaire contrairement aux suppressions
+  en cascade du reste du lot).
+
+  GUI (`gui/ecran_saisie.py`, onglet Saisie manuelle) : bouton **❌**
+  affiché sur chaque ligne d'inscrit·e -- **masqué** (pas juste
+  désactivé) dès qu'un score existe, plutôt que affiché-puis-erreur :
+  la ligne affiche déjà le score (`"-- N pts"`), pas besoin d'un clic
+  pour découvrir un état déjà visible d'un coup d'œil. Différent en ça
+  du choix fait pour #43/#44/#45, où l'état bloquant n'était pas visible
+  directement sur la ligne. Réutilise le pattern de confirmation
+  (`CTkToplevel` + `transient` + `grab_set` différé + `wait_window`) des
+  trois autres tickets du lot. Si l'inscription annulée était celle
+  sélectionnée dans le panneau de saisie, la sélection et le panneau de
+  score sont réinitialisés. 4 tests, dont un qui vérifie qu'après
+  annulation le même compétiteur peut être réinscrit sans heurter la
+  contrainte `UNIQUE (id_federal, epreuve_id)`. Vérifié réellement
+  (Xvfb) : absence du bouton ❌ sur une inscription déjà notée, et
+  annulation réussie (avec message de confirmation affiché) sur une
+  inscription sans score, déclenchées depuis le vrai écran GUI.
