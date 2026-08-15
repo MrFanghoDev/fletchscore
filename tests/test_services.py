@@ -1205,6 +1205,103 @@ class TestAnonymiserCompetiteur(ServiceTestCase):
         self.assertEqual(messages_restants[0].contenu, "Message pour tous")
 
 
+class TestSupprimerCompetiteur(ServiceTestCase):
+    def test_suppression_reussie_si_jamais_inscrit(self):
+        services.supprimer_competiteur(self.conn, "FR-1")
+        self.assertIsNone(db.get_competiteur(self.conn, "FR-1"))
+
+    def test_competiteur_inconnu_refuse(self):
+        with self.assertRaises(ErreurMetier):
+            services.supprimer_competiteur(self.conn, "FR-FANTOME")
+
+    def test_refuse_si_inscrit_meme_sans_score(self):
+        competition = self._competition()
+        epreuve = self._epreuve(competition)
+        services.inscrire(self.conn, "FR-1", epreuve.id)
+
+        with self.assertRaises(ErreurMetier):
+            services.supprimer_competiteur(self.conn, "FR-1")
+        self.assertIsNotNone(db.get_competiteur(self.conn, "FR-1"))
+
+    def test_refuse_si_un_score_existe(self):
+        competition = self._competition()
+        epreuve = self._epreuve(competition)
+        inscription = services.inscrire(self.conn, "FR-1", epreuve.id)
+        services.saisir_score_final(self.conn, inscription.id, 260)
+
+        with self.assertRaises(ErreurMetier):
+            services.supprimer_competiteur(self.conn, "FR-1")
+        self.assertIsNotNone(db.get_competiteur(self.conn, "FR-1"))
+
+    def test_inscription_a_une_autre_epreuve_bloque_aussi(self):
+        # L'inscription bloquante n'a pas besoin d'être dans la même
+        # épreuve -- refusé dès qu'une inscription existe n'importe où.
+        competition = self._competition()
+        epreuve1 = self._epreuve(competition, nom="Épreuve 1")
+        epreuve2 = self._epreuve(competition, nom="Épreuve 2")
+        services.inscrire(self.conn, "FR-1", epreuve2.id)
+
+        with self.assertRaises(ErreurMetier):
+            services.supprimer_competiteur(self.conn, "FR-1")
+        # L'épreuve sans inscription n'est pas affectée par le refus.
+        self.assertIsNotNone(db.get_epreuve(self.conn, epreuve1.id))
+
+    def test_token_supprime(self):
+        competition = self._competition()
+        demande = services.demander_rattachement(self.conn, "FR-1", competition.id)
+        services.valider_rattachement(self.conn, demande.id)
+        self.assertTrue(db.list_tokens_by_competition(self.conn, competition.id))
+
+        services.supprimer_competiteur(self.conn, "FR-1")
+
+        self.assertEqual(db.list_tokens_by_competition(self.conn, competition.id), [])
+
+    def test_procuration_supprimee_comme_mandataire(self):
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-2",
+                nom="Martin",
+                prenom="Luc",
+                code_club="77123",
+                sexe=Sexe.M,
+                date_naissance=date(1990, 1, 1),
+                code_style="BB-R",
+            ),
+        )
+        competition = self._competition()
+        services.demander_procuration(self.conn, "FR-1", "FR-2", competition.id)
+        self.assertTrue(services.lister_procurations_en_attente(self.conn, competition.id))
+
+        services.supprimer_competiteur(self.conn, "FR-1")
+
+        self.assertEqual(services.lister_procurations_en_attente(self.conn, competition.id), [])
+
+    def test_demande_rattachement_supprimee(self):
+        competition = self._competition()
+        services.demander_rattachement(self.conn, "FR-1", competition.id)
+        self.assertTrue(services.lister_demandes_en_attente(self.conn, competition.id))
+
+        services.supprimer_competiteur(self.conn, "FR-1")
+
+        self.assertEqual(services.lister_demandes_en_attente(self.conn, competition.id), [])
+
+    def test_message_cible_supprime_mais_pas_les_diffuses(self):
+        # FR-1 disparaît complètement (contrairement à l'anonymisation,
+        # qui le garde) -- interroger lister_messages_pour(..., "FR-1")
+        # n'aurait plus de sens (compétiteur introuvable), donc on passe
+        # par la vue organisateur (tous destinataires confondus).
+        competition = self._competition()
+        services.envoyer_message(self.conn, competition.id, "Message perso", id_federal="FR-1")
+        services.envoyer_message(self.conn, competition.id, "Message pour tous")
+
+        services.supprimer_competiteur(self.conn, "FR-1")
+
+        messages_restants = services.lister_messages_envoyes(self.conn, competition.id)
+        self.assertEqual(len(messages_restants), 1)
+        self.assertEqual(messages_restants[0].contenu, "Message pour tous")
+
+
 class TestParserDate(ServiceTestCase):
     def test_date_valide(self):
         self.assertEqual(parser_date("2026-03-14", "Date"), date(2026, 3, 14))

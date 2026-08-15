@@ -81,7 +81,8 @@ coup (sans passer par un CSV) : **Ajouter un club** (avec un sélecteur
 pour en charger un existant à modifier) et **Ajouter un compétiteur**.
 
 Enfin, la liste de tous les compétiteurs enregistrés, avec un bouton
-**✏️** (modifier) et un bouton **🗑** sur chacun.
+**✏️** (modifier), un bouton **🗑** (anonymiser) et un bouton **❌**
+(supprimer) sur chacun.
 
 .. admonition:: Répondre à une demande RGPD (droit à l'effacement)
    :class: important
@@ -103,6 +104,16 @@ Enfin, la liste de tous les compétiteurs enregistrés, avec un bouton
    numéro dans son propre système), mais les données les plus
    directement identifiantes -- nom, prénom, date de licence -- ont bien
    disparu de l'application.
+
+.. admonition:: Supprimer un compétiteur jamais engagé
+   :class: note
+
+   Le bouton **❌** supprime réellement la fiche -- à ne pas confondre
+   avec l'anonymisation (🗑, ci-dessus). Refusé dès que le compétiteur a
+   au moins une inscription, même sans score, même dans une autre
+   compétition : pour un compétiteur déjà engagé, seule l'anonymisation
+   est possible, justement pour ne pas fausser un classement. Une
+   confirmation est demandée avant, l'action est irréversible.
 
 Saisie
 =========

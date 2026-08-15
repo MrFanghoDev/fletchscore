@@ -440,6 +440,34 @@ def anonymiser_competiteur(conn: sqlite3.Connection, id_federal: str, nom_anonym
     conn.commit()
 
 
+def supprimer_competiteur(conn: sqlite3.Connection, id_federal: str) -> None:
+    """Supprime purement et simplement la fiche compétiteur -- issue
+    #43, réservée à un compétiteur sans aucune inscription (vérifié en
+    amont par ``services.supprimer_competiteur``, jamais ici -- cette
+    fonction fait juste l'écriture). Contrairement à
+    ``anonymiser_competiteur`` (#37), qui garde la ligne pour ne pas
+    fausser un classement déjà publié, il n'y a ici justement aucun
+    classement concerné : rien à perdre en supprimant réellement.
+
+    Tokens, procurations (mandataire et mandant), demandes de
+    rattachement et messages qui lui étaient adressés supprimés avec --
+    un accès sans fiche compétiteur derrière n'a plus de sens. Même
+    transaction unique (tout ou rien) que ``anonymiser_competiteur``."""
+    try:
+        conn.execute("DELETE FROM tokens WHERE id_federal = ?", (id_federal,))
+        conn.execute(
+            "DELETE FROM procurations WHERE id_federal_mandataire = ? OR id_federal_mandant = ?",
+            (id_federal, id_federal),
+        )
+        conn.execute("DELETE FROM demandes_rattachement WHERE id_federal = ?", (id_federal,))
+        conn.execute("DELETE FROM messages WHERE id_federal = ?", (id_federal,))
+        conn.execute("DELETE FROM competiteurs WHERE id_federal = ?", (id_federal,))
+    except Exception:
+        conn.rollback()
+        raise
+    conn.commit()
+
+
 # -------------------------------------------------------------- Barème --
 
 
@@ -727,6 +755,15 @@ def insert_inscription(conn: sqlite3.Connection, inscription: Inscription) -> No
 
 def list_inscriptions_by_epreuve(conn: sqlite3.Connection, epreuve_id: str) -> list[Inscription]:
     rows = conn.execute("SELECT * FROM inscriptions WHERE epreuve_id = ?", (epreuve_id,)).fetchall()
+    return [Inscription(r["id"], r["id_federal"], r["epreuve_id"]) for r in rows]
+
+
+def list_inscriptions_by_competiteur(
+    conn: sqlite3.Connection, id_federal: str
+) -> list[Inscription]:
+    """Toutes épreuves confondues -- utilisé pour savoir si un
+    compétiteur a déjà concouru (issue #43 : condition de suppression)."""
+    rows = conn.execute("SELECT * FROM inscriptions WHERE id_federal = ?", (id_federal,)).fetchall()
     return [Inscription(r["id"], r["id_federal"], r["epreuve_id"]) for r in rows]
 
 

@@ -238,6 +238,25 @@ def anonymiser_competiteur(conn: sqlite3.Connection, id_federal: str) -> None:
     db.anonymiser_competiteur(conn, id_federal, f"Compétiteur/{id_federal}")
 
 
+def supprimer_competiteur(conn: sqlite3.Connection, id_federal: str) -> None:
+    """Supprime purement et simplement une fiche compétiteur -- réservé
+    à un compétiteur qui n'a jamais concouru (issue #43), contrairement
+    à ``anonymiser_competiteur`` (#37) qui s'applique à un compétiteur
+    déjà engagé. Refusé dès la moindre inscription, dans n'importe
+    quelle épreuve : le seul chemin pour quelqu'un déjà classé reste
+    l'anonymisation, pour ne pas revenir sur la décision prise à ce
+    sujet (risque de fausser un classement déjà publié)."""
+    if db.get_competiteur(conn, id_federal) is None:
+        raise ErreurMetier(f"Compétiteur introuvable : {id_federal}")
+    if db.list_inscriptions_by_competiteur(conn, id_federal):
+        raise ErreurMetier(
+            "Impossible de supprimer un compétiteur déjà inscrit à une épreuve -- "
+            "utilise l'anonymisation (🗑) à la place."
+        )
+
+    db.supprimer_competiteur(conn, id_federal)
+
+
 # ------------------------------------------------------- Compétition --
 
 

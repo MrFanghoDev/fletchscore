@@ -122,6 +122,15 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         ),
         "competiteurs_anonymize_confirm_button": "Anonymiser",
         "competiteurs_anonymized": "Compétiteur {id_federal} anonymisé.",
+        "competiteurs_delete_title": "Supprimer le compétiteur",
+        "competiteurs_delete_confirm": (
+            "Supprimer définitivement la fiche de {prenom} {nom} ?\n\n"
+            "Contrairement à l'anonymisation, cette action efface "
+            "réellement la fiche -- réservé à un compétiteur qui n'a "
+            "jamais été inscrit à une épreuve. Action irréversible."
+        ),
+        "competiteurs_delete_confirm_button": "Supprimer",
+        "competiteurs_deleted": "Compétiteur {id_federal} supprimé.",
         "competiteurs_none_yet": "Aucun compétiteur importé pour l'instant.",
         # -- Écran Saisie ----------------------------------------------------
         "saisie_tab_manuelle": "Saisie manuelle",
@@ -461,6 +470,15 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         ),
         "competiteurs_anonymize_confirm_button": "Anonymize",
         "competiteurs_anonymized": "Competitor {id_federal} anonymized.",
+        "competiteurs_delete_title": "Delete competitor",
+        "competiteurs_delete_confirm": (
+            "Permanently delete {prenom} {nom}'s record?\n\n"
+            "Unlike anonymization, this actually erases the record -- "
+            "only possible for a competitor never registered for an "
+            "event. This action can't be undone."
+        ),
+        "competiteurs_delete_confirm_button": "Delete",
+        "competiteurs_deleted": "Competitor {id_federal} deleted.",
         "competiteurs_none_yet": "No competitor imported yet.",
         # -- Écran Saisie ----------------------------------------------------
         "saisie_tab_manuelle": "Manual entry",

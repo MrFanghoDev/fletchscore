@@ -958,6 +958,20 @@ confirmer par un vrai lancement.
       lus sur les widgets réels après rendu, pas seulement relus dans
       le code.
 
+- [x] **Supprimer un compétiteur jamais engagé (issue #43,
+      2026-08-15)**. Distinct de l'anonymisation RGPD (#37) : réservé à
+      un compétiteur sans aucune inscription nulle part -- refusé
+      (erreur claire) dès qu'une inscription existe, même sans score,
+      même dans une autre épreuve que celle testée. Un compétiteur déjà
+      engagé reste réservé à l'anonymisation (#37), pas de retour en
+      arrière sur cette décision. Bouton **❌** distinct du 🗑 existant
+      sur chaque ligne de l'écran Compétiteurs (même modèle de
+      confirmation). Supprime aussi tokens/procurations/demandes de
+      rattachement/messages ciblés, en une seule transaction. 9 tests.
+      Vérifié réellement (Xvfb) : suppression réussie et refus (avec
+      message d'erreur) déclenchés depuis les vrais boutons GUI, état de
+      la base confirmé après coup.
+
 ## Points ouverts transverses
 
 Voir le [cahier des charges](cahier-des-charges/roadmap.rst) pour le

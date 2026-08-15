@@ -1237,3 +1237,54 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   `unittest.mock.patch` sur `CRYPTOGRAPHY_DISPONIBLE` -- état réel de la
   case (`cget("state")`/`get()`) lu sur le widget vivant après un délai
   de rendu, pas seulement relu dans le code.
+
+- **Bouton "Modifier" -> icône ✏️ seule** (issue
+  [#47](https://github.com/MrFanghoDev/fletchscore/issues/47),
+  2026-08-15). Clé i18n `modifier` (une seule valeur FR/EN, c'est une
+  icône, pas un mot) remplacée par `"✏️"` sur les 4 lignes de liste
+  concernées (compétiteurs, sélecteur de club, compétitions, épreuves),
+  largeur de bouton ramenée de 80 à 36px -- même logique que 💾/📦/🗑
+  déjà en icône seule sur ces mêmes lignes (#7/#37/#42), nécessaire une
+  fois les boutons de suppression du #43 ajoutés dessus. La clé
+  distincte `modifier_avec_nom` (titre du formulaire en mode édition)
+  n'est pas concernée, ce n'est pas un bouton.
+
+- **Supprimer un compétiteur qui n'a jamais concouru** (issue
+  [#43](https://github.com/MrFanghoDev/fletchscore/issues/43),
+  2026-08-15). Distinct de `anonymiser_competiteur` (#37) : là où
+  l'anonymisation garde la ligne `Competiteur` pour ne pas fausser un
+  classement déjà publié, `services.supprimer_competiteur()` efface
+  réellement la ligne -- réservé aux compétiteurs qui n'ont *jamais* été
+  inscrits nulle part, donc sans aucun classement à protéger. Refusé
+  (`ErreurMetier`) dès la moindre inscription, même sans score, dans
+  n'importe quelle épreuve -- `db.list_inscriptions_by_competiteur()`
+  (nouvelle, toutes épreuves confondues) sert cette vérification. Le
+  seul chemin pour un compétiteur déjà engagé reste l'anonymisation --
+  décision volontairement non révisée ici, pas de retour en arrière sur
+  ce qui avait été tranché pour le #37.
+
+  `db.supprimer_competiteur()` supprime aussi tokens, procurations
+  (mandataire et mandant), demandes de rattachement et messages ciblés
+  -- même liste que `db.anonymiser_competiteur()`, un accès sans fiche
+  compétiteur derrière n'ayant plus de sens. Transaction unique (même
+  pattern `try`/`except`/`rollback` + un seul `commit()` final).
+
+  GUI (`gui/ecran_competiteurs.py`) : bouton **❌** ajouté à côté du 🗑
+  existant (anonymisation) sur chaque ligne -- symbole volontairement
+  différent pour ne pas laisser croire aux deux actions qu'elles font la
+  même chose, vu que les conséquences divergent complètement
+  (suppression réelle et irréversible vs anonymisation RGPD qui garde le
+  score). Même modèle de confirmation que `_confirmer_anonymisation`
+  (`CTkToplevel` + `transient` + `grab_set` différé + `wait_window`). 9
+  tests (`TestSupprimerCompetiteur`), dont un qui vérifie qu'une
+  inscription dans une épreuve *différente* de celle testée bloque
+  quand même la suppression (le refus n'est pas scopé à une épreuve).
+  Vérifié réellement (Xvfb) : les deux scénarios (compétiteur jamais
+  inscrit -> suppression réussie ; compétiteur déjà inscrit -> refus,
+  message d'erreur affiché) déclenchés depuis les vrais boutons ❌ et le
+  vrai dialogue de confirmation du GUI, état de la base confirmé après
+  coup dans les deux cas. Piège Tk rencontré en écrivant le scénario de
+  test : le bouton "Supprimer" du dialogue doit être programmé (via
+  `after()`) *avant* d'invoquer le bouton ❌ qui ouvre ce dialogue --
+  `wait_window()` bloque tout code placé après l'appel qui l'a
+  déclenché, jusqu'à ce que le dialogue soit détruit.
