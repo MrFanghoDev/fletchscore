@@ -1288,3 +1288,35 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   `after()`) *avant* d'invoquer le bouton ❌ qui ouvre ce dialogue --
   `wait_window()` bloque tout code placé après l'appel qui l'a
   déclenché, jusqu'à ce que le dialogue soit détruit.
+
+- **Supprimer une épreuve vide** (issue
+  [#44](https://github.com/MrFanghoDev/fletchscore/issues/44),
+  2026-08-15). `services.supprimer_epreuve()` refuse dès qu'un score
+  existe pour l'épreuve, même un seul (`db.epreuve_a_des_scores()`,
+  déjà utilisée pour bloquer un changement de barème après saisie --
+  réutilisée telle quelle plutôt que dupliquée) -- pas de cascade sur
+  les scores. Contrairement au #43 (compétiteur), une inscription
+  *sans* score est en revanche supprimée avec l'épreuve plutôt que de
+  bloquer aussi dessus : rien d'irréversible n'est en jeu (portée
+  explicitement tranchée avec l'utilisateur avant de coder, le ticket
+  laissait la question ouverte). Un seul score sur une épreuve à
+  plusieurs inscriptions bloque toute la suppression -- jamais de
+  suppression partielle.
+
+  Même règle que `modifier_epreuve()` sur une compétition clôturée :
+  pas plus supprimable que modifiable, pour rester cohérent avec une
+  règle métier déjà en place plutôt que d'introduire une incohérence
+  (modification bloquée, suppression permise) sur le même état.
+  `db.supprimer_epreuve()` supprime l'épreuve et ses inscriptions en
+  une seule transaction (même pattern `try`/`except`/`rollback` que les
+  autres suppressions de ce lot).
+
+  GUI (`gui/ecran_competitions.py`, colonne Épreuves) : bouton **❌**
+  ajouté à côté de ✏️/💾, même modèle de confirmation que le #43. 6
+  tests (`TestSupprimerEpreuve`), dont un qui vérifie explicitement la
+  suppression en cascade des inscriptions sans score, et un qui vérifie
+  qu'une seule inscription notée parmi plusieurs bloque tout. Vérifié
+  réellement (Xvfb) : suppression réussie sur une épreuve vide et refus
+  (message d'erreur affiché) sur une épreuve notée, déclenchés depuis
+  les vrais boutons et le vrai dialogue de confirmation du GUI, état de
+  la base confirmé après coup dans les deux cas.

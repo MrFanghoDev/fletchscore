@@ -570,6 +570,66 @@ class EcranCompetitions(ctk.CTkFrame):
                 width=36,
                 command=lambda e=epreuve: self._enregistrer_comme_modele(e),
             ).grid(row=0, column=2, padx=(6, 0))
+            ctk.CTkButton(
+                ligne,
+                text="❌",
+                width=36,
+                fg_color="gray40",
+                command=lambda e=epreuve: self._supprimer_epreuve(e),
+            ).grid(row=0, column=3, padx=(6, 0))
+
+    def _supprimer_epreuve(self, epreuve: Epreuve) -> None:
+        """Suppression d'une épreuve vide (issue #44) -- refusée par
+        services.supprimer_epreuve dès qu'un score existe. Confirmation
+        obligatoire, même modèle que la suppression d'un compétiteur
+        (voir ecran_competiteurs.py)."""
+        self._afficher_erreur_epreuve("")
+        if not self._confirmer_suppression_epreuve(epreuve):
+            return
+        try:
+            services.supprimer_epreuve(self.conn, epreuve.id)
+        except ErreurMetier as erreur:
+            self._afficher_erreur_epreuve(str(erreur))
+            return
+
+        self._rafraichir_epreuves()
+        self._afficher_info_epreuve(self._t("epreuves_deleted", nom=epreuve.nom))
+
+    def _confirmer_suppression_epreuve(self, epreuve: Epreuve) -> bool:
+        """Même modèle que EcranCompetiteurs._confirmer_suppression_competiteur
+        -- CTkToplevel + transient + grab_set différé + wait_window."""
+        resultat = {"ok": False}
+
+        dialogue = ctk.CTkToplevel(self)
+        dialogue.title(self._t("epreuves_delete_title"))
+        dialogue.geometry("360x200")
+        dialogue.protocol("WM_DELETE_WINDOW", dialogue.destroy)
+
+        message = self._t("epreuves_delete_confirm", nom=epreuve.nom)
+        ctk.CTkLabel(dialogue, text=message, wraplength=320, justify="left").pack(
+            padx=20, pady=(20, 15)
+        )
+
+        def confirmer() -> None:
+            resultat["ok"] = True
+            dialogue.destroy()
+
+        cadre_boutons = ctk.CTkFrame(dialogue, fg_color="transparent")
+        cadre_boutons.pack(pady=10)
+        ctk.CTkButton(
+            cadre_boutons,
+            text=self._t("epreuves_delete_confirm_button"),
+            fg_color="gray40",
+            command=confirmer,
+        ).pack(side="left", padx=5)
+        ctk.CTkButton(cadre_boutons, text=self._t("annuler"), command=dialogue.destroy).pack(
+            side="left", padx=5
+        )
+
+        dialogue.transient(self)
+        dialogue.after(50, dialogue.grab_set)
+        self.wait_window(dialogue)
+        return resultat["ok"]
 
     def _passer_en_edition_epreuve(self, epreuve: Epreuve) -> None:
         self.epreuve_en_edition = epreuve.id

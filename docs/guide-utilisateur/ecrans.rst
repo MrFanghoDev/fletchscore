@@ -55,10 +55,10 @@ Deux colonnes.
 
 **Colonne de droite -- Épreuves**
    Une fois une compétition sélectionnée à gauche : liste de ses
-   épreuves (boutons **✏️** -- modifier -- et **💾** -- enregistrer comme
-   modèle -- sur chacune) et un formulaire de création, avec un menu
-   **Modèle**
-   qui préremplit nom et barème si tu en as déjà enregistré un.
+   épreuves (boutons **✏️** -- modifier --, **💾** -- enregistrer comme
+   modèle -- et **❌** -- supprimer -- sur chacune) et un formulaire de
+   création, avec un menu **Modèle** qui préremplit nom et barème si tu
+   en as déjà enregistré un.
 
 .. admonition:: Modifier ne change jamais l'identifiant
    :class: note
@@ -66,6 +66,16 @@ Deux colonnes.
    Le code d'une compétition ou d'une épreuve n'est jamais modifiable
    par ce biais -- seuls les autres champs le sont. Changer le barème
    d'une épreuve est aussi bloqué une fois qu'un score y a été saisi.
+
+.. admonition:: Supprimer une épreuve vide
+   :class: note
+
+   Le bouton **❌** supprime l'épreuve. Refusé dès qu'un score existe,
+   même un seul -- une épreuve déjà notée ne se supprime pas. Les
+   inscriptions sans score, elles, sont supprimées avec (rien
+   d'irréversible en jeu). Refusé aussi si la compétition est clôturée,
+   même règle que pour la modification. Confirmation demandée avant,
+   action irréversible.
 
 Compétiteurs
 ===============

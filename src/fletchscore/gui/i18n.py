@@ -83,6 +83,14 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         "epreuves_none_yet": "Aucune épreuve pour l'instant.",
         "epreuves_updated": "Épreuve mise à jour.",
         "epreuves_template_saved": "Modèle « {nom} » enregistré.",
+        "epreuves_delete_title": "Supprimer l'épreuve",
+        "epreuves_delete_confirm": (
+            "Supprimer définitivement l'épreuve « {nom} » ?\n\n"
+            "Les inscriptions sans score associées seront supprimées avec "
+            "-- refusé s'il existe le moindre score. Action irréversible."
+        ),
+        "epreuves_delete_confirm_button": "Supprimer",
+        "epreuves_deleted": "Épreuve « {nom} » supprimée.",
         "epreuves_select_competition_first": "Sélectionne d'abord une compétition.",
         "epreuves_no_bareme_available": "Aucun barème disponible.",
         # -- Écran Compétiteurs ---------------------------------------------
@@ -432,6 +440,14 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         "epreuves_none_yet": "No event yet.",
         "epreuves_updated": "Event updated.",
         "epreuves_template_saved": "Template “{nom}” saved.",
+        "epreuves_delete_title": "Delete event",
+        "epreuves_delete_confirm": (
+            "Permanently delete the event “{nom}”?\n\n"
+            "Registrations without a score will be deleted with it -- "
+            "refused if any score exists. This action can't be undone."
+        ),
+        "epreuves_delete_confirm_button": "Delete",
+        "epreuves_deleted": "Event “{nom}” deleted.",
         "epreuves_select_competition_first": "Select a competition first.",
         "epreuves_no_bareme_available": "No scoring scale available.",
         # -- Écran Compétiteurs ---------------------------------------------

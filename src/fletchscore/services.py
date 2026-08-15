@@ -417,6 +417,28 @@ def modifier_epreuve(
     return modifiee
 
 
+def supprimer_epreuve(conn: sqlite3.Connection, epreuve_id: str) -> None:
+    """Supprime une épreuve vide -- issue #44. Contrairement à la
+    compétition (#45), les inscriptions sans score sont supprimées avec
+    (rien d'irréversible à perdre) plutôt que de bloquer aussi sur
+    elles -- seule la présence d'un score, même un seul, refuse toute
+    la suppression. Même règle que ``modifier_epreuve`` sur une
+    compétition clôturée : pas plus supprimable que modifiable."""
+    epreuve = db.get_epreuve(conn, epreuve_id)
+    if epreuve is None:
+        raise ErreurMetier("Épreuve introuvable.")
+
+    competition = db.get_competition(conn, epreuve.competition_id)
+    if competition is not None and competition.statut == StatutCompetition.CLOTUREE:
+        raise ErreurMetier(
+            "Cette compétition est clôturée -- impossible d'en supprimer une épreuve."
+        )
+    if db.epreuve_a_des_scores(conn, epreuve_id):
+        raise ErreurMetier("Impossible de supprimer une épreuve où au moins un score a été saisi.")
+
+    db.supprimer_epreuve(conn, epreuve_id)
+
+
 def lister_epreuves_toutes(conn: sqlite3.Connection) -> list[tuple[Competition, Epreuve]]:
     """Toutes les épreuves, toutes compétitions confondues, triées par
     date décroissante -- pour un sélecteur GUI qui n'a pas besoin de

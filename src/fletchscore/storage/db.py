@@ -654,6 +654,22 @@ def epreuve_a_des_scores(conn: sqlite3.Connection, epreuve_id: str) -> bool:
     return row is not None
 
 
+def supprimer_epreuve(conn: sqlite3.Connection, epreuve_id: str) -> None:
+    """Supprime une épreuve et ses inscriptions -- issue #44, réservée à
+    une épreuve sans aucun score (vérifié en amont par
+    ``services.supprimer_epreuve`` via ``epreuve_a_des_scores``, jamais
+    ici). Cascade sur les inscriptions : si on arrive ici, aucune n'a de
+    score, rien d'irréversible à perdre en les supprimant avec.
+    Transaction unique, même pattern que ``supprimer_competiteur``."""
+    try:
+        conn.execute("DELETE FROM inscriptions WHERE epreuve_id = ?", (epreuve_id,))
+        conn.execute("DELETE FROM epreuves WHERE id = ?", (epreuve_id,))
+    except Exception:
+        conn.rollback()
+        raise
+    conn.commit()
+
+
 # ------------------------------------------------------ EpreuveTemplate --
 
 

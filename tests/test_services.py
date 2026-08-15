@@ -341,6 +341,92 @@ class TestModifierEpreuve(ServiceTestCase):
             )
 
 
+class TestSupprimerEpreuve(ServiceTestCase):
+    def test_suppression_reussie_si_vide(self):
+        epreuve = self._epreuve(self._competition())
+        services.supprimer_epreuve(self.conn, epreuve.id)
+        self.assertIsNone(db.get_epreuve(self.conn, epreuve.id))
+
+    def test_epreuve_inconnue_refusee(self):
+        with self.assertRaises(ErreurMetier):
+            services.supprimer_epreuve(self.conn, "inconnue")
+
+    def test_refuse_si_un_score_existe(self):
+        epreuve = self._epreuve(self._competition())
+        inscription = services.inscrire(self.conn, "FR-1", epreuve.id)
+        services.saisir_score_final(self.conn, inscription.id, 260)
+
+        with self.assertRaises(ErreurMetier):
+            services.supprimer_epreuve(self.conn, epreuve.id)
+        self.assertIsNotNone(db.get_epreuve(self.conn, epreuve.id))
+
+    def test_inscription_sans_score_supprimee_en_cascade(self):
+        # Portée décidée avec l'utilisateur (2026-08-15) : une inscription
+        # sans score n'a rien d'irréversible à perdre -- supprimable avec
+        # l'épreuve plutôt que de bloquer aussi dessus.
+        epreuve = self._epreuve(self._competition())
+        inscription = services.inscrire(self.conn, "FR-1", epreuve.id)
+
+        services.supprimer_epreuve(self.conn, epreuve.id)
+
+        self.assertIsNone(db.get_epreuve(self.conn, epreuve.id))
+        self.assertIsNone(db.get_inscription_par_competiteur_epreuve(self.conn, "FR-1", epreuve.id))
+        self.assertIsNone(db.get_score_by_inscription(self.conn, inscription.id))
+
+    def test_une_seule_inscription_avec_score_bloque_toute_la_suppression(self):
+        # Même si d'autres inscriptions de la même épreuve n'ont pas de
+        # score, un seul suffit à tout refuser -- pas de suppression
+        # partielle.
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-2",
+                nom="Martin",
+                prenom="Luc",
+                code_club="77123",
+                sexe=Sexe.M,
+                date_naissance=date(1990, 1, 1),
+                code_style="BB-R",
+            ),
+        )
+        epreuve = self._epreuve(self._competition())
+        inscription1 = services.inscrire(self.conn, "FR-1", epreuve.id)
+        services.inscrire(self.conn, "FR-2", epreuve.id)
+        services.saisir_score_final(self.conn, inscription1.id, 260)
+
+        with self.assertRaises(ErreurMetier):
+            services.supprimer_epreuve(self.conn, epreuve.id)
+        self.assertIsNotNone(db.get_epreuve(self.conn, epreuve.id))
+        self.assertIsNotNone(
+            db.get_inscription_par_competiteur_epreuve(self.conn, "FR-2", epreuve.id)
+        )
+
+    def test_competition_cloturee_refuse_la_suppression(self):
+        competition = self._competition()
+        epreuve = self._epreuve(competition)
+        competition_cloturee = services.modifier_competition(
+            self.conn,
+            competition.id,
+            nom=competition.nom,
+            date_debut=competition.date_debut,
+            date_fin=competition.date_fin,
+        )
+        db.update_competition(
+            self.conn,
+            Competition(
+                id=competition.id,
+                nom=competition_cloturee.nom,
+                date_debut=competition_cloturee.date_debut,
+                date_fin=competition_cloturee.date_fin,
+                lieu=competition_cloturee.lieu,
+                statut=StatutCompetition.CLOTUREE,
+                categories_veteran_actives=competition_cloturee.categories_veteran_actives,
+            ),
+        )
+        with self.assertRaises(ErreurMetier):
+            services.supprimer_epreuve(self.conn, epreuve.id)
+
+
 class TestInscrire(ServiceTestCase):
     def test_inscription_valide(self):
         epreuve = self._epreuve(self._competition())

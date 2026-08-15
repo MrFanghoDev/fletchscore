@@ -972,6 +972,19 @@ confirmer par un vrai lancement.
       message d'erreur) déclenchés depuis les vrais boutons GUI, état de
       la base confirmé après coup.
 
+- [x] **Supprimer une épreuve vide (issue #44, 2026-08-15)**. Refusée
+      dès qu'un score existe, même un seul -- pas de cascade sur les
+      scores. Contrairement au #43, une inscription *sans* score est
+      supprimée avec l'épreuve plutôt que de bloquer aussi dessus (rien
+      d'irréversible en jeu, portée tranchée avec l'utilisateur). Un
+      seul score parmi plusieurs inscriptions bloque toute la
+      suppression -- jamais de suppression partielle. Refusée aussi si
+      la compétition est clôturée, même règle que la modification.
+      Bouton **❌** sur chaque épreuve de l'écran Compétitions. 6 tests.
+      Vérifié réellement (Xvfb) : suppression réussie sur une épreuve
+      vide et refus sur une épreuve notée, déclenchés depuis les vrais
+      boutons GUI, état de la base confirmé après coup.
+
 ## Points ouverts transverses
 
 Voir le [cahier des charges](cahier-des-charges/roadmap.rst) pour le
