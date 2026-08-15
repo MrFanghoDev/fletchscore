@@ -124,3 +124,59 @@ Couches de sécurité
       - Journalisation de toute proposition/validation/rejet avec
         horodatage et origine (token, IP locale), dans le système de
         logs persistants existant.
+
+Conservation des données -- politique RGPD (issue #40)
+===========================================================
+
+Décision prise avec l'utilisateur le 2026-08-15, en réponse à l'article
+5.1.e du RGPD ("limitation de la conservation" -- les données ne doivent
+pas être conservées plus longtemps que nécessaire au regard de la
+finalité du traitement).
+
+.. admonition:: Aucun chiffre imposé par la réglementation pour un club sportif
+   :class: note
+
+   Ni le RGPD ni la doctrine CNIL spécifique au sport amateur ne fixent
+   de durée précise -- la page CNIL dédiée aux structures sportives
+   renvoie explicitement à une méthodologie (base active -> archivage
+   intermédiaire -> suppression/anonymisation) et demande à chaque
+   structure de définir et justifier sa propre durée. Le seul chiffre
+   que la CNIL documente réellement est celui de sa doctrine sur les
+   fichiers **clients/prospects commerciaux** : 3 ans depuis le dernier
+   contact -- pas un texte spécifique aux associations ou aux
+   fédérations sportives.
+
+   Sources consultées :
+
+   - `La durée de conservation des données personnelles des sportifs,
+     dirigeants et autres personnes dans les structures sportives
+     (CNIL) <https://www.cnil.fr/fr/la-duree-de-conservation-des-donnees-personnelles-des-sportifs-dirigeants-et-autres-personnes-dans>`_
+   - `La collecte des informations personnelles dans le secteur du
+     sport amateur, hors contrat (CNIL)
+     <https://www.cnil.fr/fr/sport-amateur-hors-contrat/tester-votre-conformite-au-rgpd/collecte>`_
+   - `Guide de sensibilisation au RGPD pour les associations (CNIL)
+     <https://www.cnil.fr/sites/cnil/files/atoms/files/cnil-guide_association.pdf>`_
+
+Décision retenue pour FletchScore
+--------------------------------------
+
+- **Délai : 3 ans depuis la dernière inscription du compétiteur**,
+  toutes compétitions confondues -- repris par analogie avec le seul
+  chiffre CNIL réellement documenté (doctrine commerciale ci-dessus),
+  faute de règle spécifique au sport. Choix compatible avec le besoin
+  exprimé par l'utilisateur : garder au minimum les compétiteurs de la
+  saison précédente consultables, avec un délai qui se réinitialise à
+  chaque nouvelle inscription plutôt qu'une date figée par fiche.
+- **Mécanisme : anonymisation, pas suppression physique** -- réutilise
+  ``services.anonymiser_competiteur()`` (issue #37) : garde
+  scores/classements intacts (ne fausse pas un historique déjà publié),
+  efface nom/prénom/licence. Un compétiteur qui n'a *jamais* concouru
+  n'entre pas dans ce mécanisme -- il relève de la suppression pure
+  (``services.supprimer_competiteur()``, issue #43), possible à tout
+  moment sans attendre un délai d'inactivité.
+- **Déclenchement manuel, jamais automatique** -- l'organisateur ouvre
+  la liste des compétiteurs inactifs depuis plus de 3 ans (bouton
+  « 🕒 Inactifs (RGPD) » sur l'écran Compétiteurs) et anonymise
+  lui-même, un par un, ceux qu'il choisit. Aucune purge en tâche de
+  fond au démarrage de l'application : une donnée personnelle qui
+  disparaît reste une action délibérée, pas un nettoyage silencieux.

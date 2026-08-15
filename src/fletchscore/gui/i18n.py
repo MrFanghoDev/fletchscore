@@ -149,6 +149,20 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         ),
         "competiteurs_delete_confirm_button": "Supprimer",
         "competiteurs_deleted": "Compétiteur {id_federal} supprimé.",
+        "competiteurs_inactive_button": "🕒 Inactifs (RGPD)",
+        "competiteurs_inactive_title": "Compétiteurs inactifs -- purge RGPD",
+        "competiteurs_inactive_intro": (
+            "Compétiteurs dont la dernière inscription remonte à plus de "
+            "{annees} ans -- anonymise-les un par un si tu veux limiter la "
+            "conservation de leurs données (voir la politique de "
+            "conservation dans la documentation). Rien n'est automatique : "
+            "chaque anonymisation reste une action délibérée, confirmée "
+            "individuellement."
+        ),
+        "competiteurs_inactive_none": "Aucun compétiteur inactif depuis plus longtemps que ce délai.",
+        "competiteurs_inactive_line": (
+            "{prenom} {nom} ({id_federal}) -- dernière activité : {date}"
+        ),
         "competiteurs_none_yet": "Aucun compétiteur importé pour l'instant.",
         # -- Écran Saisie ----------------------------------------------------
         "saisie_tab_manuelle": "Saisie manuelle",
@@ -523,6 +537,17 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         ),
         "competiteurs_delete_confirm_button": "Delete",
         "competiteurs_deleted": "Competitor {id_federal} deleted.",
+        "competiteurs_inactive_button": "🕒 Inactive (GDPR)",
+        "competiteurs_inactive_title": "Inactive competitors -- GDPR purge",
+        "competiteurs_inactive_intro": (
+            "Competitors whose last registration is more than {annees} "
+            "years old -- anonymize them one by one if you want to limit "
+            "how long their data is kept (see the retention policy in the "
+            "documentation). Nothing is automatic: each anonymization "
+            "stays a deliberate action, confirmed individually."
+        ),
+        "competiteurs_inactive_none": "No competitor inactive for longer than this period.",
+        "competiteurs_inactive_line": ("{prenom} {nom} ({id_federal}) -- last activity: {date}"),
         "competiteurs_none_yet": "No competitor imported yet.",
         # -- Écran Saisie ----------------------------------------------------
         "saisie_tab_manuelle": "Manual entry",

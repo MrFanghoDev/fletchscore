@@ -1509,6 +1509,118 @@ class TestSupprimerCompetiteur(ServiceTestCase):
         self.assertEqual(messages_restants[0].contenu, "Message pour tous")
 
 
+class TestListerCompetiteursInactifs(ServiceTestCase):
+    def test_jamais_inscrit_absent_de_la_liste(self):
+        # Un compétiteur jamais inscrit relève de supprimer_competiteur
+        # (#43), pas de la purge par inactivité -- pas de date de
+        # dernière activité à comparer.
+        inactifs = services.lister_competiteurs_inactifs(self.conn, date(2029, 1, 1))
+        self.assertEqual(inactifs, [])
+
+    def test_inscription_recente_absente_de_la_liste(self):
+        epreuve = self._epreuve(self._competition(date_debut=date(2026, 3, 1)))
+        services.inscrire(self.conn, "FR-1", epreuve.id)
+
+        # Un an plus tard seulement -- largement sous le délai de 3 ans.
+        inactifs = services.lister_competiteurs_inactifs(self.conn, date(2027, 3, 1))
+        self.assertEqual(inactifs, [])
+
+    def test_inscription_ancienne_presente_dans_la_liste(self):
+        epreuve = self._epreuve(
+            self._competition(date_debut=date(2026, 3, 1), date_fin=date(2026, 3, 2)),
+            date_epreuve=date(2026, 3, 1),
+        )
+        services.inscrire(self.conn, "FR-1", epreuve.id)
+
+        # Plus de 3 ans plus tard.
+        inactifs = services.lister_competiteurs_inactifs(self.conn, date(2030, 1, 1))
+        self.assertEqual(len(inactifs), 1)
+        competiteur, derniere_activite = inactifs[0]
+        self.assertEqual(competiteur.id_federal, "FR-1")
+        self.assertEqual(derniere_activite, date(2026, 3, 1))
+
+    def test_exactement_a_la_limite_pas_encore_inclus(self):
+        # Le seuil est une inégalité stricte (< seuil) -- pile 3 ans
+        # après la dernière activité ne doit pas encore être éligible.
+        epreuve = self._epreuve(
+            self._competition(date_debut=date(2026, 3, 1), date_fin=date(2026, 3, 2)),
+            date_epreuve=date(2026, 3, 1),
+        )
+        services.inscrire(self.conn, "FR-1", epreuve.id)
+
+        inactifs = services.lister_competiteurs_inactifs(self.conn, date(2029, 3, 1))
+        self.assertEqual(inactifs, [])
+
+    def test_activite_la_plus_recente_retenue_pas_la_premiere(self):
+        # Une inscription récente sur une deuxième épreuve doit
+        # "rafraîchir" l'activité -- pas rester bloqué sur la première
+        # inscription, plus ancienne.
+        competition = self._competition(date_debut=date(2020, 1, 1), date_fin=date(2020, 1, 2))
+        epreuve_ancienne = self._epreuve(competition, nom="Ancienne", date_epreuve=date(2020, 1, 1))
+        services.inscrire(self.conn, "FR-1", epreuve_ancienne.id)
+
+        competition_recente = self._competition(
+            nom="Récente", date_debut=date(2026, 3, 1), date_fin=date(2026, 3, 2)
+        )
+        epreuve_recente = self._epreuve(
+            competition_recente, nom="Récente", date_epreuve=date(2026, 3, 1)
+        )
+        services.inscrire(self.conn, "FR-1", epreuve_recente.id)
+
+        inactifs = services.lister_competiteurs_inactifs(self.conn, date(2027, 3, 1))
+        self.assertEqual(inactifs, [])
+
+    def test_delai_personnalise(self):
+        epreuve = self._epreuve(self._competition(date_debut=date(2026, 3, 1)))
+        services.inscrire(self.conn, "FR-1", epreuve.id)
+
+        # Sous 1 an de délai, 2 ans après l'activité doit déjà être éligible.
+        inactifs = services.lister_competiteurs_inactifs(
+            self.conn, date(2028, 3, 2), delai_annees=1
+        )
+        self.assertEqual(len(inactifs), 1)
+
+    def test_deja_anonymise_absent_de_la_liste(self):
+        # Un compétiteur déjà anonymisé (#37) n'a plus de nom/prénom à
+        # purger -- l'objectif est déjà atteint, pas la peine de le
+        # laisser encombrer la liste.
+        epreuve = self._epreuve(
+            self._competition(date_debut=date(2026, 3, 1), date_fin=date(2026, 3, 2)),
+            date_epreuve=date(2026, 3, 1),
+        )
+        services.inscrire(self.conn, "FR-1", epreuve.id)
+        services.anonymiser_competiteur(self.conn, "FR-1")
+
+        inactifs = services.lister_competiteurs_inactifs(self.conn, date(2030, 1, 1))
+        self.assertEqual(inactifs, [])
+
+    def test_triee_du_plus_ancien_au_plus_recent(self):
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-2",
+                nom="Martin",
+                prenom="Luc",
+                code_club="77123",
+                sexe=Sexe.M,
+                date_naissance=date(1990, 1, 1),
+                code_style="BB-R",
+            ),
+        )
+        competition = self._competition(date_debut=date(2019, 1, 1), date_fin=date(2019, 1, 2))
+        epreuve_2019 = self._epreuve(competition, nom="2019", date_epreuve=date(2019, 1, 1))
+        services.inscrire(self.conn, "FR-1", epreuve_2019.id)
+
+        competition_2020 = self._competition(
+            nom="2020", date_debut=date(2020, 1, 1), date_fin=date(2020, 1, 2)
+        )
+        epreuve_2020 = self._epreuve(competition_2020, nom="2020", date_epreuve=date(2020, 1, 1))
+        services.inscrire(self.conn, "FR-2", epreuve_2020.id)
+
+        inactifs = services.lister_competiteurs_inactifs(self.conn, date(2030, 1, 1))
+        self.assertEqual([c.id_federal for c, _d in inactifs], ["FR-1", "FR-2"])
+
+
 class TestParserDate(ServiceTestCase):
     def test_date_valide(self):
         self.assertEqual(parser_date("2026-03-14", "Date"), date(2026, 3, 14))

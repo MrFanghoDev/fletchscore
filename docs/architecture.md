@@ -1379,3 +1379,49 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   (Xvfb) : absence du bouton ❌ sur une inscription déjà notée, et
   annulation réussie (avec message de confirmation affiché) sur une
   inscription sans score, déclenchées depuis le vrai écran GUI.
+
+- **RGPD -- politique de conservation par purge d'inactivité** (issue
+  [#40](https://github.com/MrFanghoDev/fletchscore/issues/40),
+  2026-08-15). Ni le RGPD ni la doctrine CNIL spécifique au sport
+  amateur ne fixent de durée précise pour un club (vérifié avant de
+  coder, pas supposé -- voir les sources citées dans
+  `docs/cahier-des-charges/securite.rst`, section "Conservation des
+  données") : la page CNIL dédiée aux structures sportives renvoie
+  explicitement à une méthodologie et demande à chaque structure de
+  justifier sa propre durée. Décision prise avec l'utilisateur : 3 ans
+  depuis la dernière inscription, par analogie avec le seul chiffre que
+  la CNIL documente réellement (doctrine fichiers clients/prospects) --
+  compatible avec le besoin exprimé (garder au moins la saison
+  précédente, délai qui se réinitialise à chaque nouvelle inscription
+  plutôt qu'une date figée par fiche).
+
+  `services.lister_competiteurs_inactifs(conn, date_reference,
+  delai_annees=3)` -- `date_reference` en paramètre explicite plutôt que
+  `date.today()` interne, pour rester testable de façon déterministe
+  (même principe que `Competiteur.categorie_age()`). Ne liste que les
+  compétiteurs ayant déjà concouru au moins une fois (dernière activité
+  calculée via `db.date_derniere_activite_competiteur()`, nouvelle --
+  `MAX(epreuves.date)` sur toutes leurs inscriptions) : sans aucune
+  inscription, un compétiteur est déjà supprimable sans attendre (voir
+  `supprimer_competiteur`, #43), pas besoin d'un délai d'inactivité pour
+  lui. Exclut aussi ceux déjà anonymisés (`prenom == ""`) -- rien de
+  plus à purger pour eux.
+
+  Purge = anonymisation (#37), pas suppression physique -- garde
+  scores/classements intacts. GUI (`gui/ecran_competiteurs.py`) : bouton
+  **🕒 Inactifs (RGPD)** ouvrant une fenêtre dédiée (pas un bloc
+  permanent sur l'écran principal, vu que c'est une action occasionnelle)
+  listant les compétiteurs éligibles, chacun avec un bouton 🗑 qui
+  réutilise directement `_anonymiser_competiteur()` (même confirmation,
+  même mécanisme que le #37) puis rafraîchit la liste de la fenêtre --
+  aucun automatisme, chaque anonymisation reste un clic + une
+  confirmation explicites de l'organisateur. 8 tests
+  (`TestListerCompetiteursInactifs`), dont un qui vérifie que
+  l'inégalité au seuil est stricte (pile 3 ans après la dernière
+  activité n'est pas encore éligible) et un qui vérifie qu'une
+  inscription plus récente sur une deuxième épreuve "rafraîchit" bien
+  l'activité plutôt que de rester bloqué sur la première. Vérifié
+  réellement (Xvfb) : fenêtre ouverte depuis le vrai bouton, contenu
+  confirmé (seul le compétiteur réellement inactif apparaît, pas celui
+  récemment inscrit), anonymisation déclenchée depuis cette fenêtre et
+  disparition immédiate de la ligne une fois traitée.

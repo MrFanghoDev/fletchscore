@@ -1016,6 +1016,25 @@ confirmer par un vrai lancement.
   qu'une donnée notée/publiée serait affectée, cascade sans risque
   sinon, confirmation obligatoire, action irréversible.
 
+- [x] **RGPD -- politique de conservation par purge d'inactivité (issue
+      #40, 2026-08-15)**. Ni le RGPD ni la doctrine CNIL sport amateur
+      ne fixent de durée précise pour un club -- vérifié avant de coder
+      (sources dans `docs/cahier-des-charges/securite.rst`). Délai
+      retenu avec l'utilisateur : 3 ans depuis la dernière inscription
+      (se réinitialise à chaque nouvelle inscription), par analogie
+      avec le seul chiffre CNIL réellement documenté (doctrine
+      commerciale), faute de règle spécifique au sport --
+      `services.lister_competiteurs_inactifs()`. Purge = anonymisation
+      (#37), pas suppression physique -- ne concerne que les
+      compétiteurs ayant déjà concouru (sinon voir #43) et exclut ceux
+      déjà anonymisés. Bouton **🕒 Inactifs (RGPD)** sur l'écran
+      Compétiteurs, fenêtre dédiée listant les éligibles avec un bouton
+      🗑 par ligne réutilisant directement l'anonymisation existante --
+      aucun automatisme, purge toujours déclenchée manuellement. 8
+      tests. Vérifié réellement (Xvfb) : contenu de la fenêtre confirmé
+      (seul le compétiteur réellement inactif apparaît), anonymisation
+      depuis cette fenêtre et disparition immédiate de la ligne.
+
 ## Points ouverts transverses
 
 Voir le [cahier des charges](cahier-des-charges/roadmap.rst) pour le

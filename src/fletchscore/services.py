@@ -257,6 +257,58 @@ def supprimer_competiteur(conn: sqlite3.Connection, id_federal: str) -> None:
     db.supprimer_competiteur(conn, id_federal)
 
 
+DELAI_INACTIVITE_ANNEES_PAR_DEFAUT = 3
+"""Durée retenue pour la purge RGPD par inactivité (issue #40, décidée
+avec l'utilisateur le 2026-08-15). Aucun texte -- RGPD ou CNIL -- ne
+fixe de chiffre précis pour les structures sportives (la page CNIL
+dédiée renvoie explicitement à une justification propre à chaque
+structure) : ce délai reprend par analogie le seul chiffre que la CNIL
+documente réellement (3 ans depuis le dernier contact, doctrine
+fichiers clients/prospects) plutôt que d'en inventer un sans source.
+Voir docs/cahier-des-charges/securite.rst pour la décision documentée."""
+
+
+def _annees_avant(reference: date, annees: int) -> date:
+    """``reference`` moins ``annees`` années -- gère le 29 février (pas
+    de 29 février certaines années cibles) en retombant sur le 28."""
+    try:
+        return reference.replace(year=reference.year - annees)
+    except ValueError:
+        return reference.replace(year=reference.year - annees, day=28)
+
+
+def lister_competiteurs_inactifs(
+    conn: sqlite3.Connection,
+    date_reference: date,
+    delai_annees: int = DELAI_INACTIVITE_ANNEES_PAR_DEFAUT,
+) -> list[tuple[Competiteur, date]]:
+    """Compétiteurs éligibles à une purge RGPD pour inactivité (issue
+    #40) -- ceux dont la dernière inscription remonte à plus de
+    ``delai_annees`` par rapport à ``date_reference``, triés du plus
+    ancien au plus récent.
+
+    Ne concerne que les compétiteurs ayant déjà concouru au moins une
+    fois : sans inscription du tout, un compétiteur est déjà
+    supprimable sans attendre (voir ``supprimer_competiteur``, #43).
+    Exclut aussi ceux déjà anonymisés (``prenom == ""``, voir
+    ``anonymiser_competiteur``, #37) -- leurs données identifiantes ont
+    déjà disparu, rien de plus à purger.
+
+    ``date_reference`` est un paramètre explicite (jamais ``date.today()``
+    en interne) pour rester testable de façon déterministe -- même
+    principe que ``competiteur.categorie_age()``."""
+    seuil = _annees_avant(date_reference, delai_annees)
+    resultat = []
+    for competiteur in db.list_competiteurs(conn):
+        if competiteur.prenom == "":
+            continue
+        derniere_activite = db.date_derniere_activite_competiteur(conn, competiteur.id_federal)
+        if derniere_activite is not None and derniere_activite < seuil:
+            resultat.append((competiteur, derniere_activite))
+    resultat.sort(key=lambda paire: paire[1])
+    return resultat
+
+
 # ------------------------------------------------------- Compétition --
 
 

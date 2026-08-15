@@ -97,6 +97,15 @@ le format exact des colonnes). Une zone de texte juste en dessous
 affiche le rapport de la dernière action (lignes importées, ignorées,
 ou exportées).
 
+Juste au-dessus de la liste des compétiteurs, un bouton
+**🕒 Inactifs (RGPD)** ouvre la liste de ceux dont la dernière
+inscription remonte à plus de 3 ans (voir
+:doc:`../cahier-des-charges/securite`, section "Conservation des
+données") -- un bouton **🗑** sur chacun permet de les anonymiser
+directement depuis cette fenêtre, un par un. Rien d'automatique :
+personne n'apparaît nulle part tant que ce bouton n'est pas
+explicitement ouvert.
+
 En dessous, deux formulaires côte à côte pour une saisie au coup par
 coup (sans passer par un CSV) : **Ajouter un club** (avec un sélecteur
 pour en charger un existant à modifier) et **Ajouter un compétiteur**.

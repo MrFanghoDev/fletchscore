@@ -14,6 +14,7 @@ bloque l'application dès sa deuxième invocation.
 from __future__ import annotations
 
 import sqlite3
+from datetime import date
 
 import customtkinter as ctk
 
@@ -545,9 +546,19 @@ class EcranCompetiteurs(ctk.CTkFrame):
     # -- Liste ---------------------------------------------------------------
 
     def _construire_liste_competiteurs(self) -> None:
+        entete = ctk.CTkFrame(self, fg_color="transparent")
+        entete.grid(row=3, column=0, sticky="ew", pady=(0, 5))
+        entete.grid_columnconfigure(0, weight=1)
+
         ctk.CTkLabel(
-            self, text=self._t("section_competiteurs"), font=ctk.CTkFont(size=16, weight="bold")
-        ).grid(row=3, column=0, sticky="w", pady=(0, 5))
+            entete, text=self._t("section_competiteurs"), font=ctk.CTkFont(size=16, weight="bold")
+        ).grid(row=0, column=0, sticky="w")
+        ctk.CTkButton(
+            entete,
+            text=self._t("competiteurs_inactive_button"),
+            fg_color="gray40",
+            command=self._ouvrir_purge_inactifs,
+        ).grid(row=0, column=1, sticky="e")
 
         self.liste_competiteurs = ctk.CTkScrollableFrame(self, fg_color="transparent")
         self.liste_competiteurs.grid(row=4, column=0, sticky="nsew")
@@ -659,6 +670,75 @@ class EcranCompetiteurs(ctk.CTkFrame):
         dialogue.after(50, dialogue.grab_set)
         self.wait_window(dialogue)
         return resultat["ok"]
+
+    def _ouvrir_purge_inactifs(self) -> None:
+        """Purge RGPD par inactivité (issue #40) -- liste les
+        compétiteurs dont la dernière inscription remonte à plus de
+        ``services.DELAI_INACTIVITE_ANNEES_PAR_DEFAUT`` ans, avec un
+        bouton pour anonymiser chacun un par un (réutilise
+        ``_anonymiser_competiteur``, même mécanisme que le #37 --
+        aucun automatisme, chaque anonymisation reste un clic + une
+        confirmation explicites de l'organisateur). Fenêtre dédiée
+        plutôt qu'un bloc permanent sur l'écran principal : action
+        occasionnelle, pas un contrôle du quotidien."""
+        dialogue = ctk.CTkToplevel(self)
+        dialogue.title(self._t("competiteurs_inactive_title"))
+        dialogue.geometry("560x420")
+        dialogue.transient(self)
+
+        ctk.CTkLabel(
+            dialogue,
+            text=self._t(
+                "competiteurs_inactive_intro",
+                annees=services.DELAI_INACTIVITE_ANNEES_PAR_DEFAUT,
+            ),
+            wraplength=520,
+            justify="left",
+        ).pack(padx=15, pady=(15, 10), anchor="w")
+
+        liste = ctk.CTkScrollableFrame(dialogue, fg_color="transparent")
+        liste.pack(fill="both", expand=True, padx=15, pady=(0, 15))
+        liste.grid_columnconfigure(0, weight=1)
+
+        def rafraichir() -> None:
+            for widget in liste.winfo_children():
+                widget.destroy()
+
+            inactifs = services.lister_competiteurs_inactifs(self.conn, date.today())
+            if not inactifs:
+                ctk.CTkLabel(liste, text=self._t("competiteurs_inactive_none")).grid(
+                    row=0, column=0, sticky="w", pady=10
+                )
+                return
+
+            for index, (competiteur, derniere_activite) in enumerate(inactifs):
+                ligne = ctk.CTkFrame(liste, fg_color="transparent")
+                ligne.grid(row=index, column=0, sticky="ew", pady=2)
+                ligne.grid_columnconfigure(0, weight=1)
+
+                texte = self._t(
+                    "competiteurs_inactive_line",
+                    prenom=competiteur.prenom,
+                    nom=competiteur.nom,
+                    id_federal=competiteur.id_federal,
+                    date=derniere_activite,
+                )
+                ctk.CTkLabel(ligne, text=texte, anchor="w").grid(row=0, column=0, sticky="ew")
+
+                def anonymiser_et_rafraichir(c=competiteur) -> None:
+                    self._anonymiser_competiteur(c)
+                    rafraichir()
+
+                ctk.CTkButton(
+                    ligne,
+                    text="🗑",
+                    width=36,
+                    fg_color="gray40",
+                    command=anonymiser_et_rafraichir,
+                ).grid(row=0, column=1, padx=(6, 0))
+
+        rafraichir()
+        dialogue.after(50, dialogue.grab_set)
 
     def _anonymiser_competiteur(self, competiteur) -> None:
         """Droit à l'effacement RGPD (issue #37) -- confirmation

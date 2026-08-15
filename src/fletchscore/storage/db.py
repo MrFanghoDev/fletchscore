@@ -378,6 +378,23 @@ def list_competiteurs(conn: sqlite3.Connection) -> list[Competiteur]:
     return [_row_to_competiteur(r) for r in rows]
 
 
+def date_derniere_activite_competiteur(conn: sqlite3.Connection, id_federal: str) -> date | None:
+    """Date de l'épreuve la plus récente à laquelle ce compétiteur a été
+    inscrit, toutes compétitions confondues -- ``None`` s'il n'a jamais
+    été inscrit nulle part. Utilisé pour la purge RGPD par inactivité
+    (issue #40) : un compétiteur jamais inscrit est déjà supprimable
+    sans attendre (voir ``supprimer_competiteur``, #43), pas besoin
+    d'un délai d'inactivité pour lui."""
+    row = conn.execute(
+        """SELECT MAX(e.date) AS derniere
+           FROM inscriptions i
+           JOIN epreuves e ON e.id = i.epreuve_id
+           WHERE i.id_federal = ?""",
+        (id_federal,),
+    ).fetchone()
+    return date.fromisoformat(row["derniere"]) if row and row["derniere"] else None
+
+
 def update_competiteur(conn: sqlite3.Connection, competiteur: Competiteur) -> None:
     """``id_federal`` n'est pas modifiable via cette fonction -- c'est
     l'identifiant fédéral, la clé de tout le reste (inscriptions,
