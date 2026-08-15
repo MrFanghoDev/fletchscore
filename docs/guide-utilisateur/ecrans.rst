@@ -15,6 +15,11 @@ Accueil
 compétitions, de compétiteurs, d'épreuves, et l'épreuve la plus
 récente) et des raccourcis vers les autres écrans.
 
+.. figure:: screenshots/organisateur-accueil.png
+   :alt: Écran d'accueil de FletchScore, avec le résumé chiffré et les raccourcis
+
+   Écran d'accueil -- résumé chiffré et raccourcis vers les autres écrans.
+
 .. note::
 
    "Dernière activité" affiche l'épreuve la plus récente par sa date,
@@ -24,6 +29,12 @@ récente) et des raccourcis vers les autres écrans.
 
 Compétitions
 ===============
+
+.. figure:: screenshots/organisateur-competitions.png
+   :alt: Écran Compétitions, colonnes Compétitions et Épreuves
+
+   Écran Compétitions -- une compétition sélectionnée à gauche affiche
+   ses épreuves à droite.
 
 Deux colonnes.
 
@@ -91,6 +102,12 @@ Deux colonnes.
 Compétiteurs
 ===============
 
+.. figure:: screenshots/organisateur-competiteurs.png
+   :alt: Écran Compétiteurs, formulaires d'ajout et liste des compétiteurs
+
+   Écran Compétiteurs -- import/export CSV, ajout au coup par coup, et
+   liste avec les actions RGPD (🕒/🗑/❌).
+
 En haut : 4 boutons -- **Importer**/**Exporter** clubs.csv et
 competiteurs.csv (voir :doc:`../cahier-des-charges/modele-donnees` pour
 le format exact des colonnes). Une zone de texte juste en dessous
@@ -148,6 +165,12 @@ Enfin, la liste de tous les compétiteurs enregistrés, avec un bouton
 Saisie
 =========
 
+.. figure:: screenshots/organisateur-saisie.png
+   :alt: Écran Saisie, onglet Saisie manuelle
+
+   Écran Saisie -- onglet Saisie manuelle : liste des inscrit·e·s à
+   gauche, formulaire de score final à droite.
+
 Deux onglets -- un score entre dans le système par l'un ou par l'autre,
 peu importe lequel : les deux se retrouvent au même endroit ensuite
 (l'écran Classement).
@@ -177,6 +200,12 @@ peu importe lequel : les deux se retrouvent au même endroit ensuite
 Classement
 =============
 
+.. figure:: screenshots/organisateur-classement.png
+   :alt: Écran Classement, groupé par catégorie
+
+   Écran Classement -- groupé par catégorie (sexe + âge + style), avec
+   les exports par épreuve et global.
+
 Un sélecteur d'épreuve, une case **"Podium seulement (top 3)"**, et 3
 boutons d'export (CSV, Excel, PDF) pour le classement de cette épreuve
 précise.
@@ -190,6 +219,12 @@ La liste du classement s'affiche en dessous, groupée par catégorie
 
 Connexions compétiteurs
 ===========================
+
+.. figure:: screenshots/organisateur-connexions.png
+   :alt: Écran Connexions compétiteurs, onglet Demandes en attente
+
+   Écran Connexions compétiteurs -- contrôles du serveur web et, ici,
+   l'onglet Demandes en attente.
 
 Tout ce qui touche au lien en ligne avec les compétiteurs, regroupé sur
 un seul écran.
@@ -227,6 +262,27 @@ de chaque épreuve où le compétiteur (ou l'un de ses mandants, si une
 procuration a été validée -- un menu déroulant permet alors de choisir
 pour qui) est inscrit (voir l'onglet "Propositions en attente" de
 l'écran Saisie).
+
+.. figure:: screenshots/web-accueil.png
+   :alt: Accueil de la vue compétiteur web, une fois identifié
+   :width: 320px
+
+   Vue compétiteur web -- accueil une fois identifié : bienvenue,
+   messages, lien "Mes données", statut par épreuve.
+
+.. figure:: screenshots/web-classement.png
+   :alt: Classement d'une épreuve sur la vue compétiteur web
+   :width: 320px
+
+   Vue compétiteur web -- classement d'une épreuve, groupé par
+   catégorie, consultable sans être identifié.
+
+.. figure:: screenshots/web-proposer-score.png
+   :alt: Formulaire "Proposer mon score" sur la vue compétiteur web
+   :width: 320px
+
+   Vue compétiteur web -- formulaire "Proposer mon score", visible une
+   fois identifié et inscrit à l'épreuve, sans score déjà validé.
 
 .. admonition:: Droit d'accès RGPD -- « Mes données »
    :class: important
@@ -305,6 +361,20 @@ ouverte ne suffise pas à elle seule à désactiver la protection.
 Aide
 =======
 
+.. figure:: screenshots/organisateur-aide.png
+   :alt: Écran Aide, résumé du mode d'emploi
+
+   Écran Aide -- résumé du mode d'emploi de chaque écran, avec un
+   bouton vers cette documentation complète.
+
 Un résumé du mode d'emploi de chaque écran, directement dans
 l'application, plus un bouton qui ouvre cette documentation complète
 dans le navigateur.
+
+.. note::
+
+   Cet écran reste volontairement en texte seul, sans image embarquée
+   dans l'application (contrairement à cette documentation en ligne) --
+   éviter d'alourdir le paquet distribué (pip, exécutables PyInstaller)
+   pour un contenu déjà disponible en un clic via "Ouvrir la
+   documentation en ligne".

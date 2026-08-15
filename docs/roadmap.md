@@ -1082,6 +1082,40 @@ confirmer par un vrai lancement.
       utilisé dans `SECURITY.md`), aucune nouvelle alerte au-delà de
       l'avertissement préexistant déjà connu.
 
+- [x] **Captures d'écran dans la doc et l'aide intégrée (issue #11,
+      2026-08-15)**. 10 captures réelles (7 écrans organisateur via
+      Xvfb + `scrot`, 3 vues web compétiteur via Selenium + Chromium
+      headless -- `playwright` non installable ici, voir `CLAUDE.md`)
+      intégrées dans `docs/guide-utilisateur/ecrans.rst` et
+      `premiers-pas.rst`, sur une base de démo entièrement fictive
+      (mêmes prénoms/noms que la suite de tests, jamais de vraies
+      données de club). `ecran_aide.py` (aide intégrée à l'application)
+      reste volontairement texte seul -- éviter d'alourdir le paquet
+      distribué (pip, exécutables PyInstaller) pour un contenu déjà
+      accessible en un clic via "Ouvrir la documentation en ligne",
+      décision documentée directement dans `ecrans.rst`.
+
+      Script `scripts/capture_screenshots_doc.py` committé (pas
+      seulement lancé une fois puis jeté) pour répondre au critère
+      d'acceptation "captures à refaire à chaque changement visuel
+      notable" -- construit sa propre base de démo, capture les 7
+      écrans organisateur puis les 3 vues web, écrit directement dans
+      `docs/guide-utilisateur/screenshots/`. Détecté au passage :
+      Chromium headless n'a pas de police emoji par défaut dans cet
+      environnement (`apk add font-noto-emoji` nécessaire, sans quoi
+      les captures web afficheraient des carrés vides trompeurs à la
+      place des emoji réels de l'interface) -- documenté dans
+      `CLAUDE.md`. `installation.rst` volontairement laissé sans
+      capture -- contenu 100% CLI/terminal, aucun moment GUI à illustrer
+      qui ne soit pas déjà couvert par `premiers-pas.rst`.
+
+      Vérifié : build Sphinx propre (10 images résolues, aucune
+      référence cassée), script relancé une seconde fois de bout en
+      bout après nettoyage du dossier de sortie -- mêmes fichiers
+      regénérés à l'identique (taille en octets stable), confirmant que
+      la régénération fonctionne réellement pour l'usage prévu par le
+      ticket, pas seulement testée une fois de façon ad hoc.
+
 ## Points ouverts transverses
 
 Voir le [cahier des charges](cahier-des-charges/roadmap.rst) pour le

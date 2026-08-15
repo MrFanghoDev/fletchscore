@@ -75,6 +75,15 @@ desktop, compétiteur web) sur une base SQLite locale unique.
   puis recharger. Utilisé pour vérifier l'issue #38 (page RGPD "Mes
   données" + export JSON) avec un vrai rendu de page, pas une relecture
   du HTML généré.
+- **Chromium headless n'a pas de police emoji par défaut dans cet
+  environnement** -- un émoji de l'interface (💾, 🕒, 📥...) s'affiche en
+  carré vide (tofu) sur une capture Selenium tant que `apk add
+  font-noto-emoji` n'a pas été fait. Repéré en générant les captures
+  d'écran de la doc (issue #11, `scripts/capture_screenshots_doc.py`) --
+  utile à refaire si de nouvelles captures web sont nécessaires plus
+  tard, sans quoi elles donneraient une image trompeuse de l'appli
+  réelle (qui affiche les emoji normalement sur un poste utilisateur
+  classique).
 - Une dépendance non installable dans l'environnement de travail peut
   casser la collecte de toute la suite de tests, pas juste ses propres
   tests (`unittest discover` échoue dès qu'un module lève une exception à

@@ -33,8 +33,19 @@ L'écran d'accueil s'affiche en premier : un résumé rapide (nombre de
 compétitions, de compétiteurs, d'épreuves) et des raccourcis vers les
 autres écrans.
 
+.. figure:: screenshots/organisateur-accueil.png
+   :alt: Écran d'accueil de FletchScore
+
+   L'écran d'accueil au lancement.
+
 1. Créer une compétition
 ============================
+
+.. figure:: screenshots/organisateur-competitions.png
+   :alt: Écran Compétitions
+
+   Onglet Compétitions -- une fois une compétition sélectionnée à
+   gauche, ses épreuves apparaissent à droite (voir étape 2).
 
 Onglet **Compétitions**, colonne de gauche, formulaire "Nouvelle
 compétition" :
@@ -62,6 +73,12 @@ formulaire "Nouvelle épreuve" :
 3. Ajouter les compétiteurs
 ================================
 
+.. figure:: screenshots/organisateur-competiteurs.png
+   :alt: Écran Compétiteurs
+
+   Onglet Compétiteurs -- import/export CSV, ajout au coup par coup, et
+   la liste de tous les compétiteurs enregistrés.
+
 Onglet **Compétiteurs**, deux façons de faire, pas exclusives l'une de
 l'autre :
 
@@ -75,6 +92,12 @@ l'autre :
 
 4. Inscrire et saisir les scores
 =====================================
+
+.. figure:: screenshots/organisateur-saisie.png
+   :alt: Écran Saisie
+
+   Onglet Saisie -- liste des inscrit·e·s à gauche, formulaire de score
+   final à droite.
 
 Onglet **Saisie des scores** :
 
@@ -95,6 +118,11 @@ Onglet **Saisie des scores** :
 
 5. Consulter et exporter le classement
 ===========================================
+
+.. figure:: screenshots/organisateur-classement.png
+   :alt: Écran Classement
+
+   Onglet Classement -- groupé par catégorie, avec les boutons d'export.
 
 Onglet **Classement** :
 

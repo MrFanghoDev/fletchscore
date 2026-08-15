@@ -1473,3 +1473,44 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   rendu, contenu de la page confirmé (identité, club, épreuve, score),
   export JSON téléchargé et recoupé avec le contenu HTML affiché --
   cohérents entre eux.
+
+- **Captures d'écran de la doc, régénérables plutôt que jetables**
+  (issue [#11](https://github.com/MrFanghoDev/fletchscore/issues/11),
+  2026-08-15). `scripts/capture_screenshots_doc.py` -- une seule base
+  de démo fictive (`_construire_base_demo()`, même prénoms/noms que la
+  suite de tests) réutilisée pour les deux modes de capture, choisis
+  pour donner à chaque écran quelque chose de réel à montrer (scores
+  validés, une proposition en attente, une demande de rattachement en
+  attente, un message ciblé et un diffusé, une procuration) plutôt
+  qu'une base vide peu représentative.
+
+  - **Organisateur** (7 écrans -- Accueil, Compétitions, Compétiteurs,
+    Saisie, Classement, Connexions compétiteurs, Aide) : même mécanisme
+    Xvfb + `scrot` que les vérifications GUI habituelles de ce projet,
+    mais recadré sur la fenêtre réelle (`xdotool getwindowgeometry` +
+    `scrot -a x,y,w,h`) plutôt que la capture plein écran utilisée pour
+    les vérifications ponctuelles -- une capture destinée à la doc ne
+    doit pas contenir de zone vide autour de la fenêtre.
+  - **Vue web compétiteur** (3 captures -- accueil identifié, classement
+    d'une épreuve, formulaire "Proposer mon score") : Selenium +
+    Chromium headless (voir l'entrée #38 ci-dessus pour le choix par
+    rapport à `playwright`), `driver.save_screenshot()`.
+
+  Sauvegardées dans `docs/guide-utilisateur/screenshots/`, référencées
+  via `.. figure::` dans `ecrans.rst` et `premiers-pas.rst`.
+  `ecran_aide.py` (aide intégrée à l'application) reste volontairement
+  texte seul -- pas d'image embarquée dans le paquet distribué (pip,
+  exécutables PyInstaller) pour un contenu déjà accessible en un clic
+  via "Ouvrir la documentation en ligne", décision documentée
+  directement dans `ecrans.rst` plutôt que laissée implicite.
+
+  Le script est **committé, pas un one-off jeté après usage** --
+  répond explicitement au critère d'acceptation du ticket ("captures à
+  refaire à chaque changement visuel notable d'un écran"), sans quoi la
+  doc se serait remise à dériver du rendu réel dès le premier
+  changement d'écran. Vérifié réellement : script relancé une seconde
+  fois après avoir vidé le dossier de sortie -- mêmes 10 fichiers
+  regénérés à l'identique (taille en octets stable, données de démo
+  déterministes), confirmant que la régénération fonctionne pour de
+  vrai, pas seulement testée une fois de façon ad hoc au moment de
+  l'écrire.
