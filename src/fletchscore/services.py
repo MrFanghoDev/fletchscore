@@ -309,6 +309,132 @@ def lister_competiteurs_inactifs(
     return resultat
 
 
+@dataclass(slots=True)
+class LigneDonneesPersonnelles:
+    """Une inscription du compétiteur avec le score associé s'il existe
+    -- une ligne du récapitulatif RGPD (issue #38)."""
+
+    competition_nom: str
+    epreuve_nom: str
+    epreuve_date: date
+    score_total: int | None
+    score_nombre_x: int | None
+    score_statut: StatutScore | None
+
+
+@dataclass(slots=True)
+class DonneesPersonnellesCompetiteur:
+    """Toutes les données personnelles détenues par FletchScore sur un
+    compétiteur -- droit d'accès RGPD (article 15) et support à la
+    portabilité (article 20, issue #38)."""
+
+    competiteur: Competiteur
+    club_nom: str
+    style_libelle: str
+    inscriptions: list[LigneDonneesPersonnelles]
+    procurations_comme_mandataire: list[Procuration]
+    procurations_comme_mandant: list[Procuration]
+
+
+def rassembler_donnees_personnelles(
+    conn: sqlite3.Connection, id_federal: str
+) -> DonneesPersonnellesCompetiteur:
+    """Rassemble l'ensemble des données personnelles détenues sur ce
+    compétiteur -- droit d'accès RGPD (issue #38). Contrairement à la
+    plupart des pages de la vue compétiteur (scopées à la compétition
+    de la session en cours, ex. ``lister_messages_pour``), volontairement
+    pas limité à une seule compétition : l'article 15 porte sur
+    l'ensemble des données détenues, pas seulement celles de
+    l'événement en cours -- le compétiteur est déjà authentifié
+    (``id_federal`` vérifié par le cookie de session), donc rassembler
+    ses données d'autres compétitions n'expose rien à un tiers."""
+    competiteur = db.get_competiteur(conn, id_federal)
+    if competiteur is None:
+        raise ErreurMetier(f"Compétiteur introuvable : {id_federal}")
+
+    club = db.get_club(conn, competiteur.code_club)
+    style = db.get_style(conn, competiteur.code_style)
+
+    lignes = []
+    for inscription in db.list_inscriptions_by_competiteur(conn, id_federal):
+        epreuve = db.get_epreuve(conn, inscription.epreuve_id)
+        if epreuve is None:
+            continue
+        competition = db.get_competition(conn, epreuve.competition_id)
+        score = db.get_score_by_inscription(conn, inscription.id)
+        lignes.append(
+            LigneDonneesPersonnelles(
+                competition_nom=competition.nom if competition else epreuve.competition_id,
+                epreuve_nom=epreuve.nom,
+                epreuve_date=epreuve.date,
+                score_total=score.total if score else None,
+                score_nombre_x=score.nombre_x if score else None,
+                score_statut=score.statut if score else None,
+            )
+        )
+    lignes.sort(key=lambda ligne: ligne.epreuve_date, reverse=True)
+
+    toutes_procurations = db.list_procurations_by_competiteur(conn, id_federal)
+    comme_mandataire = [p for p in toutes_procurations if p.id_federal_mandataire == id_federal]
+    comme_mandant = [p for p in toutes_procurations if p.id_federal_mandant == id_federal]
+
+    return DonneesPersonnellesCompetiteur(
+        competiteur=competiteur,
+        club_nom=club.nom if club else competiteur.code_club,
+        style_libelle=style.libelle if style else competiteur.code_style,
+        inscriptions=lignes,
+        procurations_comme_mandataire=comme_mandataire,
+        procurations_comme_mandant=comme_mandant,
+    )
+
+
+def donnees_personnelles_en_dict(donnees: DonneesPersonnellesCompetiteur) -> dict:
+    """Représentation JSON-sérialisable de ``DonneesPersonnellesCompetiteur``
+    -- portabilité RGPD (article 20, issue #38). Format volontairement
+    simple (dict de types JSON natifs) : l'article 20 n'impose qu'un
+    format structuré lisible par machine, rien de plus sophistiqué
+    n'est nécessaire pour ce volume de données."""
+    c = donnees.competiteur
+    return {
+        "id_federal": c.id_federal,
+        "nom": c.nom,
+        "prenom": c.prenom,
+        "date_naissance": c.date_naissance.isoformat(),
+        "club": donnees.club_nom,
+        "style": donnees.style_libelle,
+        "licence_valide_jusqu_au": (
+            c.licence_valide_jusqu_au.isoformat() if c.licence_valide_jusqu_au else None
+        ),
+        "inscriptions": [
+            {
+                "competition": ligne.competition_nom,
+                "epreuve": ligne.epreuve_nom,
+                "date": ligne.epreuve_date.isoformat(),
+                "score_total": ligne.score_total,
+                "score_nombre_x": ligne.score_nombre_x,
+                "score_statut": ligne.score_statut.value if ligne.score_statut else None,
+            }
+            for ligne in donnees.inscriptions
+        ],
+        "procurations_comme_mandataire": [
+            {
+                "mandant_id_federal": p.id_federal_mandant,
+                "competition_id": p.competition_id,
+                "statut": p.statut.value,
+            }
+            for p in donnees.procurations_comme_mandataire
+        ],
+        "procurations_comme_mandant": [
+            {
+                "mandataire_id_federal": p.id_federal_mandataire,
+                "competition_id": p.competition_id,
+                "statut": p.statut.value,
+            }
+            for p in donnees.procurations_comme_mandant
+        ],
+    }
+
+
 # ------------------------------------------------------- Compétition --
 
 

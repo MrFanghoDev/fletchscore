@@ -1425,3 +1425,51 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   confirmé (seul le compétiteur réellement inactif apparaît, pas celui
   récemment inscrit), anonymisation déclenchée depuis cette fenêtre et
   disparition immédiate de la ligne une fois traitée.
+
+- **RGPD -- droit d'accès et portabilité (« Mes données »)** (issue
+  [#38](https://github.com/MrFanghoDev/fletchscore/issues/38),
+  2026-08-15). Complémentaire du #37 (droit à l'effacement) : avant de
+  pouvoir demander une suppression ou une correction, un compétiteur
+  doit d'abord pouvoir voir ce qui est enregistré sur lui (article 15),
+  et pouvoir l'emporter dans un format structuré (article 20).
+
+  `services.rassembler_donnees_personnelles(conn, id_federal)` --
+  volontairement **pas** scopé à la compétition de la session en cours
+  (contrairement à `lister_messages_pour()`, utilisée par
+  `page_mes_messages`) : l'article 15 porte sur l'ensemble des données
+  détenues, pas seulement l'événement du moment, et `id_federal` est
+  déjà vérifié par le cookie de session -- rassembler ses données
+  d'autres compétitions n'expose rien à un tiers. Regroupe identité
+  (nom/prénom/naissance/club/style/licence), toutes ses inscriptions
+  avec le score associé s'il existe (proposé ou validé), et ses
+  procurations (comme mandataire et comme mandant, tout statut, toute
+  compétition -- nouveau `db.list_procurations_by_competiteur()`).
+  `services.donnees_personnelles_en_dict()` convertit ce résultat en
+  dict de types JSON natifs pour la portabilité -- format volontairement
+  simple, l'article 20 n'impose qu'un format structuré lisible par
+  machine, rien de plus sophistiqué n'est nécessaire à ce volume.
+
+  Vue compétiteur web (`api/competiteur.py`) : `page_mes_donnees()`
+  (nouvelle page `/mes-donnees`, même politique d'accès que
+  `/mes-messages` -- identité vérifiée par cookie de session, sinon
+  redirection 302 vers l'accueil) affiche identité, inscriptions/scores
+  et procurations ; lien **⬇ Télécharger mes données (JSON)** vers
+  `/mes-donnees/export.json`, servi avec
+  `Content-Disposition: attachment` (nouvelle méthode
+  `_repondre_json_telechargeable()`) pour déclencher un vrai
+  téléchargement plutôt qu'un affichage brut. Lien **Mes données**
+  ajouté sur l'accueil à côté de "Se déconnecter", plus une entrée FAQ
+  dédiée sur la page Aide. 21 tests au total (services + génération de
+  page + intégration bout-en-bout avec un vrai serveur HTTP).
+
+  **Vérifié avec un vrai navigateur** (Selenium + Chromium headless,
+  pas seulement une lecture du HTML généré) -- `playwright` non
+  installable dans cet environnement (`pip install playwright` échoue,
+  dépôt indisponible), Selenium + `chromium-chromedriver` (`apk add`)
+  fonctionnent en revanche très bien pour le même usage ; voir
+  `CLAUDE.md` pour la recette complète (flags Chromium nécessaires,
+  sans quoi l'init GPU/Vulkan échoue en boucle et ralentit beaucoup le
+  démarrage). Scénario : lien "Mes données" cliqué depuis un vrai DOM
+  rendu, contenu de la page confirmé (identité, club, épreuve, score),
+  export JSON téléchargé et recoupé avec le contenu HTML affiché --
+  cohérents entre eux.

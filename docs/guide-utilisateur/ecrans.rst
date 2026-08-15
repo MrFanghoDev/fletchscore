@@ -228,6 +228,19 @@ procuration a été validée -- un menu déroulant permet alors de choisir
 pour qui) est inscrit (voir l'onglet "Propositions en attente" de
 l'écran Saisie).
 
+.. admonition:: Droit d'accès RGPD -- « Mes données »
+   :class: important
+
+   Une fois identifié, un lien **Mes données** apparaît à côté de
+   « Se déconnecter » sur l'accueil du compétiteur : récapitule toutes
+   les données personnelles détenues sur lui (identité, club, style,
+   inscriptions, scores proposés/validés, procurations comme
+   mandataire ou mandant), toutes compétitions confondues -- pas
+   seulement celle de la session en cours. Un lien
+   **⬇ Télécharger mes données (JSON)** exporte le tout dans un fichier
+   -- portabilité RGPD (article 20), aucun format sophistiqué requis
+   par le texte, juste structuré et lisible par machine.
+
 En dessous des contrôles serveur, un sélecteur de compétition puis
 quatre onglets :
 

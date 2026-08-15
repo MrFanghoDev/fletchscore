@@ -33,6 +33,7 @@ rechargement complet de page).
 from __future__ import annotations
 
 import html
+import json
 import socket
 import sqlite3
 import ssl
@@ -343,6 +344,65 @@ _TEXTES: dict[str, dict[str, str]] = {
         "previous one. Once validated, see the organiser directly for a "
         "correction.",
     },
+    "aide_faq_q4": {
+        "fr": "Comment voir toutes les données que FletchScore garde sur moi ?",
+        "en": "How do I see all the data FletchScore keeps on me?",
+    },
+    "aide_faq_a4": {
+        "fr": "Une fois identifié·e, le lien « Mes données » sur l'accueil "
+        "récapitule tout ce qui est enregistré sur toi (identité, "
+        "inscriptions, scores, procurations), avec un lien pour "
+        "télécharger le tout dans un fichier.",
+        "en": 'Once identified, the "My data" link on the home page '
+        "summarises everything recorded about you (identity, "
+        "registrations, scores, proxies), with a link to download it "
+        "all as a file.",
+    },
+    "mes_donnees_lien": {"fr": "Mes données", "en": "My data"},
+    "mes_donnees_titre": {"fr": "Mes données", "en": "My data"},
+    "mes_donnees_intro": {
+        "fr": "L'ensemble des données personnelles que FletchScore "
+        "détient sur toi, toutes compétitions confondues -- droit "
+        "d'accès RGPD.",
+        "en": "All the personal data FletchScore holds about you, "
+        "across every competition -- GDPR right of access.",
+    },
+    "mes_donnees_telecharger": {
+        "fr": "⬇ Télécharger mes données (JSON)",
+        "en": "⬇ Download my data (JSON)",
+    },
+    "mes_donnees_identite_titre": {"fr": "Identité", "en": "Identity"},
+    "mes_donnees_id_federal": {"fr": "Id fédéral", "en": "Federal id"},
+    "mes_donnees_naissance": {"fr": "Date de naissance", "en": "Date of birth"},
+    "mes_donnees_style": {"fr": "Style", "en": "Style"},
+    "mes_donnees_licence": {"fr": "Licence valide jusqu'au", "en": "Licence valid until"},
+    "mes_donnees_non_renseignee": {"fr": "non renseignée", "en": "not provided"},
+    "mes_donnees_inscriptions_titre": {
+        "fr": "Inscriptions et scores",
+        "en": "Registrations and scores",
+    },
+    "mes_donnees_aucune_inscription": {
+        "fr": "Aucune inscription enregistrée.",
+        "en": "No registration recorded.",
+    },
+    "mes_donnees_score_absent": {"fr": "pas encore saisi", "en": "not entered yet"},
+    "mes_donnees_procurations_titre": {"fr": "Procurations", "en": "Proxies"},
+    "mes_donnees_aucune_procuration": {
+        "fr": "Aucune procuration, ni comme mandataire ni comme mandant.",
+        "en": "No proxy, neither as proxy-holder nor as principal.",
+    },
+    "mes_donnees_mandataire_pour": {
+        "fr": "Mandataire pour {nom} ({statut})",
+        "en": "Proxy-holder for {nom} ({statut})",
+    },
+    "mes_donnees_mandant_de": {
+        "fr": "{nom} mandataire pour toi ({statut})",
+        "en": "{nom} is your proxy-holder ({statut})",
+    },
+    "mes_donnees_statut_en_attente": {"fr": "en attente", "en": "pending"},
+    "mes_donnees_statut_validee": {"fr": "validée", "en": "approved"},
+    "mes_donnees_statut_rejetee": {"fr": "rejetée", "en": "rejected"},
+    "mes_donnees_statut_revoquee": {"fr": "révoquée", "en": "revoked"},
 }
 
 
@@ -461,6 +521,7 @@ def page_aide(lang: str = "fr", theme: str = "dark") -> str:
         f'<dt>{_t("aide_faq_q1", lang)}</dt><dd>{_t("aide_faq_a1", lang)}</dd>'
         f'<dt>{_t("aide_faq_q2", lang)}</dt><dd>{_t("aide_faq_a2", lang)}</dd>'
         f'<dt>{_t("aide_faq_q3", lang)}</dt><dd>{_t("aide_faq_a3", lang)}</dd>'
+        f'<dt>{_t("aide_faq_q4", lang)}</dt><dd>{_t("aide_faq_a4", lang)}</dd>'
         "</dl>"
     )
     contenus = {
@@ -551,6 +612,7 @@ def page_accueil(
             banniere += (
                 f'<p class="intro">👋 {_echapper(texte_bienvenue)} '
                 f'<a href="/deconnexion">({_t("se_deconnecter", lang)})</a></p>'
+                f'<p><a href="/mes-donnees">{_t("mes_donnees_lien", lang)}</a></p>'
             )
 
         try:
@@ -1248,6 +1310,113 @@ def page_mes_messages(
     return _mise_en_page(_t("mes_messages_titre", lang), corps, lang, theme, "/", rafraichir=False)
 
 
+_STATUTS_PROCURATION_COURTS = {
+    "en_attente": "mes_donnees_statut_en_attente",
+    "validee": "mes_donnees_statut_validee",
+    "rejetee": "mes_donnees_statut_rejetee",
+    "revoquee": "mes_donnees_statut_revoquee",
+}
+
+
+def page_mes_donnees(
+    conn: sqlite3.Connection,
+    id_federal: str,
+    lang: str = "fr",
+    theme: str = "dark",
+) -> str:
+    """Droit d'accès RGPD (issue #38) -- récapitulatif de toutes les
+    données personnelles détenues sur ce compétiteur, toutes
+    compétitions confondues (contrairement à ``page_mes_messages``,
+    scopée à la compétition de la session -- voir la docstring de
+    ``services.rassembler_donnees_personnelles``). Le lien de
+    téléchargement pointe vers ``/mes-donnees/export.json``, qui
+    réutilise les mêmes données (voir ``services.donnees_personnelles_en_dict``)."""
+    try:
+        donnees = services.rassembler_donnees_personnelles(conn, id_federal)
+    except ErreurMetier as erreur:
+        corps = f"<p>{_echapper(str(erreur))}</p>"
+        return _mise_en_page(_t("erreur", lang), corps, lang, theme, "/", rafraichir=False)
+
+    c = donnees.competiteur
+    licence = (
+        c.licence_valide_jusqu_au.isoformat()
+        if c.licence_valide_jusqu_au
+        else _t("mes_donnees_non_renseignee", lang)
+    )
+    bloc_identite = (
+        '<div class="section-competition">'
+        f"<h2>{_t('mes_donnees_identite_titre', lang)}</h2>"
+        "<ul>"
+        f"<li><strong>{_t('nom', lang)}</strong> {_echapper(c.prenom)} {_echapper(c.nom)}</li>"
+        f"<li><strong>{_t('mes_donnees_id_federal', lang)}</strong> {_echapper(c.id_federal)}</li>"
+        f"<li><strong>{_t('mes_donnees_naissance', lang)}</strong> {c.date_naissance.isoformat()}</li>"
+        f"<li><strong>{_t('club', lang)}</strong> {_echapper(donnees.club_nom)}</li>"
+        f"<li><strong>{_t('mes_donnees_style', lang)}</strong> {_echapper(donnees.style_libelle)}</li>"
+        f"<li><strong>{_t('mes_donnees_licence', lang)}</strong> {_echapper(licence)}</li>"
+        "</ul></div>"
+    )
+
+    if not donnees.inscriptions:
+        corps_inscriptions = f'<p>{_t("mes_donnees_aucune_inscription", lang)}</p>'
+    else:
+        lignes_html = []
+        for ligne in donnees.inscriptions:
+            if ligne.score_total is None:
+                score_texte = _t("mes_donnees_score_absent", lang)
+            elif ligne.score_statut == StatutScore.VALIDE:
+                score_texte = _t("statut_score_valide", lang).format(total=ligne.score_total)
+            else:
+                score_texte = f"{ligne.score_total} pts ({_t('statut_score_attente', lang)})"
+            lignes_html.append(
+                "<li>"
+                f"<strong>{_echapper(ligne.competition_nom)} -- {_echapper(ligne.epreuve_nom)}</strong> "
+                f"({ligne.epreuve_date.isoformat()}) -- {_echapper(score_texte)}"
+                "</li>"
+            )
+        corps_inscriptions = f'<ul class="liste-epreuves">{"".join(lignes_html)}</ul>'
+
+    def _libelle_autre_partie(autre_id_federal: str) -> str:
+        autre = db.get_competiteur(conn, autre_id_federal)
+        return f"{autre.prenom} {autre.nom}" if autre else autre_id_federal
+
+    lignes_procurations = []
+    for p in donnees.procurations_comme_mandataire:
+        statut_texte = _t(_STATUTS_PROCURATION_COURTS[p.statut.value], lang)
+        texte = _t("mes_donnees_mandataire_pour", lang).format(
+            nom=_libelle_autre_partie(p.id_federal_mandant), statut=statut_texte
+        )
+        lignes_procurations.append(f"<li>{_echapper(texte)}</li>")
+    for p in donnees.procurations_comme_mandant:
+        statut_texte = _t(_STATUTS_PROCURATION_COURTS[p.statut.value], lang)
+        texte = _t("mes_donnees_mandant_de", lang).format(
+            nom=_libelle_autre_partie(p.id_federal_mandataire), statut=statut_texte
+        )
+        lignes_procurations.append(f"<li>{_echapper(texte)}</li>")
+
+    if not lignes_procurations:
+        corps_procurations = f'<p>{_t("mes_donnees_aucune_procuration", lang)}</p>'
+    else:
+        corps_procurations = f'<ul class="liste-epreuves">{"".join(lignes_procurations)}</ul>'
+
+    corps = (
+        f'<p><a class="back" href="/">{_t("retour", lang)}</a></p>'
+        f'<h1>{_t("mes_donnees_titre", lang)}</h1>'
+        f'<p>{_t("mes_donnees_intro", lang)}</p>'
+        f'<p><a class="btn-primary" href="/mes-donnees/export.json">'
+        f'{_t("mes_donnees_telecharger", lang)}</a></p>'
+        f"{bloc_identite}"
+        '<div class="section-competition">'
+        f"<h2>{_t('mes_donnees_inscriptions_titre', lang)}</h2>"
+        f"{corps_inscriptions}"
+        "</div>"
+        '<div class="section-competition">'
+        f"<h2>{_t('mes_donnees_procurations_titre', lang)}</h2>"
+        f"{corps_procurations}"
+        "</div>"
+    )
+    return _mise_en_page(_t("mes_donnees_titre", lang), corps, lang, theme, "/", rafraichir=False)
+
+
 class ServeurCompetiteur(HTTPServer):
     """Serveur HTTP -- porte le chemin de la base plutôt qu'une connexion
     ouverte, pour que chaque requête ouvre la sienne (voir le docstring
@@ -1420,6 +1589,49 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
             self._repondre_html(corps)
             return
 
+        if chemin == "/mes-donnees":
+            # Volontairement pas scopé à competition_id (contrairement à
+            # /mes-messages) -- droit d'accès RGPD (#38), porte sur
+            # l'ensemble des données détenues, pas juste la compétition
+            # de la session en cours. identite[0] (id_federal) suffit.
+            identite = self._lire_identite()
+            if identite is None:
+                self.send_response(302)
+                self.send_header("Location", "/")
+                self.end_headers()
+                return
+            id_federal, _competition_id = identite
+            conn = self._connexion_lecture_seule()
+            try:
+                corps = page_mes_donnees(conn, id_federal, lang, theme)
+            finally:
+                conn.close()
+            self._repondre_html(corps)
+            return
+
+        if chemin == "/mes-donnees/export.json":
+            identite = self._lire_identite()
+            if identite is None:
+                self.send_response(302)
+                self.send_header("Location", "/")
+                self.end_headers()
+                return
+            id_federal, _competition_id = identite
+            conn = self._connexion_lecture_seule()
+            try:
+                donnees = services.rassembler_donnees_personnelles(conn, id_federal)
+            except ErreurMetier:
+                self.send_response(404)
+                self.end_headers()
+                return
+            finally:
+                conn.close()
+            corps_json = json.dumps(
+                services.donnees_personnelles_en_dict(donnees), ensure_ascii=False, indent=2
+            )
+            self._repondre_json_telechargeable(corps_json, f"fletchscore-{id_federal}.json")
+            return
+
         if chemin.startswith("/procuration/"):
             competition_id_url = chemin.removeprefix("/procuration/")
             identite = self._lire_identite()
@@ -1479,6 +1691,18 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(corps_octets)))
         if cookie_supplementaire:
             self.send_header("Set-Cookie", cookie_supplementaire)
+        self.end_headers()
+        self.wfile.write(corps_octets)
+
+    def _repondre_json_telechargeable(self, corps: str, nom_fichier: str) -> None:
+        """Portabilité RGPD (article 20, issue #38) --
+        ``Content-Disposition: attachment`` pour déclencher un
+        téléchargement plutôt qu'un affichage brut dans l'onglet."""
+        corps_octets = corps.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Disposition", f'attachment; filename="{nom_fichier}"')
+        self.send_header("Content-Length", str(len(corps_octets)))
         self.end_headers()
         self.wfile.write(corps_octets)
 

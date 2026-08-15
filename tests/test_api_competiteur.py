@@ -1,4 +1,5 @@
 import http.client
+import json
 import ssl
 import tempfile
 import threading
@@ -25,6 +26,7 @@ from fletchscore.api.competiteur import (
     page_confirmation_procuration,
     page_confirmation_rattachement,
     page_epreuve,
+    page_mes_donnees,
     page_mes_messages,
     page_procuration,
     page_rattachement,
@@ -1051,6 +1053,114 @@ class TestPageMesMessages(unittest.TestCase):
         self.assertNotIn('http-equiv="refresh"', page)
 
 
+class TestPageMesDonnees(unittest.TestCase):
+    """Droit d'accès RGPD (issue #38)."""
+
+    def setUp(self):
+        self.conn = db.connect(":memory:")
+        db.init_schema(self.conn)
+        db.seed_baremes_preconfigures(self.conn)
+        db.insert_club(self.conn, Club("77123", "Archers Libres de FLP"))
+        db.seed_referentiel_styles(self.conn)
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-1",
+                nom="Dupont",
+                prenom="Marie",
+                code_club="77123",
+                sexe=Sexe.F,
+                date_naissance=date(1995, 3, 14),
+                code_style="BB-R",
+            ),
+        )
+        self.competition = services.creer_competition(
+            self.conn, "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15)
+        )
+
+    def tearDown(self):
+        self.conn.close()
+
+    def test_identite_affichee(self):
+        page = page_mes_donnees(self.conn, "FR-1")
+        self.assertIn("Marie", page)
+        self.assertIn("Dupont", page)
+        self.assertIn("Archers Libres de FLP", page)
+        self.assertIn("1995-03-14", page)
+
+    def test_aucune_inscription(self):
+        page = page_mes_donnees(self.conn, "FR-1")
+        self.assertIn("Aucune inscription", page)
+
+    def test_score_valide_et_score_en_attente_affiches(self):
+        epreuve1 = services.creer_epreuve(
+            self.conn, self.competition.id, "Épreuve validée", date(2026, 3, 14), "ifaa-indoor"
+        )
+        epreuve2 = services.creer_epreuve(
+            self.conn, self.competition.id, "Épreuve en attente", date(2026, 3, 15), "ifaa-indoor"
+        )
+        i1 = services.inscrire(self.conn, "FR-1", epreuve1.id)
+        services.inscrire(self.conn, "FR-1", epreuve2.id)
+        services.saisir_score_final(self.conn, i1.id, 260)
+        services.proposer_score(self.conn, "FR-1", epreuve2.id, 200)
+
+        page = page_mes_donnees(self.conn, "FR-1")
+        self.assertIn("Épreuve validée", page)
+        self.assertIn("260", page)
+        self.assertIn("Épreuve en attente", page)
+        self.assertIn("200", page)
+
+    def test_procuration_affichee(self):
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-2",
+                nom="Martin",
+                prenom="Luc",
+                code_club="77123",
+                sexe=Sexe.M,
+                date_naissance=date(1990, 1, 1),
+                code_style="BB-R",
+            ),
+        )
+        services.demander_procuration(self.conn, "FR-1", "FR-2", self.competition.id)
+
+        page = page_mes_donnees(self.conn, "FR-1")
+        self.assertIn("Luc Martin", page)
+
+    def test_aucune_procuration(self):
+        page = page_mes_donnees(self.conn, "FR-1")
+        self.assertIn("Aucune procuration", page)
+
+    def test_lien_de_telechargement_present(self):
+        page = page_mes_donnees(self.conn, "FR-1")
+        self.assertIn('href="/mes-donnees/export.json"', page)
+
+    def test_competiteur_inconnu_donne_une_erreur_lisible(self):
+        page = page_mes_donnees(self.conn, "FR-FANTOME")
+        self.assertIn("introuvable", page.lower())
+
+    def test_pas_de_rafraichissement_automatique(self):
+        page = page_mes_donnees(self.conn, "FR-1")
+        self.assertNotIn('http-equiv="refresh"', page)
+
+    def test_nom_echappe_contre_injection_html(self):
+        db.update_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-1",
+                nom="<script>alert(1)</script>",
+                prenom="Marie",
+                code_club="77123",
+                sexe=Sexe.F,
+                date_naissance=date(1995, 3, 14),
+                code_style="BB-R",
+            ),
+        )
+        page = page_mes_donnees(self.conn, "FR-1")
+        self.assertNotIn("<script>", page)
+
+
 class TestAdresseIpLocale(unittest.TestCase):
     def test_retourne_une_chaine_non_vide(self):
         adresse = adresse_ip_locale()
@@ -1304,6 +1414,67 @@ class TestServeurIntegration(unittest.TestCase):
             # urllib suit la redirection -- on doit atterrir sur l'accueil
             # (identifiable par le wordmark du hero, voir page_accueil).
             self.assertIn('class="wordmark"', reponse.read().decode("utf-8"))
+
+    def _obtenir_cookie_identite(self, dossier_cle):
+        with mock.patch.object(securite, "CHEMIN_CLE_PAR_DEFAUT", Path(dossier_cle) / "cle.txt"):
+            conn = db.connect(self.chemin_base)
+            token, _secret = services.generer_token(conn, "FR-1", self.competition_id)
+            conn.close()
+
+            donnees = urllib.parse.urlencode({"code": token.code_court}).encode("utf-8")
+            requete_code = urllib.request.Request(self._url("/code"), data=donnees, method="POST")
+            with urllib.request.urlopen(requete_code, timeout=5) as reponse:
+                cookies_recus = reponse.headers.get_all("Set-Cookie") or []
+            cookie_identite = next((c for c in cookies_recus if c.startswith("identite=")), None)
+            self.assertIsNotNone(cookie_identite)
+            return cookie_identite.split(";")[0]
+
+    def test_cookie_de_session_permet_de_voir_mes_donnees(self):
+        # Même logique que pour /mes-messages : un vrai cookie de
+        # session doit vraiment donner accès à la page RGPD de la bonne
+        # personne (issue #38), pas juste que la fonction de rendu
+        # isolée fonctionne.
+        with tempfile.TemporaryDirectory() as dossier_cle:
+            with mock.patch.object(
+                securite, "CHEMIN_CLE_PAR_DEFAUT", Path(dossier_cle) / "cle.txt"
+            ):
+                valeur_cookie = self._obtenir_cookie_identite(dossier_cle)
+
+                requete = urllib.request.Request(self._url("/mes-donnees"))
+                requete.add_header("Cookie", valeur_cookie)
+                with urllib.request.urlopen(requete, timeout=5) as reponse:
+                    self.assertEqual(reponse.status, 200)
+                    contenu = reponse.read().decode("utf-8")
+        self.assertIn("Dupont", contenu)
+        self.assertIn("IFAA Indoor", contenu)  # l'épreuve créée dans setUp
+
+    def test_mes_donnees_sans_cookie_redirige_vers_laccueil(self):
+        requete = urllib.request.Request(self._url("/mes-donnees"))
+        with urllib.request.urlopen(requete, timeout=5) as reponse:
+            self.assertIn('class="wordmark"', reponse.read().decode("utf-8"))
+
+    def test_export_json_sans_cookie_redirige_vers_laccueil(self):
+        requete = urllib.request.Request(self._url("/mes-donnees/export.json"))
+        with urllib.request.urlopen(requete, timeout=5) as reponse:
+            self.assertIn('class="wordmark"', reponse.read().decode("utf-8"))
+
+    def test_export_json_telechargeable_avec_cookie(self):
+        with tempfile.TemporaryDirectory() as dossier_cle:
+            with mock.patch.object(
+                securite, "CHEMIN_CLE_PAR_DEFAUT", Path(dossier_cle) / "cle.txt"
+            ):
+                valeur_cookie = self._obtenir_cookie_identite(dossier_cle)
+
+                requete = urllib.request.Request(self._url("/mes-donnees/export.json"))
+                requete.add_header("Cookie", valeur_cookie)
+                with urllib.request.urlopen(requete, timeout=5) as reponse:
+                    self.assertEqual(reponse.status, 200)
+                    self.assertIn("application/json", reponse.headers["Content-Type"])
+                    self.assertIn("attachment", reponse.headers["Content-Disposition"])
+                    brut = json.loads(reponse.read().decode("utf-8"))
+        self.assertEqual(brut["id_federal"], "FR-1")
+        self.assertEqual(brut["nom"], "Dupont")
+        self.assertEqual(len(brut["inscriptions"]), 1)
 
     def test_cookie_de_session_permet_de_proposer_un_score(self):
         # Le test décisif de ce chantier : un vrai POST /code pose un

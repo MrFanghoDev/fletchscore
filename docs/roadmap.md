@@ -1035,6 +1035,26 @@ confirmer par un vrai lancement.
       (seul le compétiteur réellement inactif apparaît), anonymisation
       depuis cette fenêtre et disparition immédiate de la ligne.
 
+- [x] **RGPD -- droit d'accès et portabilité, « Mes données » (issue
+      #38, 2026-08-15)**. Complémentaire du #37 : voir ses propres
+      données avant de pouvoir en demander la suppression/correction.
+      `services.rassembler_donnees_personnelles()` -- volontairement
+      pas limité à la compétition de la session en cours (contrairement
+      à `page_mes_messages`), l'article 15 porte sur l'ensemble des
+      données détenues. Nouvelle page web `/mes-donnees` (identité,
+      inscriptions/scores, procurations) + export
+      `/mes-donnees/export.json` téléchargeable
+      (`Content-Disposition: attachment`) -- portabilité RGPD (article
+      20), format JSON simple. Lien "Mes données" sur l'accueil,
+      entrée FAQ dédiée sur la page Aide. 21 tests.
+
+      Vérifié avec un **vrai navigateur** (Selenium + Chromium
+      headless) -- `playwright` non installable ici, Selenium +
+      `chromium-chromedriver` (`apk add`) marchent très bien pour le
+      même usage (recette complète dans `CLAUDE.md`). Lien cliqué
+      depuis un vrai DOM rendu, contenu de page confirmé, export JSON
+      téléchargé et recoupé avec le HTML affiché.
+
 ## Points ouverts transverses
 
 Voir le [cahier des charges](cahier-des-charges/roadmap.rst) pour le

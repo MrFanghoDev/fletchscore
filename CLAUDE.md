@@ -55,6 +55,26 @@ desktop, compétiteur web) sur une base SQLite locale unique.
   sans écran physique. Utilisé pour vérifier l'issue #1 (procurations
   actives/révocation) -- voir les commentaires de cette issue pour le
   déroulé complet.
+- **Vérification réelle de la vue compétiteur web possible depuis le
+  2026-08-15** -- `pip install playwright` échoue ici ("No matching
+  distribution found", dépôt indisponible depuis cet environnement),
+  mais **Selenium** marche : `apk add chromium-chromedriver` (Chromium
+  lui-même déjà présent, voir `/usr/bin/chromium`) puis
+  `pip install selenium` dans le `.venv`. Piloter avec
+  `webdriver.Chrome(service=Service("/usr/bin/chromedriver"),
+  options=options)`, `options.binary_location =
+  "/usr/bin/chromium"`, et impérativement
+  `--headless=new --no-sandbox --disable-dev-shm-usage --disable-gpu
+  --disable-software-rasterizer` -- sans `--disable-gpu` Chromium tente
+  une init Vulkan/EGL qui échoue en boucle (`ANGLE Display::initialize
+  error`, `eglInitialize SwANGLE failed`) et ralentit beaucoup le
+  démarrage (10-20s même avec le flag, bien plus sans). Pour poser un
+  cookie de session avant de charger une page protégée :
+  `driver.get(url)` une première fois (n'importe quelle page du même
+  domaine, pour que `add_cookie` soit accepté), `driver.add_cookie(...)`,
+  puis recharger. Utilisé pour vérifier l'issue #38 (page RGPD "Mes
+  données" + export JSON) avec un vrai rendu de page, pas une relecture
+  du HTML généré.
 - Une dépendance non installable dans l'environnement de travail peut
   casser la collecte de toute la suite de tests, pas juste ses propres
   tests (`unittest discover` échoue dès qu'un module lève une exception à

@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from datetime import date
@@ -1619,6 +1620,120 @@ class TestListerCompetiteursInactifs(ServiceTestCase):
 
         inactifs = services.lister_competiteurs_inactifs(self.conn, date(2030, 1, 1))
         self.assertEqual([c.id_federal for c, _d in inactifs], ["FR-1", "FR-2"])
+
+
+class TestRassemblerDonneesPersonnelles(ServiceTestCase):
+    def test_competiteur_inconnu_refuse(self):
+        with self.assertRaises(ErreurMetier):
+            services.rassembler_donnees_personnelles(self.conn, "FR-FANTOME")
+
+    def test_identite_reprise_telle_quelle(self):
+        donnees = services.rassembler_donnees_personnelles(self.conn, "FR-1")
+        self.assertEqual(donnees.competiteur.id_federal, "FR-1")
+        self.assertEqual(donnees.competiteur.nom, "Dupont")
+        self.assertEqual(donnees.club_nom, "Archers Libres de FLP")
+        self.assertEqual(donnees.style_libelle, "Barebow Recurve")
+
+    def test_aucune_inscription_liste_vide(self):
+        donnees = services.rassembler_donnees_personnelles(self.conn, "FR-1")
+        self.assertEqual(donnees.inscriptions, [])
+        self.assertEqual(donnees.procurations_comme_mandataire, [])
+        self.assertEqual(donnees.procurations_comme_mandant, [])
+
+    def test_score_valide_et_score_en_attente_tous_deux_presents(self):
+        competition = self._competition()
+        epreuve1 = self._epreuve(competition, nom="Épreuve validée")
+        epreuve2 = self._epreuve(competition, nom="Épreuve en attente")
+        i1 = services.inscrire(self.conn, "FR-1", epreuve1.id)
+        services.inscrire(self.conn, "FR-1", epreuve2.id)
+        services.saisir_score_final(self.conn, i1.id, 260)
+        services.proposer_score(self.conn, "FR-1", epreuve2.id, 200)
+
+        donnees = services.rassembler_donnees_personnelles(self.conn, "FR-1")
+
+        self.assertEqual(len(donnees.inscriptions), 2)
+        par_epreuve = {ligne.epreuve_nom: ligne for ligne in donnees.inscriptions}
+        self.assertEqual(par_epreuve["Épreuve validée"].score_total, 260)
+        self.assertEqual(par_epreuve["Épreuve validée"].score_statut, StatutScore.VALIDE)
+        self.assertEqual(par_epreuve["Épreuve en attente"].score_total, 200)
+        self.assertEqual(par_epreuve["Épreuve en attente"].score_statut, StatutScore.PROPOSE)
+
+    def test_inscription_sans_score_a_score_none(self):
+        epreuve = self._epreuve(self._competition())
+        services.inscrire(self.conn, "FR-1", epreuve.id)
+
+        donnees = services.rassembler_donnees_personnelles(self.conn, "FR-1")
+
+        self.assertEqual(len(donnees.inscriptions), 1)
+        self.assertIsNone(donnees.inscriptions[0].score_total)
+        self.assertIsNone(donnees.inscriptions[0].score_statut)
+
+    def test_inscriptions_triees_de_la_plus_recente_a_la_plus_ancienne(self):
+        competition = self._competition(date_debut=date(2019, 1, 1), date_fin=date(2019, 1, 2))
+        epreuve_ancienne = self._epreuve(competition, nom="Ancienne", date_epreuve=date(2019, 1, 1))
+        services.inscrire(self.conn, "FR-1", epreuve_ancienne.id)
+
+        competition_recente = self._competition(
+            nom="Récente", date_debut=date(2026, 3, 1), date_fin=date(2026, 3, 2)
+        )
+        epreuve_recente = self._epreuve(
+            competition_recente, nom="Récente", date_epreuve=date(2026, 3, 1)
+        )
+        services.inscrire(self.conn, "FR-1", epreuve_recente.id)
+
+        donnees = services.rassembler_donnees_personnelles(self.conn, "FR-1")
+
+        self.assertEqual(
+            [ligne.epreuve_nom for ligne in donnees.inscriptions], ["Récente", "Ancienne"]
+        )
+
+    def test_procuration_comme_mandataire_et_comme_mandant(self):
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-2",
+                nom="Martin",
+                prenom="Luc",
+                code_club="77123",
+                sexe=Sexe.M,
+                date_naissance=date(1990, 1, 1),
+                code_style="BB-R",
+            ),
+        )
+        competition = self._competition()
+        # FR-1 mandataire pour FR-2 (note pour lui).
+        services.demander_procuration(self.conn, "FR-1", "FR-2", competition.id)
+        # FR-1 mandant, FR-2 note pour lui.
+        procuration_mandant = services.demander_procuration(
+            self.conn, "FR-2", "FR-1", competition.id
+        )
+        services.valider_procuration(self.conn, procuration_mandant.id)
+
+        donnees = services.rassembler_donnees_personnelles(self.conn, "FR-1")
+
+        self.assertEqual(len(donnees.procurations_comme_mandataire), 1)
+        self.assertEqual(donnees.procurations_comme_mandataire[0].id_federal_mandant, "FR-2")
+        self.assertEqual(len(donnees.procurations_comme_mandant), 1)
+        self.assertEqual(donnees.procurations_comme_mandant[0].id_federal_mandataire, "FR-2")
+        self.assertEqual(donnees.procurations_comme_mandant[0].statut, StatutProcuration.VALIDEE)
+
+    def test_donnees_personnelles_en_dict_serialisable_json(self):
+        competition = self._competition()
+        epreuve = self._epreuve(competition)
+        inscription = services.inscrire(self.conn, "FR-1", epreuve.id)
+        services.saisir_score_final(self.conn, inscription.id, 260)
+
+        donnees = services.rassembler_donnees_personnelles(self.conn, "FR-1")
+        brut = services.donnees_personnelles_en_dict(donnees)
+
+        # Doit être sérialisable tel quel -- portabilité RGPD (article 20).
+        serialise = json.dumps(brut, ensure_ascii=False)
+        relu = json.loads(serialise)
+        self.assertEqual(relu["id_federal"], "FR-1")
+        self.assertEqual(relu["nom"], "Dupont")
+        self.assertEqual(len(relu["inscriptions"]), 1)
+        self.assertEqual(relu["inscriptions"][0]["score_total"], 260)
+        self.assertEqual(relu["inscriptions"][0]["score_statut"], "valide")
 
 
 class TestParserDate(ServiceTestCase):

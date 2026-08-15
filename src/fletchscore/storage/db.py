@@ -1098,6 +1098,21 @@ def list_procurations_validees(conn: sqlite3.Connection, competition_id: str) ->
     return [_row_to_procuration(r) for r in rows]
 
 
+def list_procurations_by_competiteur(
+    conn: sqlite3.Connection, id_federal: str
+) -> list[Procuration]:
+    """Toutes les procurations où ce compétiteur apparaît, comme
+    mandataire ou comme mandant -- tout statut, toute compétition.
+    Utilisé pour le droit d'accès RGPD (issue #38), qui porte sur
+    l'ensemble des données détenues, pas une seule compétition."""
+    rows = conn.execute(
+        """SELECT * FROM procurations
+           WHERE id_federal_mandataire = ? OR id_federal_mandant = ?""",
+        (id_federal, id_federal),
+    ).fetchall()
+    return [_row_to_procuration(r) for r in rows]
+
+
 def list_procurations_validees_par_mandataire(
     conn: sqlite3.Connection, competition_id: str, id_federal_mandataire: str
 ) -> list[Procuration]:
