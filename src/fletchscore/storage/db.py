@@ -975,6 +975,17 @@ def revoquer_token(conn: sqlite3.Connection, id_federal: str, competition_id: st
     conn.commit()
 
 
+def revoquer_tokens_by_competition(conn: sqlite3.Connection, competition_id: str) -> None:
+    """Révoque d'un coup tous les tokens actifs d'une compétition --
+    utilisé à sa clôture (services.cloturer_competition, issue #50)."""
+    conn.execute(
+        """UPDATE tokens SET statut = ?
+           WHERE competition_id = ? AND statut != ?""",
+        (StatutToken.REVOQUE.value, competition_id, StatutToken.REVOQUE.value),
+    )
+    conn.commit()
+
+
 # ----------------------------------------------- Demande de rattachement --
 
 

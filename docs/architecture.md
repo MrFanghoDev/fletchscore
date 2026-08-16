@@ -1605,4 +1605,66 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   Périmètre volontairement limité à FletchScore -- ticket miroir
   [fletchtime#15](https://github.com/MrFanghoDev/fletchtime/issues/15)
   pour le même changement côté FletchTime, mêmes décisions déjà
-  actées, pas à retrancher une deuxième fois.
+  actées, traité dans la foulée.
+
+- **Clôture de compétition** (issue
+  [#50](https://github.com/MrFanghoDev/fletchscore/issues/50),
+  2026-08-16). Question directe de l'utilisateur, remarquant que
+  `Competition.statut` existait sans jamais changer dans la GUI --
+  vérifié dans le code avant de répondre : trois garde-fous
+  (`creer_epreuve`/`modifier_epreuve`/`supprimer_epreuve`) vérifiaient
+  déjà `statut == CLOTUREE`, mais rien ne le faisait jamais passer à
+  cette valeur. Code mort depuis l'introduction du champ.
+
+  Trois décisions tranchées avec l'utilisateur avant de coder (le
+  ticket listait explicitement ces points comme "à ne pas deviner") :
+  clôture **réversible** (`rouvrir_competition`, filet de sécurité en
+  cas d'erreur) ; clôturer bloque aussi désormais la **saisie de
+  score**, pas seulement la gestion des épreuves ; les **tokens actifs
+  sont révoqués** à la clôture plutôt que la documentation corrigée
+  pour admettre qu'ils ne le sont jamais.
+
+  `services.cloturer_competition(conn, competition_id)` -- refuse si
+  déjà clôturée ou compétition introuvable, fait passer le statut puis
+  révoque en une requête tous les tokens actifs de la compétition
+  (`db.revoquer_tokens_by_competition`, nouveau -- `UPDATE ... WHERE
+  competition_id = ? AND statut != REVOQUE`, plus simple qu'une boucle
+  sur `list_tokens_by_competition` + `revoquer_token` par token).
+  `services.rouvrir_competition()` symétrique, ne restaure pas les
+  tokens révoqués (une révocation reste un choix explicite, même
+  logique que `revoquer_acces` -- pas de résurrection implicite d'un
+  accès qu'un organisateur a choisi de couper).
+
+  Garde de clôture ajoutée dans `saisir_score_final()` plutôt que
+  dupliquée dans `proposer_score()`/`valider_score_propose()`/
+  `rejeter_score_propose()` : les trois passent déjà par
+  `saisir_score_final()` en interne (point de passage unique déjà
+  établi avant ce ticket), donc un seul contrôle couvre les quatre
+  chemins de saisie sans risque de divergence entre eux.
+
+  Deuxième gap trouvé en vérifiant, corrigé par le même mécanisme :
+  `docs/cahier-des-charges/securite.rst` documentait l'expiration d'un
+  token comme "automatique à la clôture" -- faux jusqu'ici
+  (`valider_rattachement()` n'a jamais renseigné `Token.expire_le`).
+  Choix retenu : faire correspondre le comportement réel à la doc
+  existante (révoquer à la clôture) plutôt que réécrire la doc pour
+  admettre l'inverse.
+
+  GUI (`gui/ecran_competitions.py`) : un seul bouton par ligne de
+  compétition, icône 🔒 (clôturer) / 🔓 (rouvrir) reflétant déjà l'état
+  courant -- pas deux boutons distincts dont un désactivé. Badge
+  "· Clôturée" ajouté au texte de la ligne. Même patron de dialogue de
+  confirmation que `_confirmer_suppression_competition` (`CTkToplevel`
+  + `transient` + `grab_set` différé + `wait_window`), un seul dialogue
+  paramétré par préfixe i18n (`competitions_cloturer_*` /
+  `competitions_rouvrir_*`) plutôt que deux fonctions quasi identiques.
+
+  16 nouveaux tests (`TestClotureCompetition`,
+  `TestRouvrirCompetition`, plus un test storage dédié pour
+  `revoquer_tokens_by_competition` couvrant la non-interférence entre
+  compétitions). Vérifié réellement (Xvfb) : **vrais clics `xdotool`**
+  sur le bouton verrou de la ligne puis sur le bouton de confirmation
+  du dialogue (pas d'appel direct aux handlers) -- clôture, révocation
+  des tokens en base, badge et icône mis à jour, réouverture, tokens
+  toujours révoqués après réouverture (comportement voulu, pas un
+  oubli) ; captures à chaque étape.

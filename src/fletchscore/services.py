@@ -542,6 +542,64 @@ def supprimer_competition(conn: sqlite3.Connection, competition_id: str) -> None
     db.supprimer_competition(conn, competition_id)
 
 
+def cloturer_competition(conn: sqlite3.Connection, competition_id: str) -> Competition:
+    """Clôture une compétition -- issue #50. Fait passer le statut à
+    ``CLOTUREE``, ce qui active les garde-fous déjà en place mais
+    jusqu'ici jamais déclenchés (``creer_epreuve``, ``modifier_epreuve``,
+    ``supprimer_epreuve``) et bloque désormais aussi toute nouvelle
+    saisie/proposition de score (voir ``saisir_score_final``).
+
+    Révoque au passage tous les accès compétiteurs actifs de cette
+    compétition -- fait enfin correspondre le comportement réel à ce que
+    ``docs/cahier-des-charges/securite.rst`` promettait déjà
+    ("expiration automatique à la clôture"). Réversible via
+    ``rouvrir_competition`` ; les accès révoqués ici ne le sont pas
+    automatiquement à la réouverture (une révocation reste un choix
+    explicite, voir ``revoquer_acces``)."""
+    competition = db.get_competition(conn, competition_id)
+    if competition is None:
+        raise ErreurMetier("Compétition introuvable.")
+    if competition.statut == StatutCompetition.CLOTUREE:
+        raise ErreurMetier("Cette compétition est déjà clôturée.")
+
+    cloturee = Competition(
+        id=competition.id,
+        nom=competition.nom,
+        date_debut=competition.date_debut,
+        date_fin=competition.date_fin,
+        lieu=competition.lieu,
+        statut=StatutCompetition.CLOTUREE,
+        categories_veteran_actives=competition.categories_veteran_actives,
+        code_club=competition.code_club,
+    )
+    db.update_competition(conn, cloturee)
+    db.revoquer_tokens_by_competition(conn, competition_id)
+    return cloturee
+
+
+def rouvrir_competition(conn: sqlite3.Connection, competition_id: str) -> Competition:
+    """Rouvre une compétition clôturée par erreur -- symétrique de
+    ``cloturer_competition`` (issue #50)."""
+    competition = db.get_competition(conn, competition_id)
+    if competition is None:
+        raise ErreurMetier("Compétition introuvable.")
+    if competition.statut != StatutCompetition.CLOTUREE:
+        raise ErreurMetier("Cette compétition n'est pas clôturée.")
+
+    rouverte = Competition(
+        id=competition.id,
+        nom=competition.nom,
+        date_debut=competition.date_debut,
+        date_fin=competition.date_fin,
+        lieu=competition.lieu,
+        statut=StatutCompetition.OUVERTE,
+        categories_veteran_actives=competition.categories_veteran_actives,
+        code_club=competition.code_club,
+    )
+    db.update_competition(conn, rouverte)
+    return rouverte
+
+
 # ----------------------------------------------------------- Épreuve --
 
 
@@ -918,8 +976,18 @@ def saisir_score_final(
     une proposition en ligne (voir ``proposer_score``) -- laissé à
     ``None`` pour une saisie organisateur, sans lien avec une soumission
     en ligne.
+
+    Refuse toute écriture sur une compétition clôturée (issue #50) --
+    même garde-fou que ``creer_epreuve``/``modifier_epreuve``/
+    ``supprimer_epreuve``, point de passage unique pour toute saisie de
+    score (organisateur, ``proposer_score``, ``valider_score_propose``,
+    ``rejeter_score_propose`` passent tous par ici).
     """
     epreuve, bareme = _epreuve_et_bareme_de(conn, inscription_id)
+
+    competition = db.get_competition(conn, epreuve.competition_id)
+    if competition is not None and competition.statut == StatutCompetition.CLOTUREE:
+        raise ErreurMetier("Cette compétition est clôturée -- impossible d'y saisir un score.")
 
     if total < 0:
         raise ErreurMetier("Le score total ne peut pas être négatif.")

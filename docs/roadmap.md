@@ -1147,7 +1147,34 @@ confirmer par un vrai lancement.
       au handler), chrome retraduit, thème réellement appliqué,
       persistance dans `config/gui.toml` confirmée dans les deux cas.
       Ticket miroir [fletchtime#15](https://github.com/MrFanghoDev/fletchtime/issues/15)
-      pour le même changement côté FletchTime, pas encore traité.
+      pour le même changement côté FletchTime, traité dans la foulée.
+
+- [x] **Clôture de compétition (issue #50, 2026-08-16)**. Repéré par
+      l'utilisateur : `Competition.statut` existait (`ouverte`/
+      `cloturee`) et était vérifié à trois endroits
+      (`creer_epreuve`/`modifier_epreuve`/`supprimer_epreuve`) mais
+      rien, nulle part, ne le faisait jamais passer à `cloturee` --
+      trois garde-fous morts en pratique depuis leur introduction.
+      `services.cloturer_competition()`/`rouvrir_competition()`
+      ajoutés (clôture réversible, décision utilisateur) ; bouton
+      🔒/🔓 sur la ligne de chaque compétition (icône reflète l'état,
+      confirmation avant action), badge "Clôturée" affiché. Clôturer
+      bloque désormais aussi toute saisie/proposition de score (garde
+      ajoutée dans `saisir_score_final`, point de passage unique
+      -- couvre `proposer_score`/`valider_score_propose`/
+      `rejeter_score_propose` sans dupliquer la vérification) et
+      révoque d'un coup tous les accès compétiteurs actifs de la
+      compétition (`db.revoquer_tokens_by_competition`, nouveau) --
+      fait enfin correspondre le comportement réel à ce que
+      `securite.rst` promettait déjà ("expiration automatique à la
+      clôture", jusqu'ici faux : `expire_le` n'était jamais renseigné
+      par `valider_rattachement`). Rouvrir ne restaure pas les accès
+      révoqués (une révocation reste un choix explicite, même logique
+      que `revoquer_acces`). 16 nouveaux tests. Vérifié réellement
+      (Xvfb + vrais clics `xdotool` sur les boutons de l'écran et du
+      dialogue de confirmation, pas d'appel direct au handler) :
+      clôture, révocation des accès, réouverture, non-restauration des
+      accès -- captures à l'appui.
 
 ## Points ouverts transverses
 

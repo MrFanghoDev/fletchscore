@@ -329,6 +329,113 @@ class TestSupprimerCompetition(ServiceTestCase):
         self.assertEqual(db.list_messages_by_competition(self.conn, competition.id), [])
 
 
+class TestClotureCompetition(ServiceTestCase):
+    def test_cloture_change_le_statut(self):
+        competition = self._competition()
+        cloturee = services.cloturer_competition(self.conn, competition.id)
+        self.assertEqual(cloturee.statut, StatutCompetition.CLOTUREE)
+        self.assertEqual(
+            db.get_competition(self.conn, competition.id).statut, StatutCompetition.CLOTUREE
+        )
+
+    def test_competition_inconnue_refusee(self):
+        with self.assertRaises(ErreurMetier):
+            services.cloturer_competition(self.conn, "inconnue")
+
+    def test_refuse_si_deja_cloturee(self):
+        competition = self._competition()
+        services.cloturer_competition(self.conn, competition.id)
+        with self.assertRaises(ErreurMetier):
+            services.cloturer_competition(self.conn, competition.id)
+
+    def test_revoque_les_tokens_actifs(self):
+        competition = self._competition()
+        demande = services.demander_rattachement(self.conn, "FR-1", competition.id)
+        services.valider_rattachement(self.conn, demande.id)
+        token = db.list_tokens_by_competition(self.conn, competition.id)[0]
+        self.assertNotEqual(token.statut, StatutToken.REVOQUE)
+
+        services.cloturer_competition(self.conn, competition.id)
+
+        token = db.list_tokens_by_competition(self.conn, competition.id)[0]
+        self.assertEqual(token.statut, StatutToken.REVOQUE)
+
+    def test_bloque_creation_modification_suppression_epreuve(self):
+        competition = self._competition()
+        epreuve = self._epreuve(competition)
+        services.cloturer_competition(self.conn, competition.id)
+
+        with self.assertRaises(ErreurMetier):
+            services.creer_epreuve(
+                self.conn, competition.id, "Autre", date(2026, 3, 14), "ifaa-indoor"
+            )
+        with self.assertRaises(ErreurMetier):
+            services.modifier_epreuve(
+                self.conn, epreuve.id, "Renommée", date(2026, 3, 14), "ifaa-indoor"
+            )
+        with self.assertRaises(ErreurMetier):
+            services.supprimer_epreuve(self.conn, epreuve.id)
+
+    def test_bloque_saisie_de_score(self):
+        competition = self._competition()
+        epreuve = self._epreuve(competition)
+        inscription = services.inscrire(self.conn, "FR-1", epreuve.id)
+        services.cloturer_competition(self.conn, competition.id)
+
+        with self.assertRaises(ErreurMetier):
+            services.saisir_score_final(self.conn, inscription.id, 260)
+
+    def test_bloque_proposition_de_score(self):
+        competition = self._competition()
+        epreuve = self._epreuve(competition)
+        services.inscrire(self.conn, "FR-1", epreuve.id)
+        services.cloturer_competition(self.conn, competition.id)
+
+        with self.assertRaises(ErreurMetier):
+            services.proposer_score(self.conn, "FR-1", epreuve.id, 260)
+
+
+class TestRouvrirCompetition(ServiceTestCase):
+    def test_rouverture_change_le_statut(self):
+        competition = self._competition()
+        services.cloturer_competition(self.conn, competition.id)
+        rouverte = services.rouvrir_competition(self.conn, competition.id)
+        self.assertEqual(rouverte.statut, StatutCompetition.OUVERTE)
+        self.assertEqual(
+            db.get_competition(self.conn, competition.id).statut, StatutCompetition.OUVERTE
+        )
+
+    def test_competition_inconnue_refusee(self):
+        with self.assertRaises(ErreurMetier):
+            services.rouvrir_competition(self.conn, "inconnue")
+
+    def test_refuse_si_pas_cloturee(self):
+        competition = self._competition()
+        with self.assertRaises(ErreurMetier):
+            services.rouvrir_competition(self.conn, competition.id)
+
+    def test_ne_restaure_pas_les_tokens_revoques(self):
+        competition = self._competition()
+        demande = services.demander_rattachement(self.conn, "FR-1", competition.id)
+        services.valider_rattachement(self.conn, demande.id)
+        services.cloturer_competition(self.conn, competition.id)
+
+        services.rouvrir_competition(self.conn, competition.id)
+
+        token = db.list_tokens_by_competition(self.conn, competition.id)[0]
+        self.assertEqual(token.statut, StatutToken.REVOQUE)
+
+    def test_epreuve_de_nouveau_creable_apres_reouverture(self):
+        competition = self._competition()
+        services.cloturer_competition(self.conn, competition.id)
+        services.rouvrir_competition(self.conn, competition.id)
+
+        epreuve = services.creer_epreuve(
+            self.conn, competition.id, "Nouvelle", date(2026, 3, 14), "ifaa-indoor"
+        )
+        self.assertIsNotNone(db.get_epreuve(self.conn, epreuve.id))
+
+
 class TestModifierEpreuve(ServiceTestCase):
     def test_modification_valide(self):
         competition = self._competition()

@@ -85,6 +85,25 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         ),
         "competitions_delete_confirm_button": "Supprimer",
         "competitions_deleted": "Compétition « {nom} » supprimée.",
+        "competitions_statut_cloturee": "Clôturée",
+        "competitions_cloturer_title": "Clôturer la compétition",
+        "competitions_cloturer_confirm": (
+            "Clôturer la compétition « {nom} » ?\n\n"
+            "Plus aucune épreuve ne pourra être créée, modifiée ou "
+            "supprimée, plus aucun score saisi ou proposé, et tous les "
+            "accès compétiteurs actifs (codes, QR codes) seront révoqués. "
+            "Réversible via le bouton 🔓."
+        ),
+        "competitions_cloturer_confirm_button": "Clôturer",
+        "competitions_cloturee": "Compétition « {nom} » clôturée, accès compétiteurs révoqués.",
+        "competitions_rouvrir_title": "Rouvrir la compétition",
+        "competitions_rouvrir_confirm": (
+            "Rouvrir la compétition « {nom} » ?\n\n"
+            "Les accès compétiteurs révoqués à la clôture ne sont pas "
+            "restaurés automatiquement -- à régénérer un par un si besoin."
+        ),
+        "competitions_rouvrir_confirm_button": "Rouvrir",
+        "competitions_rouverte": "Compétition « {nom} » rouverte.",
         "epreuves_title_avec_competition": "Épreuves -- {nom}",
         "epreuves_new": "Nouvelle épreuve",
         "epreuves_no_model": "(aucun modèle -- saisie libre)",
@@ -475,6 +494,25 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         ),
         "competitions_delete_confirm_button": "Delete",
         "competitions_deleted": "Competition “{nom}” deleted.",
+        "competitions_statut_cloturee": "Closed",
+        "competitions_cloturer_title": "Close competition",
+        "competitions_cloturer_confirm": (
+            "Close the competition “{nom}”?\n\n"
+            "No event will be able to be created, modified or deleted "
+            "anymore, no score entered or proposed, and all active "
+            "competitor access (codes, QR codes) will be revoked. "
+            "Reversible via the 🔓 button."
+        ),
+        "competitions_cloturer_confirm_button": "Close",
+        "competitions_cloturee": "Competition “{nom}” closed, competitor access revoked.",
+        "competitions_rouvrir_title": "Reopen competition",
+        "competitions_rouvrir_confirm": (
+            "Reopen the competition “{nom}”?\n\n"
+            "Competitor access revoked at closure isn't restored "
+            "automatically -- regenerate it one by one if needed."
+        ),
+        "competitions_rouvrir_confirm_button": "Reopen",
+        "competitions_rouverte": "Competition “{nom}” reopened.",
         "epreuves_title_avec_competition": "Events -- {nom}",
         "epreuves_new": "New event",
         "epreuves_no_model": "(no template -- free entry)",

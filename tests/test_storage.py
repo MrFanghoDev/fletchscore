@@ -409,6 +409,64 @@ class TestTokenEtRattachement(StorageTestCase):
         recupere = db.get_token_by_code_court(self.conn, "AB23CD")
         self.assertEqual(recupere.statut, StatutToken.REVOQUE)
 
+    def test_revoquer_tokens_by_competition_revoque_tous_ceux_de_la_competition(self):
+        db.insert_competiteur(
+            self.conn,
+            Competiteur(
+                id_federal="FR-2",
+                nom="Martin",
+                prenom="Luc",
+                code_club="77123",
+                sexe=Sexe.M,
+                date_naissance=date(1990, 1, 1),
+                code_style="BB-R",
+            ),
+        )
+        db.insert_competition(
+            self.conn,
+            Competition(
+                id="comp-2",
+                nom="Autre compétition",
+                date_debut=date(2026, 4, 1),
+                date_fin=date(2026, 4, 2),
+            ),
+        )
+        db.insert_token(
+            self.conn,
+            Token(
+                id_federal="FR-1",
+                competition_id="comp-1",
+                code_court="AB23CD",
+                hash_token="hash-simulé",
+            ),
+        )
+        db.insert_token(
+            self.conn,
+            Token(
+                id_federal="FR-2",
+                competition_id="comp-1",
+                code_court="EF45GH",
+                hash_token="hash-simulé",
+            ),
+        )
+        # Token d'une autre compétition -- ne doit pas être touché.
+        db.insert_token(
+            self.conn,
+            Token(
+                id_federal="FR-1",
+                competition_id="comp-2",
+                code_court="IJ67KL",
+                hash_token="hash-simulé",
+            ),
+        )
+
+        db.revoquer_tokens_by_competition(self.conn, "comp-1")
+
+        tokens_comp1 = db.list_tokens_by_competition(self.conn, "comp-1")
+        self.assertTrue(all(t.statut == StatutToken.REVOQUE for t in tokens_comp1))
+        token_comp2 = db.get_token_by_code_court(self.conn, "IJ67KL")
+        self.assertNotEqual(token_comp2.statut, StatutToken.REVOQUE)
+
     def test_demande_rattachement_en_attente_puis_validee(self):
         demande = DemandeRattachement(
             id="dem-1",

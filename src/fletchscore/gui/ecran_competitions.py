@@ -22,7 +22,7 @@ from fletchscore.io.sauvegarde_competition import (
     formater_rapport_restauration,
     importer_competition,
 )
-from fletchscore.models import Competition, Epreuve
+from fletchscore.models import Competition, Epreuve, StatutCompetition
 from fletchscore.services import ErreurMetier, parser_date
 from fletchscore.storage import db
 
@@ -229,6 +229,8 @@ class EcranCompetitions(ctk.CTkFrame):
 
         for index, competition in enumerate(competitions):
             texte = f"{competition.nom}\n{competition.date_debut} -- {competition.date_fin}"
+            if competition.statut == StatutCompetition.CLOTUREE:
+                texte += f" · {self._t('competitions_statut_cloturee')}"
             selectionnee = (
                 self.competition_selectionnee is not None
                 and self.competition_selectionnee.id == competition.id
@@ -266,11 +268,81 @@ class EcranCompetitions(ctk.CTkFrame):
             ).grid(row=0, column=3, padx=(6, 0))
             ctk.CTkButton(
                 ligne,
+                text="🔓" if competition.statut == StatutCompetition.CLOTUREE else "🔒",
+                width=36,
+                fg_color="gray40",
+                command=lambda c=competition: self._basculer_cloture_competition(c),
+            ).grid(row=0, column=4, padx=(6, 0))
+            ctk.CTkButton(
+                ligne,
                 text="❌",
                 width=36,
                 fg_color="gray40",
                 command=lambda c=competition: self._supprimer_competition(c),
-            ).grid(row=0, column=4, padx=(6, 0))
+            ).grid(row=0, column=5, padx=(6, 0))
+
+    def _basculer_cloture_competition(self, competition: Competition) -> None:
+        """Clôture ou rouvre selon le statut actuel (issue #50) -- un
+        seul bouton, dont l'icône (🔒/🔓) reflète déjà l'état courant et
+        donc l'action que le clic va déclencher."""
+        self._afficher_erreur_competition("")
+        if competition.statut == StatutCompetition.CLOTUREE:
+            if not self._confirmer_bascule_cloture(competition, cloture=False):
+                return
+            try:
+                services.rouvrir_competition(self.conn, competition.id)
+            except ErreurMetier as erreur:
+                self._afficher_erreur_competition(str(erreur))
+                return
+            self._afficher_info_competition(self._t("competitions_rouverte", nom=competition.nom))
+        else:
+            if not self._confirmer_bascule_cloture(competition, cloture=True):
+                return
+            try:
+                services.cloturer_competition(self.conn, competition.id)
+            except ErreurMetier as erreur:
+                self._afficher_erreur_competition(str(erreur))
+                return
+            self._afficher_info_competition(self._t("competitions_cloturee", nom=competition.nom))
+
+        self._rafraichir_competitions()
+
+    def _confirmer_bascule_cloture(self, competition: Competition, *, cloture: bool) -> bool:
+        """Même modèle que ``_confirmer_suppression_competition`` --
+        CTkToplevel + transient + grab_set différé + wait_window."""
+        resultat = {"ok": False}
+        prefixe = "competitions_cloturer" if cloture else "competitions_rouvrir"
+
+        dialogue = ctk.CTkToplevel(self)
+        dialogue.title(self._t(f"{prefixe}_title"))
+        dialogue.geometry("380x240")
+        dialogue.protocol("WM_DELETE_WINDOW", dialogue.destroy)
+
+        message = self._t(f"{prefixe}_confirm", nom=competition.nom)
+        ctk.CTkLabel(dialogue, text=message, wraplength=340, justify="left").pack(
+            padx=20, pady=(20, 15)
+        )
+
+        def confirmer() -> None:
+            resultat["ok"] = True
+            dialogue.destroy()
+
+        cadre_boutons = ctk.CTkFrame(dialogue, fg_color="transparent")
+        cadre_boutons.pack(pady=10)
+        ctk.CTkButton(
+            cadre_boutons,
+            text=self._t(f"{prefixe}_confirm_button"),
+            fg_color="gray40",
+            command=confirmer,
+        ).pack(side="left", padx=5)
+        ctk.CTkButton(cadre_boutons, text=self._t("annuler"), command=dialogue.destroy).pack(
+            side="left", padx=5
+        )
+
+        dialogue.transient(self)
+        dialogue.after(50, dialogue.grab_set)
+        self.wait_window(dialogue)
+        return resultat["ok"]
 
     def _supprimer_competition(self, competition: Competition) -> None:
         """Suppression d'une compétition vide (issue #45) -- refusée par
