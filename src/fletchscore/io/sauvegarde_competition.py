@@ -108,6 +108,7 @@ def _competition_vers_dict(c: Competition) -> dict:
         "lieu": c.lieu,
         "statut": c.statut.value,
         "categories_veteran_actives": c.categories_veteran_actives,
+        "code_club": c.code_club,
     }
 
 
@@ -120,6 +121,7 @@ def _dict_vers_competition(d: dict) -> Competition:
         lieu=d.get("lieu", ""),
         statut=StatutCompetition(d["statut"]),
         categories_veteran_actives=d.get("categories_veteran_actives", False),
+        code_club=d.get("code_club"),
     )
 
 
@@ -268,6 +270,12 @@ def exporter_competition(
         if c is not None
     ]
     codes_clubs = {c.code_club for c in competiteurs}
+    if competition.code_club is not None:
+        # Club organisateur (issue #48) -- pas forcément le club d'un
+        # des compétiteurs (compétition inter-clubs), doit quand même
+        # être bundlé pour que code_club reste résoluble une fois
+        # restauré sur une autre machine (clé étrangère vers clubs).
+        codes_clubs.add(competition.code_club)
     clubs = [c for c in (db.get_club(conn, code) for code in sorted(codes_clubs)) if c is not None]
     baremes = [
         b for b in (db.get_bareme(conn, bareme_id) for bareme_id in sorted(ids_baremes)) if b

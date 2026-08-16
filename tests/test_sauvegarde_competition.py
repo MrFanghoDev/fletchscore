@@ -84,6 +84,80 @@ class TestExporterCompetition(unittest.TestCase):
         self.assertEqual(len(donnees["scores"]), 2)
 
 
+class TestSauvegardeAvecClubOrganisateur(unittest.TestCase):
+    """Club organisateur (issue #48) distinct du club de tout
+    compétiteur -- vérifie qu'il est quand même bundlé dans l'export
+    (sinon la clé étrangère competitions.code_club serait irrésoluble
+    une fois restauré sur une machine qui ne connaît pas ce club)."""
+
+    def setUp(self):
+        self.conn_source = db.connect(":memory:")
+        db.init_schema(self.conn_source)
+        db.seed_referentiel_styles(self.conn_source)
+        db.seed_baremes_preconfigures(self.conn_source)
+        db.insert_club(self.conn_source, Club("77123", "Archers Libres de FLP"))
+        db.insert_club(self.conn_source, Club("91000", "Club Organisateur"))
+        db.insert_competiteur(
+            self.conn_source,
+            Competiteur(
+                id_federal="FR-1",
+                nom="Dupont",
+                prenom="Marie",
+                code_club="77123",
+                sexe=Sexe.F,
+                date_naissance=date(1995, 3, 14),
+                code_style="BB-R",
+            ),
+        )
+        # Club organisateur ("91000") volontairement différent du club
+        # du seul compétiteur ("77123") -- sans quoi le test ne
+        # prouverait rien sur le bundling spécifique à code_club.
+        self.competition = services.creer_competition(
+            self.conn_source,
+            "Week-end FFTL",
+            date(2026, 3, 14),
+            date(2026, 3, 15),
+            code_club="91000",
+        )
+        epreuve = services.creer_epreuve(
+            self.conn_source, self.competition.id, "Indoor", date(2026, 3, 14), "ifaa-indoor"
+        )
+        services.inscrire(self.conn_source, "FR-1", epreuve.id)
+
+    def tearDown(self):
+        self.conn_source.close()
+
+    def test_club_organisateur_bundle_meme_sans_competiteur(self):
+        destination = io.StringIO()
+        exporter_competition(self.conn_source, self.competition.id, destination)
+
+        donnees = json.loads(destination.getvalue())
+        self.assertEqual(donnees["competition"]["code_club"], "91000")
+        codes_clubs_bundles = {c["code_club"] for c in donnees["clubs"]}
+        self.assertIn("91000", codes_clubs_bundles)
+
+    def test_club_organisateur_restaure_sur_base_vide(self):
+        destination = io.StringIO()
+        exporter_competition(self.conn_source, self.competition.id, destination)
+        destination.seek(0)
+
+        conn_cible = db.connect(":memory:")
+        try:
+            db.init_schema(conn_cible)
+            db.seed_referentiel_styles(conn_cible)
+            rapport = importer_competition(conn_cible, destination)
+
+            self.assertTrue(rapport.reussi)
+            self.assertEqual(
+                rapport.clubs_importes, 2
+            )  # 77123 (compétiteur) + 91000 (organisateur)
+            restauree = db.get_competition(conn_cible, self.competition.id)
+            self.assertEqual(restauree.code_club, "91000")
+            self.assertIsNotNone(db.get_club(conn_cible, "91000"))
+        finally:
+            conn_cible.close()
+
+
 class TestImporterCompetitionBaseVide(unittest.TestCase):
     """Restauration sur une base neuve, sans aucun référentiel préchargé
     -- le scénario "transférer d'une machine à une autre" du roadmap :

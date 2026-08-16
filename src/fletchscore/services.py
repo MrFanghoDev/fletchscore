@@ -446,11 +446,14 @@ def creer_competition(
     *,
     lieu: str = "",
     categories_veteran_actives: bool = False,
+    code_club: str | None = None,
 ) -> Competition:
     if not nom.strip():
         raise ErreurMetier("Le nom de la compétition ne peut pas être vide.")
     if date_fin < date_debut:
         raise ErreurMetier("La date de fin ne peut pas précéder la date de début.")
+    if code_club is not None and db.get_club(conn, code_club) is None:
+        raise ErreurMetier(f"Club inconnu : {code_club}")
 
     competition = Competition(
         id=_nouvel_id(),
@@ -460,6 +463,7 @@ def creer_competition(
         lieu=lieu.strip(),
         statut=StatutCompetition.OUVERTE,
         categories_veteran_actives=categories_veteran_actives,
+        code_club=code_club,
     )
     db.insert_competition(conn, competition)
     return competition
@@ -474,6 +478,7 @@ def modifier_competition(
     *,
     lieu: str = "",
     categories_veteran_actives: bool = False,
+    code_club: str | None = None,
 ) -> Competition:
     """Corrige une compétition existante -- mêmes règles que
     ``creer_competition()``, plus une vérification propre à la
@@ -488,6 +493,8 @@ def modifier_competition(
         raise ErreurMetier("Le nom de la compétition ne peut pas être vide.")
     if date_fin < date_debut:
         raise ErreurMetier("La date de fin ne peut pas précéder la date de début.")
+    if code_club is not None and db.get_club(conn, code_club) is None:
+        raise ErreurMetier(f"Club inconnu : {code_club}")
 
     for epreuve in db.list_epreuves_by_competition(conn, competition_id):
         if not (date_debut <= epreuve.date <= date_fin):
@@ -505,6 +512,7 @@ def modifier_competition(
         lieu=lieu.strip(),
         statut=existante.statut,
         categories_veteran_actives=categories_veteran_actives,
+        code_club=code_club,
     )
     db.update_competition(conn, modifiee)
     return modifiee
@@ -786,6 +794,7 @@ def creer_competition_depuis_template(
     *,
     lieu: str = "",
     categories_veteran_actives: bool = False,
+    code_club: str | None = None,
 ) -> tuple[Competition, list[Epreuve]]:
     """Crée une compétition puis génère en une fois toutes ses épreuves à
     partir du modèle -- délègue à ``creer_competition()``/``creer_epreuve()``
@@ -812,6 +821,7 @@ def creer_competition_depuis_template(
         date_fin,
         lieu=lieu,
         categories_veteran_actives=categories_veteran_actives,
+        code_club=code_club,
     )
     epreuves = [
         creer_epreuve(

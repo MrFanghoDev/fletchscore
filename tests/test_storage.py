@@ -211,6 +211,22 @@ class TestCompetitionEpreuveInscriptionScore(StorageTestCase):
         recupere = db.get_competition(self.conn, "comp-1")
         self.assertEqual(recupere, self.competition)
 
+    def test_competition_avec_club_organisateur_roundtrip(self):
+        # code_club (issue #48) optionnel -- None par défaut (voir
+        # test_competition_roundtrip ci-dessus), vérifié ici avec une
+        # vraie valeur.
+        avec_club = Competition(
+            id="comp-2",
+            nom="Compétition avec club organisateur",
+            date_debut=date(2026, 4, 1),
+            date_fin=date(2026, 4, 2),
+            code_club="77123",
+        )
+        db.insert_competition(self.conn, avec_club)
+        recuperee = db.get_competition(self.conn, "comp-2")
+        self.assertEqual(recuperee, avec_club)
+        self.assertEqual(recuperee.code_club, "77123")
+
     def test_update_competition_modifie_les_champs(self):
         modifiee = Competition(
             id="comp-1",
@@ -220,6 +236,7 @@ class TestCompetitionEpreuveInscriptionScore(StorageTestCase):
             lieu="Nouvelle ville",
             statut=self.competition.statut,
             categories_veteran_actives=True,
+            code_club="77123",
         )
         db.update_competition(self.conn, modifiee)
         recuperee = db.get_competition(self.conn, "comp-1")

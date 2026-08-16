@@ -1514,3 +1514,57 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   déterministes), confirmant que la régénération fonctionne pour de
   vrai, pas seulement testée une fois de façon ad hoc au moment de
   l'écrire.
+
+- **Club organisateur d'une compétition** (issue
+  [#48](https://github.com/MrFanghoDev/fletchscore/issues/48),
+  2026-08-16). Repéré en affinant le #9 (export PDF personnalisable) :
+  impossible d'écrire "Organisé par [club]" sur un export tant que
+  `Competition` ne sait pas à quel club elle appartient -- seuls les
+  compétiteurs avaient un `code_club` jusqu'ici.
+
+  `Competition.code_club: str | None = None` -- optionnel, distinct du
+  club de chaque compétiteur (une compétition inter-clubs ou fédérale
+  n'a pas forcément de club organisateur unique). Migration
+  `_migration_0002_competition_code_club` (`ALTER TABLE competitions
+  ADD COLUMN code_club`, même mécanisme que la migration #1) : toujours
+  `NULL` sur une base migrée, jamais deviné rétroactivement --
+  renseignable ensuite via "Modifier". `services.creer_competition()`/
+  `modifier_competition()`/`creer_competition_depuis_template()`
+  valident que le club référencé existe (même principe que pour un
+  compétiteur), sans quoi `ErreurMetier`.
+
+  Deux points trouvés en écrivant les tests, pas en écrivant le code
+  initial -- la suite de tests a fait exactement ce qu'elle doit faire :
+  - `db.importer_donnees_competition()` (transaction unique du #7,
+    restauration d'une sauvegarde) écrit la ligne `competitions` via un
+    `INSERT` SQL brut distinct de `db.insert_competition()` -- oublié
+    dans la première passe, `code_club` restait `NULL` après une
+    restauration même quand la sauvegarde en avait un. Corrigé.
+  - `io/sauvegarde_competition.py::exporter_competition()` ne bundlait
+    que les clubs *des compétiteurs* (`{c.code_club for c in
+    competiteurs}`) -- un club organisateur différent de tous les clubs
+    de compétiteurs (compétition accueillie par un club dont aucun
+    membre n'y participe) se serait retrouvé référencé par
+    `competitions.code_club` sans que ce club soit dans le fichier
+    exporté, rendant la restauration impossible sur une machine qui ne
+    le connaît pas déjà (clé étrangère irrésoluble). Corrigé en ajoutant
+    explicitement `competition.code_club` à l'ensemble des clubs à
+    bundler.
+
+  GUI (`gui/ecran_competitions.py`) : sélecteur de club optionnel dans
+  le formulaire de compétition, entre le lieu et les dates --
+  `"(aucun club organisateur)"` est une vraie valeur sélectionnable
+  (`code_club=None`), pas un simple repli affiché quand la liste est
+  vide comme pour le sélecteur de club (obligatoire) d'un compétiteur.
+  11 tests (storage, migration, services, sauvegarde/restauration).
+  Vérifié réellement (Xvfb) : valeur par défaut correcte, création
+  sans club, création avec club, et rechargement correct du club
+  existant en repassant en mode édition -- les quatre scénarios
+  déclenchés depuis le vrai formulaire GUI, état de la base confirmé
+  après coup à chaque étape.
+
+  **Hors périmètre pour ce ticket** (voir aussi le #9) : où afficher
+  cette information une fois disponible (export PDF, écran d'affichage
+  public, vue web) -- laissé aux tickets qui la consommeront
+  réellement, pas ajouté ici sans un vrai consommateur pour éviter du
+  code mort.

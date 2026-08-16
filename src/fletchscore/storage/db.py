@@ -81,7 +81,8 @@ CREATE TABLE IF NOT EXISTS competitions (
     date_fin TEXT NOT NULL,
     lieu TEXT NOT NULL DEFAULT '',
     statut TEXT NOT NULL DEFAULT 'ouverte',
-    categories_veteran_actives INTEGER NOT NULL DEFAULT 0
+    categories_veteran_actives INTEGER NOT NULL DEFAULT 0,
+    code_club TEXT REFERENCES clubs(code_club)
 );
 
 CREATE TABLE IF NOT EXISTS epreuves (
@@ -202,6 +203,17 @@ def _migration_0001_propose_par_id_federal(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE scores ADD COLUMN propose_par_id_federal TEXT")
 
 
+def _migration_0002_competition_code_club(conn: sqlite3.Connection) -> None:
+    """Ajoute ``competitions.code_club`` -- club organisateur optionnel
+    (issue #48), absent des bases créées avant. Toujours NULL sur une
+    base migrée (pas de club organisateur rétroactivement deviné) --
+    l'organisateur peut le renseigner ensuite via "Modifier"."""
+    if not _colonne_existe(conn, "competitions", "code_club"):
+        conn.execute(
+            "ALTER TABLE competitions ADD COLUMN code_club TEXT REFERENCES clubs(code_club)"
+        )
+
+
 # Migrations séquentielles, appliquées dans l'ordre à partir de la
 # version stockée en base -- pur SQL/Python, pas de dépendance externe
 # (type Alembic), cohérent avec la philosophie "stdlib d'abord" du
@@ -212,6 +224,7 @@ def _migration_0001_propose_par_id_federal(conn: sqlite3.Connection) -> None:
 # l'ajout de la colonne dans _SCHEMA et l'introduction de ce mécanisme).
 MIGRATIONS: list[tuple[int, str, Callable[[sqlite3.Connection], None]]] = [
     (1, "ajoute scores.propose_par_id_federal", _migration_0001_propose_par_id_federal),
+    (2, "ajoute competitions.code_club", _migration_0002_competition_code_club),
 ]
 SCHEMA_VERSION_ACTUELLE = MIGRATIONS[-1][0]
 
@@ -540,8 +553,8 @@ def insert_competition(conn: sqlite3.Connection, competition: Competition) -> No
     conn.execute(
         """INSERT INTO competitions
            (id, nom, date_debut, date_fin, lieu, statut,
-            categories_veteran_actives)
-           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            categories_veteran_actives, code_club)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             competition.id,
             competition.nom,
@@ -550,6 +563,7 @@ def insert_competition(conn: sqlite3.Connection, competition: Competition) -> No
             competition.lieu,
             competition.statut.value,
             int(competition.categories_veteran_actives),
+            competition.code_club,
         ),
     )
     conn.commit()
@@ -564,6 +578,7 @@ def _row_to_competition(row: sqlite3.Row) -> Competition:
         lieu=row["lieu"],
         statut=StatutCompetition(row["statut"]),
         categories_veteran_actives=bool(row["categories_veteran_actives"]),
+        code_club=row["code_club"],
     )
 
 
@@ -583,7 +598,7 @@ def update_competition(conn: sqlite3.Connection, competition: Competition) -> No
     conn.execute(
         """UPDATE competitions SET
                nom = ?, date_debut = ?, date_fin = ?, lieu = ?,
-               statut = ?, categories_veteran_actives = ?
+               statut = ?, categories_veteran_actives = ?, code_club = ?
            WHERE id = ?""",
         (
             competition.nom,
@@ -592,6 +607,7 @@ def update_competition(conn: sqlite3.Connection, competition: Competition) -> No
             competition.lieu,
             competition.statut.value,
             int(competition.categories_veteran_actives),
+            competition.code_club,
             competition.id,
         ),
     )
@@ -1258,8 +1274,9 @@ def importer_donnees_competition(
             )
         conn.execute(
             """INSERT INTO competitions
-               (id, nom, date_debut, date_fin, lieu, statut, categories_veteran_actives)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+               (id, nom, date_debut, date_fin, lieu, statut,
+                categories_veteran_actives, code_club)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 competition.id,
                 competition.nom,
@@ -1268,6 +1285,7 @@ def importer_donnees_competition(
                 competition.lieu,
                 competition.statut.value,
                 int(competition.categories_veteran_actives),
+                competition.code_club,
             ),
         )
         for epreuve in epreuves:

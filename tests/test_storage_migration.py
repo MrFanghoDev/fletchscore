@@ -125,8 +125,15 @@ class TestMigrationDepuisAncienneVersion(unittest.TestCase):
                 valeurs_zones=[5, 4, 3, 2, 1],
             ),
         )
-        db.insert_competition(
-            self.conn, Competition("comp-1", "Week-end FFTL", date(2026, 3, 14), date(2026, 3, 15))
+        # Insert brut (pas db.insert_competition, qui écrit désormais
+        # aussi code_club -- absent du schéma "ancienne version" avant
+        # la migration #0002, voir issue #48) : même principe que le
+        # score écrit en brut plus bas pour propose_par_id_federal.
+        self.conn.execute(
+            """INSERT INTO competitions
+               (id, nom, date_debut, date_fin, lieu, statut, categories_veteran_actives)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            ("comp-1", "Week-end FFTL", "2026-03-14", "2026-03-15", "", "ouverte", 0),
         )
         db.insert_epreuve(
             self.conn, Epreuve("epreuve-1", "comp-1", "Indoor", date(2026, 3, 14), "ifaa-indoor")
@@ -151,6 +158,31 @@ class TestMigrationDepuisAncienneVersion(unittest.TestCase):
         # dans le ticket -- sans quoi le test ne prouverait rien.
         with self.assertRaises(Exception):
             self.conn.execute("SELECT propose_par_id_federal FROM scores").fetchone()
+
+    def test_colonne_code_club_absente_avant_migration(self):
+        # Même vérification pour la migration #0002 (issue #48) --
+        # _SCHEMA_ANCIENNE_VERSION précède aussi l'ajout de
+        # competitions.code_club.
+        with self.assertRaises(Exception):
+            self.conn.execute("SELECT code_club FROM competitions").fetchone()
+
+    def test_migration_ajoute_code_club_sans_perte_de_donnees(self):
+        db.init_schema(self.conn)
+
+        competition = db.get_competition(self.conn, "comp-1")
+        self.assertIsNotNone(competition)
+        self.assertIsNone(competition.code_club)  # pas deviné rétroactivement
+
+        # La colonne doit aussi être réellement utilisable après migration.
+        modifiee = Competition(
+            id="comp-1",
+            nom=competition.nom,
+            date_debut=competition.date_debut,
+            date_fin=competition.date_fin,
+            code_club="77123",
+        )
+        db.update_competition(self.conn, modifiee)
+        self.assertEqual(db.get_competition(self.conn, "comp-1").code_club, "77123")
 
     def test_migration_ajoute_la_colonne_sans_perte_de_donnees(self):
         db.init_schema(self.conn)
@@ -219,6 +251,7 @@ class TestSchemaVersionBaseNeuve(unittest.TestCase):
             version = conn.execute("SELECT version FROM schema_version").fetchone()["version"]
             self.assertEqual(version, db.SCHEMA_VERSION_ACTUELLE)
             self.assertTrue(db._colonne_existe(conn, "scores", "propose_par_id_federal"))
+            self.assertTrue(db._colonne_existe(conn, "competitions", "code_club"))
         finally:
             conn.close()
 

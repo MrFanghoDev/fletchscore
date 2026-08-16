@@ -44,10 +44,12 @@ Deux colonnes.
    compétitions existantes (boutons **✏️** -- modifier --, **💾** --
    enregistrer comme modèle --, **📦** -- sauvegarder -- et **❌** --
    supprimer -- sur chacune) et un
-   formulaire de création (nom, lieu, dates, catégories Veteran/Senior),
-   avec un menu **Modèle** : choisis-en un pour générer d'un coup toutes
-   les épreuves d'un modèle de compétition enregistré précédemment (la
-   date choisie ici sert de date par défaut à chaque épreuve générée --
+   formulaire de création (nom, lieu, dates, catégories Veteran/Senior,
+   **club organisateur** -- optionnel, "(aucun club organisateur)" par
+   défaut), avec un menu **Modèle** : choisis-en un pour générer d'un
+   coup toutes les épreuves d'un modèle de compétition enregistré
+   précédemment (la date choisie ici sert de date par défaut à chaque
+   épreuve générée --
    à corriger ensuite individuellement si elles ne sont pas toutes le
    même jour).
 

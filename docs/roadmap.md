@@ -1116,6 +1116,24 @@ confirmer par un vrai lancement.
       la régénération fonctionne réellement pour l'usage prévu par le
       ticket, pas seulement testée une fois de façon ad hoc.
 
+- [x] **Club organisateur d'une compétition (issue #48, 2026-08-16)**.
+      Repéré en affinant le #9 (export PDF) : impossible d'écrire
+      "Organisé par [club]" tant que `Competition` ne sait pas à quel
+      club elle appartient. `Competition.code_club` optionnel (migration
+      `#0002`, toujours `NULL` sur une base migrée, jamais deviné).
+      Sélecteur optionnel dans le formulaire de compétition
+      (`"(aucun club organisateur)"` par défaut, une vraie valeur
+      sélectionnable). Deux bugs trouvés en écrivant les tests plutôt
+      qu'en écrivant le code initial : `db.importer_donnees_competition()`
+      (transaction de restauration du #7) oubliait `code_club` dans son
+      `INSERT` brut ; l'export ne bundlait que les clubs des
+      compétiteurs, pas le club organisateur s'il diffère de tous
+      -- les deux corrigés. 11 tests. Vérifié réellement (Xvfb) : défaut,
+      création avec/sans club, rechargement correct en mode édition.
+      Où afficher cette information (PDF, affichage public, vue web)
+      volontairement laissé aux tickets qui la consommeront (#9 et
+      suivants), pas de code mort ajouté ici sans consommateur réel.
+
 ## Points ouverts transverses
 
 Voir le [cahier des charges](cahier-des-charges/roadmap.rst) pour le

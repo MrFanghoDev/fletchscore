@@ -63,6 +63,7 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         # -- Écran Compétitions --------------------------------------------
         "competitions_new": "Nouvelle compétition",
         "competitions_place_placeholder": "Lieu (optionnel)",
+        "competitions_no_club_organisateur": "(aucun club organisateur)",
         "competitions_start_placeholder": "Début AAAA-MM-JJ",
         "competitions_end_placeholder": "Fin AAAA-MM-JJ",
         "competitions_start_date_title": "Date de début",
@@ -452,6 +453,7 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         # -- Écran Compétitions --------------------------------------------
         "competitions_new": "New competition",
         "competitions_place_placeholder": "Place (optional)",
+        "competitions_no_club_organisateur": "(no organising club)",
         "competitions_start_placeholder": "Start YYYY-MM-DD",
         "competitions_end_placeholder": "End YYYY-MM-DD",
         "competitions_start_date_title": "Start date",

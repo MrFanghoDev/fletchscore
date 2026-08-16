@@ -90,6 +90,20 @@ class TestCreerCompetition(ServiceTestCase):
         self.assertEqual(competition.nom, "Test")
         self.assertEqual(competition.lieu, "Ville")
 
+    def test_sans_club_organisateur_par_defaut(self):
+        # code_club (issue #48) optionnel -- None si non précisé.
+        competition = self._competition()
+        self.assertIsNone(competition.code_club)
+
+    def test_avec_club_organisateur_valide(self):
+        competition = self._competition(code_club="77123")
+        self.assertEqual(competition.code_club, "77123")
+        self.assertEqual(db.get_competition(self.conn, competition.id).code_club, "77123")
+
+    def test_club_organisateur_inconnu_refuse(self):
+        with self.assertRaises(ErreurMetier):
+            self._competition(code_club="club-fantome")
+
 
 class TestCreerEpreuve(ServiceTestCase):
     def test_creation_valide(self):
@@ -193,6 +207,30 @@ class TestModifierCompetition(ServiceTestCase):
             date_fin=date(2026, 3, 20),
         )
         self.assertEqual(modifiee.date_debut, date(2026, 3, 10))
+
+    def test_club_organisateur_peut_etre_ajoute(self):
+        competition = self._competition()  # sans club au départ
+        modifiee = services.modifier_competition(
+            self.conn,
+            competition.id,
+            nom=competition.nom,
+            date_debut=competition.date_debut,
+            date_fin=competition.date_fin,
+            code_club="77123",
+        )
+        self.assertEqual(modifiee.code_club, "77123")
+
+    def test_club_organisateur_inconnu_refuse(self):
+        competition = self._competition()
+        with self.assertRaises(ErreurMetier):
+            services.modifier_competition(
+                self.conn,
+                competition.id,
+                nom=competition.nom,
+                date_debut=competition.date_debut,
+                date_fin=competition.date_fin,
+                code_club="club-fantome",
+            )
 
     def test_statut_non_modifie_par_cette_fonction(self):
         competition = self._competition()
@@ -1929,6 +1967,21 @@ class TestTemplateCompetition(ServiceTestCase):
         # Les épreuves générées sont bien rattachées en base, pas seulement
         # retournées par la fonction.
         self.assertEqual(len(db.list_epreuves_by_competition(self.conn, competition.id)), 2)
+
+    def test_creer_competition_depuis_template_avec_club_organisateur(self):
+        # code_club (issue #48) transmis jusqu'à creer_competition().
+        template = services.creer_template_competition(
+            self.conn, "Modèle", [("Indoor", "ifaa-indoor")]
+        )
+        competition, _epreuves = services.creer_competition_depuis_template(
+            self.conn,
+            template.id,
+            "Week-end avec club",
+            date(2026, 3, 14),
+            date(2026, 3, 15),
+            code_club="77123",
+        )
+        self.assertEqual(competition.code_club, "77123")
 
     def test_creer_competition_depuis_template_reprend_les_validations_de_creer_competition(self):
         template = services.creer_template_competition(
