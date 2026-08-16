@@ -1134,6 +1134,21 @@ confirmer par un vrai lancement.
       volontairement laissé aux tickets qui la consommeront (#9 et
       suivants), pas de code mort ajouté ici sans consommateur réel.
 
+- [x] **Sélecteurs langue/thème en boutons plutôt qu'en dropdown (issue
+      #49, 2026-08-16)**. La vue web avait déjà des boutons pour les
+      deux (vérifié avant de coder) -- seule la GUI organisateur
+      traînait encore deux `CTkOptionMenu` texte. Langue gardée en
+      texte "FR"/"EN" (pas de drapeaux, décision utilisateur) mais en
+      deux boutons ; thème repris à l'identique des icônes déjà
+      utilisées côté web (◐/☀/☾). `ctk.CTkSegmentedButton` (déjà
+      disponible, aucune dépendance ajoutée) à la place des deux
+      dropdowns. Vérifié réellement (Xvfb) : rendu correct, **vrai
+      clic** sur les boutons internes du widget (pas un appel direct
+      au handler), chrome retraduit, thème réellement appliqué,
+      persistance dans `config/gui.toml` confirmée dans les deux cas.
+      Ticket miroir [fletchtime#15](https://github.com/MrFanghoDev/fletchtime/issues/15)
+      pour le même changement côté FletchTime, pas encore traité.
+
 ## Points ouverts transverses
 
 Voir le [cahier des charges](cahier-des-charges/roadmap.rst) pour le

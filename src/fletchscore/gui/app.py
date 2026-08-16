@@ -61,6 +61,13 @@ CLES_SECTIONS = (
     "aide",
 )
 
+# Mêmes icônes que la vue compétiteur web (api/competiteur.py::_controles_haut
+# -- ◐/☀/☾, boutons .theme-btn), reprises telles quelles pour le sélecteur de
+# thème de la GUI organisateur (issue #49) plutôt que le dropdown texte
+# "system"/"light"/"dark" d'avant.
+ICONES_THEME = {"system": "◐", "light": "☀", "dark": "☾"}
+_THEME_PAR_ICONE = {icone: theme for theme, icone in ICONES_THEME.items()}
+
 
 def _apply_brand_colors() -> None:
     """Surcharge uniquement les couleurs du thème `customtkinter` déjà
@@ -248,17 +255,21 @@ class FenetrePrincipale(ctk.CTk):
             bouton.grid(row=index, column=0, padx=20, pady=6, sticky="ew")
             self.boutons_sections[cle] = bouton
 
+        # Langue et thème en CTkSegmentedButton plutôt qu'en dropdown
+        # (issue #49) -- même principe visuel que la vue compétiteur web
+        # (deux/trois boutons, celui actif mis en évidence), pas un
+        # simple menu déroulant à ouvrir pour voir les choix.
         self.langue_caption = ctk.CTkLabel(self.barre_laterale, text=self._t("langue_caption"))
         self.langue_caption.grid(
             row=len(CLES_SECTIONS) + 3, column=0, padx=20, pady=(10, 0), sticky="w"
         )
-        self.menu_langue = ctk.CTkOptionMenu(
+        self.segment_langue = ctk.CTkSegmentedButton(
             self.barre_laterale,
             values=["FR", "EN"],
             command=self._on_language_change,
         )
-        self.menu_langue.set(self.language.upper())
-        self.menu_langue.grid(
+        self.segment_langue.set(self.language.upper())
+        self.segment_langue.grid(
             row=len(CLES_SECTIONS) + 4, column=0, padx=20, pady=(5, 10), sticky="ew"
         )
 
@@ -266,13 +277,13 @@ class FenetrePrincipale(ctk.CTk):
         self.theme_caption.grid(
             row=len(CLES_SECTIONS) + 5, column=0, padx=20, pady=(10, 0), sticky="w"
         )
-        self.menu_theme = ctk.CTkOptionMenu(
+        self.segment_theme = ctk.CTkSegmentedButton(
             self.barre_laterale,
-            values=list(gui_config.THEMES_VALIDES),
-            command=self.changer_theme,
+            values=list(ICONES_THEME.values()),
+            command=self._on_theme_change,
         )
-        self.menu_theme.set(self.config_gui.theme)
-        self.menu_theme.grid(
+        self.segment_theme.set(ICONES_THEME[self.config_gui.theme])
+        self.segment_theme.grid(
             row=len(CLES_SECTIONS) + 6, column=0, padx=20, pady=(5, 10), sticky="ew"
         )
 
@@ -460,6 +471,13 @@ class FenetrePrincipale(ctk.CTk):
         self._maj_statut_serveur()
 
         self.afficher_section(self.section_active)
+
+    def _on_theme_change(self, icone: str) -> None:
+        """Callback du CTkSegmentedButton (icône ◐/☀/☾, voir
+        ICONES_THEME) -- traduit vers la valeur interne avant de
+        déléguer à changer_theme(), qui reste la seule à connaître
+        config_gui/ctk.set_appearance_mode()."""
+        self.changer_theme(_THEME_PAR_ICONE[icone])
 
     def changer_theme(self, theme: str) -> None:
         self.config_gui.theme = theme

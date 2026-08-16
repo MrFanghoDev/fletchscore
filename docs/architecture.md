@@ -1568,3 +1568,41 @@ poussé avant d'attaquer la v0.2 (vue compétiteur, lecture seule).
   public, vue web) -- laissé aux tickets qui la consommeront
   réellement, pas ajouté ici sans un vrai consommateur pour éviter du
   code mort.
+
+- **Sélecteurs langue/thème en `CTkSegmentedButton` plutôt qu'en
+  dropdown** (issue
+  [#49](https://github.com/MrFanghoDev/fletchscore/issues/49),
+  2026-08-16). Vérifié avant de coder : la vue compétiteur web
+  (`api/competiteur.py::_controles_haut`) utilisait déjà des boutons
+  pour les deux (thème ◐/☀/☾, langue FR/EN) -- seule la GUI
+  organisateur (`gui/app.py`) traînait encore deux `CTkOptionMenu`
+  texte. Un seul sous-sujet à traiter, pas deux.
+
+  Décisions prises avec l'utilisateur : langue gardée en texte "FR"/
+  "EN" (pas de drapeaux -- un drapeau représente un pays, pas une
+  langue) ; thème repris à l'identique de la vue web (mêmes trois
+  icônes ◐/☀/☾, `ICONES_THEME` -- pas un nouveau jeu de symboles à
+  inventer). `ctk.CTkSegmentedButton` (déjà disponible dans la version
+  de customtkinter utilisée, aucune dépendance ajoutée) remplace les
+  deux `CTkOptionMenu` -- widget natif pensé exactement pour "choisir
+  une valeur parmi N, toutes visibles" avec surbrillance de la valeur
+  active intégrée, plutôt que de reconstruire cette logique à la main
+  avec des `CTkButton` indépendants.
+
+  `_on_language_change()` inchangé (reçoit déjà la valeur choisie en
+  paramètre, peu importe le widget d'origine) ; nouveau
+  `_on_theme_change()` traduit l'icône cliquée vers la valeur interne
+  ("system"/"light"/"dark") avant de déléguer à `changer_theme()`,
+  seule fonction à toucher `config_gui`/`ctk.set_appearance_mode()` --
+  pas de logique dupliquée entre les deux callbacks. Vérifié réellement
+  (Xvfb) : les deux sélecteurs rendus avec les bonnes valeurs
+  initiales, **vrai clic** sur le bouton interne du widget
+  (`_buttons_dict[valeur].invoke()`, pas un appel direct au handler qui
+  aurait contourné le widget) pour changer de langue puis de thème --
+  chrome retraduit, `ctk.get_appearance_mode()` réellement changé,
+  persistance dans `config/gui.toml` confirmée dans les deux cas.
+
+  Périmètre volontairement limité à FletchScore -- ticket miroir
+  [fletchtime#15](https://github.com/MrFanghoDev/fletchtime/issues/15)
+  pour le même changement côté FletchTime, mêmes décisions déjà
+  actées, pas à retrancher une deuxième fois.
