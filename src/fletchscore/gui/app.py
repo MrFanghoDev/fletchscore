@@ -19,7 +19,7 @@ import customtkinter as ctk
 from PIL import Image
 
 from fletchscore import __version__, auth
-from fletchscore.api.competiteur import adresse_ip_locale, creer_serveur
+from fletchscore.api.competiteur import adresse_ip_locale, creer_serveur, dossier_web
 from fletchscore.gui import config as gui_config
 from fletchscore.gui.ecran_accueil import EcranAccueil
 from fletchscore.gui.ecran_aide import EcranAide
@@ -44,7 +44,14 @@ CHEMIN_BASE_PAR_DEFAUT = Path("fletchscore.db")
 # est déjà embarqué tel quel par pip et PyInstaller -- voir
 # pyproject.toml/fletchscore.spec) : pas de nouveau dossier d'assets ni
 # de nouvelle entrée de packaging à faire vivre pour la GUI seule.
-CHEMIN_LOGO = Path(__file__).resolve().parent.parent / "web" / "logo.png"
+#
+# Chemin résolu via dossier_web() (qui gère le mode PyInstaller) et non
+# Path(__file__).parent.parent / "web" : une fois gelé, ce dernier pointe
+# vers <exe>/fletchscore/web/ au lieu de <exe>/web/ -- la fenêtre ne
+# s'ouvrait pas (logo introuvable).
+def chemin_logo() -> Path:
+    return dossier_web() / "logo.png"
+
 
 # Ordre d'affichage des boutons du panneau latéral -- les libellés
 # viennent désormais de gui/i18n.py (clés "section_<cle>", issue #17),
@@ -216,8 +223,8 @@ class FenetrePrincipale(ctk.CTk):
         entete.grid(row=0, column=0, padx=20, pady=(20, 15))
 
         image_logo = ctk.CTkImage(
-            light_image=Image.open(CHEMIN_LOGO),
-            dark_image=Image.open(CHEMIN_LOGO),
+            light_image=Image.open(chemin_logo()),
+            dark_image=Image.open(chemin_logo()),
             size=(28, 28),
         )
         ctk.CTkLabel(entete, image=image_logo, text="").pack(side="left", padx=(0, 8))

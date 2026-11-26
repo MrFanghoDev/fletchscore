@@ -37,6 +37,7 @@ import json
 import socket
 import sqlite3
 import ssl
+import sys
 import time
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -59,8 +60,20 @@ AFFICHAGE_ROTATION_SECONDES = 25
 LANGUES_DISPONIBLES = ("fr", "en")
 THEMES_DISPONIBLES = ("dark", "light", "system")
 
-# fletchscore/api/competiteur.py -> fletchscore/ -> web/
-DOSSIER_WEB = Path(__file__).resolve().parent.parent / "web"
+def dossier_web() -> Path:
+    """Dossier des pages/assets statiques de l'application elle-même.
+
+    Empaqueté par PyInstaller (``contents_directory="."`` dans
+    ``fletchscore.spec``), ``__file__`` vaut
+    ``<dossier de l'exe>/fletchscore/api/competiteur.pyc`` : remonter de
+    deux niveaux chercherait ``web/`` dans ``<exe>/fletchscore/web/``,
+    alors que le spec le place directement à côté de l'exe. D'où le
+    traitement à part du mode gelé.
+    """
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent / "web"
+    # fletchscore/api/competiteur.py -> fletchscore/ -> web/
+    return Path(__file__).resolve().parent.parent / "web"
 
 _TEXTES: dict[str, dict[str, str]] = {
     "titre_accueil": {"fr": "Compétitions", "en": "Competitions"},
@@ -1468,7 +1481,7 @@ class GestionnaireRequetesCompetiteur(BaseHTTPRequestHandler):
 
     def _servir_fichier_statique(self, nom_fichier: str, type_mime: str) -> None:
         try:
-            contenu = (DOSSIER_WEB / nom_fichier).read_bytes()
+            contenu = (dossier_web() / nom_fichier).read_bytes()
         except OSError:
             self.send_response(404)
             self.end_headers()
