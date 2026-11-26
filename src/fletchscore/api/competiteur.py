@@ -60,6 +60,7 @@ AFFICHAGE_ROTATION_SECONDES = 25
 LANGUES_DISPONIBLES = ("fr", "en")
 THEMES_DISPONIBLES = ("dark", "light", "system")
 
+
 def dossier_web() -> Path:
     """Dossier des pages/assets statiques de l'application elle-même.
 
@@ -74,6 +75,7 @@ def dossier_web() -> Path:
         return Path(sys.executable).resolve().parent / "web"
     # fletchscore/api/competiteur.py -> fletchscore/ -> web/
     return Path(__file__).resolve().parent.parent / "web"
+
 
 _TEXTES: dict[str, dict[str, str]] = {
     "titre_accueil": {"fr": "Compétitions", "en": "Competitions"},

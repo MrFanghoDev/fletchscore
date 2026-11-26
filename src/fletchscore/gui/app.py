@@ -40,6 +40,7 @@ from fletchscore.storage.db import ouvrir_base
 
 CHEMIN_BASE_PAR_DEFAUT = Path("fletchscore.db")
 
+
 # Même fichier que celui servi par la vue compétiteur (fletchscore.web
 # est déjà embarqué tel quel par pip et PyInstaller -- voir
 # pyproject.toml/fletchscore.spec) : pas de nouveau dossier d'assets ni
